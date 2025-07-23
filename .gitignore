@@ -1,0 +1,23 @@
+# Bytecode and caches
+__pycache__/
+*.py[cod]
+*.pyo
+
+# IDE & environment
+.idea/
+.venv/
+env/
+venv/
+
+# Runtime data / temp files
+client_log.txt
+world_chunks/
+backup/
+archive/
+
+# OS/GUI artifacts
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log

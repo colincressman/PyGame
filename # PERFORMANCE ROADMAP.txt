@@ -1,0 +1,36 @@
+🚩 Current Roadmap
+
+✅ Recently Completed
+- Message Compression (Done: Implemented zlib compression on JSON messages.)
+- Chunk-Based Saving & Loading (Done: Server now saves and loads world data in chunk-based JSON files.)
+- Fullscreen & Windowed Mode Resizing (Done: Implemented seamless fullscreen toggle and window resize.)
+- Thread-Safe Client Updates (Done: Added proper locking mechanisms to avoid threading issues.)
+
+🟢 Active Priority
+- Chunk Save/Load Optimization
+  - Monitor and optimize disk I/O to reduce server load times further.
+  - Test and ensure scalability as world size increases.
+
+⏸️ Back Burner (Paused or Revisit Later)
+- Client-Side Predictive Chunk Preloading
+  - Previously attempted but caused issues; revisit later with refined logic.
+- Numba Parallelization
+  - Paused due to high CPU usage issues; reconsider once optimized algorithms are in place.
+
+🔜 Next Up (Advanced World Generation Improvements)
+- Biome Blending
+  - Smooth biome transitions to enhance visual aesthetics.
+- Elevation Overlays
+  - Add shadows, cliffs, and visual depth based on terrain elevation.
+- Per-Tile Metadata
+  - Implement detailed metadata per tile:
+    {"biome": "forest", "elevation": 0.82, "wetness": 0.2}
+
+📌 Future Considerations
+- Dynamic Entity Persistence
+  - Save/load players, mobs, objects, items separately for performance.
+- Alternative Message Serialization
+  - Explore performance improvements with msgpack or similar.
+
+🎯 Immediate Next Steps
+Focus your immediate efforts on thoroughly testing and refining your new chunk-based saving/loading system. Once satisfied, move toward advanced biome blending and elevation overlays for enhanced visual quality and realism.
