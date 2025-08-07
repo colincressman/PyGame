@@ -3,6 +3,8 @@ import socket, json
 import threading, orjson
 from .sockets import connect_with_retry
 from .protocols import identify_socket, recv_json
+from .interpolation import player_interpolator
+from .lag_compensation import lag_compensator
 
 def handle_world(HOST, PORT_WORLD, chunk_queue, client_running, player_id):
     sock = connect_with_retry(HOST, PORT_WORLD)
@@ -98,12 +100,24 @@ def udp_receive_loop(sock):
             if payload.get("type") == "positions":
                 with data_lock:
                     raw_positions = payload.get("players", {})
+                    server_timestamp = payload.get("timestamp", time.time())
+                    # Adjust for network delay
+                    adjusted_time = server_timestamp + lag_compensator.get_network_delay()
                     players_data.clear()
 
                     for pid, pos in raw_positions.items():
+                        # Add position to interpolator
+                        player_interpolator.add_position_update(pid, pos[0], pos[1], adjusted_time)
+                        
                         players_data[pid] = {
                             "pos": pos
                         }
+            
+            # Update ping information for lag compensation
+            if payload.get("type") == "ping_response":
+                ping_time = payload.get("ping", 0)
+                lag_compensator.add_ping_sample(ping_time)
+                
             if payload.get("type") == "assign_id":
                 player_id_dict["player_id"] = payload.get("player_id")
                 player_id = player_id_dict["player_id"]

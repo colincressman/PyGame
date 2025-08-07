@@ -15,6 +15,7 @@ from state.reset import reset_client_state
 from utils import log_error
 from rendering.cache import clear_distant_cache
 from state.player import *
+from networking.interpolation import player_interpolator
 
 def start_game_client():    
     global last_player_chunk, map_surface_cache
@@ -224,7 +225,8 @@ def start_game_client():
 
             for pid, pdata in players_data.items():
                 if pid != player_id_dict["player_id"]:
-                    other_x, other_y = pdata["pos"]
+                    # Use interpolated position for smooth movement
+                    other_x, other_y = player_interpolator.get_interpolated_position(pid)
                     draw_x = (other_x - player_x) * TILE_SIZE + state["WINDOW_WIDTH"] // 2
                     draw_y = (other_y - player_y) * TILE_SIZE + state["WINDOW_HEIGHT"] // 2
                     pygame.draw.rect(state["screen"], (0, 0, 255), (draw_x, draw_y, TILE_SIZE, TILE_SIZE))

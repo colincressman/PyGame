@@ -1,6 +1,8 @@
 import pygame
 from rendering.display import toggle_fullscreen
 from config import TILE_SIZE
+from networking.interpolation import player_interpolator
+from networking.lag_compensation import lag_compensator
 
 def handle_movement(state, keys, dt):
     base_speed = 6
@@ -14,8 +16,19 @@ def handle_movement(state, keys, dt):
         length = (dx**2 + dy**2) ** 0.5
         dx /= length
         dy /= length
-        state["player_data"]["pos"][0] += dx * speed * dt
-        state["player_data"]["pos"][1] += dy * speed * dt
+        
+        # Apply movement with potential prediction for high-latency connections
+        movement_x = dx * speed * dt
+        movement_y = dy * speed * dt
+        
+        # If we have high ping, apply some client-side prediction
+        if lag_compensator.should_predict_movement():
+            prediction_factor = min(lag_compensator.get_network_delay() * 2, 0.1)
+            movement_x *= (1 + prediction_factor)
+            movement_y *= (1 + prediction_factor)
+        
+        state["player_data"]["pos"][0] += movement_x
+        state["player_data"]["pos"][1] += movement_y
 
 def handle_events(state):
     for event in pygame.event.get():

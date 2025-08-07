@@ -1,5 +1,6 @@
 from config import *
 from state.player import *
+from networking.interpolation import player_interpolator
 
 def reset_client_state():
     global player_data, players_data, world_data, full_world_data
@@ -24,3 +25,8 @@ def reset_client_state():
     awaiting_ping = False
     client_running = True
     player_id = None
+    
+    # Clear interpolation data
+    player_interpolator.position_history.clear()
+    player_interpolator.velocities.clear()
+    player_interpolator.last_update_time.clear()

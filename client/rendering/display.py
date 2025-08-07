@@ -3,6 +3,7 @@
 import pygame, time
 from config import *
 from shared_lock import data_lock
+from networking.interpolation import player_interpolator
 
 def get_font():
     return pygame.font.SysFont(FONT_NAME, FONT_SIZE)
@@ -30,12 +31,21 @@ def toggle_fullscreen(state):
 
 
 def draw_info_overlay(screen, font, fps, ping, biome, elevation, player_x, player_y):
+    from config import players_data, player_id_dict
+    
+    # Count moving players for debug info
+    moving_players = 0
+    for pid in players_data:
+        if pid != player_id_dict["player_id"] and player_interpolator.is_player_moving(pid):
+            moving_players += 1
+    
     info_lines = [
         f"FPS: {int(fps)}",
         f"Ping: {ping} ms",
         f"Biome: {biome}",
         f"Elevation: {elevation:.2f}",
-        f"Coords: {int(player_x)}, {int(player_y)}"
+        f"Coords: {int(player_x)}, {int(player_y)}",
+        f"Moving Players: {moving_players}"
     ]
     for i, line in enumerate(info_lines):
         text = font.render(line, True, (255, 255, 255))

@@ -104,7 +104,8 @@ def udp_broadcast_loop():
 
         payload = {
             "type": "positions",
-            "players": pos_snapshot
+            "players": pos_snapshot,
+            "timestamp": time.time()  # Add server timestamp for better sync
         }
         encoded = json.dumps(payload).encode("utf-8")
         message = struct.pack("!I", len(encoded)) + encoded

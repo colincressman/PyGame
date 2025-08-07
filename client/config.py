@@ -83,6 +83,8 @@ client_running = True
 ping = 0
 last_ping_sent = 0
 awaiting_ping = False
+interpolation_enabled = True
+extrapolation_enabled = True
 
 scheduled_chunk_renders = set()
 chunk_queue = Queue()
