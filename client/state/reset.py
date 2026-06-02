@@ -1,32 +1,100 @@
-from config import *
-from state.player import *
-from networking.interpolation import player_interpolator
+import config
+import state.player as _player_module
 
 def reset_client_state():
-    global player_data, players_data, world_data, full_world_data
-    global chunk_cache, map_surface_cache, last_player_chunk, is_fullscreen
-    global ping, last_ping_sent, awaiting_ping, client_running, player_id
-    global WINDOW_WIDTH, WINDOW_HEIGHT, screen
+    # Persist the player's map exploration before any resets
+    config.save_visited_chunks()
 
-    player_data = {"pos": [680, 272], "health": 100, "level": 1}
-    players_data.clear()
-    world_data.clear()
-    full_world_data.clear()
-    chunk_cache.clear()
+    # Mutate dicts/lists in-place so all modules holding a reference see the reset
+    _player_module.player_data.clear()
+    _player_module.player_data.update({"pos": [config.PLAYER_START_X, config.PLAYER_START_Y], "health": 100, "level": 1})
+    _player_module.player_id_dict["player_id"] = None
 
-    map_surface_cache = None
-    last_player_chunk = None
-    is_fullscreen = False
-    screen = None
-    WINDOW_WIDTH, WINDOW_HEIGHT = 1280, 720
+    config.players_data.clear()
+    config.world_data.clear()
+    # full_world_data intentionally kept — it's the player's map exploration history
+    config.chunk_cache.clear()
 
-    ping = 0
-    last_ping_sent = 0
-    awaiting_ping = False
-    client_running = True
-    player_id = None
-    
-    # Clear interpolation data
-    player_interpolator.position_history.clear()
-    player_interpolator.velocities.clear()
-    player_interpolator.last_update_time.clear()
+    # Drain stale chunks so the next session's loading screen starts from 0%
+    while not config.chunk_queue.empty():
+        try:
+            config.chunk_queue.get_nowait()
+            config.chunk_queue.task_done()
+        except Exception:
+            pass
+
+    # Clear scheduled render set so chunks can be re-submitted to render_queue
+    config.scheduled_chunk_renders.clear()
+
+    config.map_surface_cache = None
+    config.last_player_chunk = None
+    config.is_fullscreen = False
+    config.screen = None
+    config.WINDOW_WIDTH = 1280
+    config.WINDOW_HEIGHT = 720
+
+    config.ping = 0
+    config.last_ping_sent = 0.0
+    config.awaiting_ping = False
+    config.client_running = True
+    config.hit_flash_timer = 0.0
+    config.show_menu = False
+    config.menu_click_pos = None
+    config.show_stats = False
+    config.stat_click_pos = None
+    config.player_coins = 0
+    config.player_exp = 0
+    config.player_exp_next = 100
+    config.player_stat_points = 0
+    config.player_speed_bonus = 0.0
+    config.player_hp_regen = 0.0
+    config.player_sp_regen_bonus = 0.0
+    config.player_slow_timer = 0.0
+
+    # Clear world items so session 2 doesn't start with stale data
+    config.world_items = {}
+
+    # Cancel any in-progress inventory drag
+    config.drag_slot        = None
+    config.drag_item        = None
+    config.open_chest_uid   = None
+    config.chest_drag_slot  = None
+
+    # Reset animation / combat state
+    config.player_facing    = "down"
+    config.is_moving        = False
+    config.is_attacking     = False
+    config.last_attack_time = 0.0
+
+    # Discard any unsent outbox messages from the previous session
+    while not config.state_outbox.empty():
+        try:
+            config.state_outbox.get_nowait()
+        except Exception:
+            break
+
+    while not config.udp_outbox.empty():
+        try:
+            config.udp_outbox.get_nowait()
+        except Exception:
+            break
+
+    # Clear module-level pygame caches that become invalid after pygame.quit().
+    # These are lazily re-created on first use in the new session.
+    import rendering.hud as _hud
+    import rendering.inventory as _inv
+    import rendering.display as _disp
+    import rendering.mobs as _mobs
+    import rendering.stat_screen as _ss
+    _hud._font = None
+    _inv._font = None
+    _inv._item_images.clear()
+    _disp._MISSING_TILE_SURFACE = None
+    _mobs._mob_timers.clear()
+    _mobs._mob_buf.clear()
+    _mobs._loaded = False
+    _mobs._slime.clear()
+    _mobs._level_font = None
+    _ss._font_title = None
+    _ss._font_body = None
+    _ss._font_small = None

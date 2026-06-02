@@ -4,8 +4,12 @@ from server.world.io import save_multiple_chunks
 from server.config import SAVE_INTERVAL
 from server.shared_lock import world_data_lock
 
-# This reference will be injected
+# Shared world_data reference — must be set via set_world_data_ref before use
 world_data = {}
+
+def set_world_data_ref(data):
+    global world_data
+    world_data = data
 
 def autosave_world():
     global world_data

@@ -1,0 +1,334 @@
+{
+  "pos": [
+    -521.1004165007221,
+    861.5057303120451
+  ],
+  "health": 874,
+  "health_max": 100,
+  "stamina": 140.0,
+  "stamina_max": 140.0,
+  "attack_power": 20.005000000000006,
+  "speed_bonus": 0.5,
+  "hp_regen": 0.5,
+  "sp_regen_bonus": 20.0,
+  "level": 14,
+  "exp": 1840,
+  "exp_next": 10500,
+  "stat_points": 0,
+  "coins": 5198,
+  "inventory": [
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    [
+      2101,
+      1,
+      {
+        "stats": {
+          "speed_bonus": -0.15
+        },
+        "dur": 321,
+        "dur_max": 375,
+        "traits": [
+          "sturdy"
+        ],
+        "parts": [
+          193,
+          179,
+          268,
+          294
+        ],
+        "mining_damage": 66,
+        "mining_tier": "pickaxe_steel",
+        "name": "Steel Pickaxe",
+        "material": "Steel"
+      }
+    ],
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    [
+      1865,
+      1,
+      {
+        "quality": "Uncommon",
+        "stats": {
+          "attack_power": 124.1
+        },
+        "dur": 348,
+        "dur_max": 348
+      }
+    ],
+    null,
+    [
+      1855,
+      1,
+      {
+        "quality": "Uncommon",
+        "stats": {
+          "attack_power": 118.1
+        },
+        "dur": 212,
+        "dur_max": 345
+      }
+    ],
+    null,
+    [
+      1874,
+      1,
+      {
+        "quality": "Common",
+        "stats": {
+          "attack_power": 86.2
+        },
+        "dur": 292,
+        "dur_max": 292
+      }
+    ],
+    [
+      1350,
+      1,
+      {
+        "quality": "Common",
+        "stats": {
+          "attack_power": 100.8
+        },
+        "dur": 292,
+        "dur_max": 350
+      }
+    ],
+    [
+      1352,
+      1,
+      {
+        "quality": "Uncommon",
+        "stats": {
+          "attack_power": 158.4
+        },
+        "dur": 350,
+        "dur_max": 350
+      }
+    ],
+    [
+      1750,
+      1,
+      {
+        "quality": "Common",
+        "stats": {
+          "attack_power": 99.7
+        },
+        "dur": 350,
+        "dur_max": 350
+      }
+    ],
+    [
+      1801,
+      1,
+      {
+        "quality": "Common",
+        "stats": {
+          "attack_power": 81.9
+        },
+        "dur": 280,
+        "dur_max": 280
+      }
+    ],
+    [
+      1351,
+      1,
+      {
+        "quality": "Common",
+        "stats": {
+          "attack_power": 84.0
+        },
+        "dur": 350,
+        "dur_max": 350
+      }
+    ],
+    [
+      2750,
+      1,
+      {
+        "quality": "Common",
+        "stats": {
+          "attack_power": 76.3
+        },
+        "dur": 350,
+        "dur_max": 350
+      }
+    ],
+    [
+      3008,
+      1,
+      {
+        "quality": "Common",
+        "stats": {
+          "defense": 16.3,
+          "health_max": 99.4
+        },
+        "dur": 351,
+        "dur_max": 400
+      }
+    ],
+    [
+      3109,
+      1,
+      {
+        "quality": "Uncommon",
+        "stats": {
+          "defense": 42.6,
+          "health_max": 248.3
+        },
+        "dur": 351,
+        "dur_max": 400
+      }
+    ],
+    [
+      3601,
+      1,
+      {
+        "quality": "Exquisite",
+        "stats": {
+          "hp_regen": 5.4
+        },
+        "dur": 51,
+        "dur_max": 100
+      }
+    ],
+    [
+      3600,
+      1,
+      {
+        "quality": "Rare",
+        "stats": {
+          "stamina_max": 35.9
+        },
+        "dur": 51,
+        "dur_max": 100
+      }
+    ],
+    [
+      3309,
+      1,
+      {
+        "quality": "Common",
+        "stats": {
+          "defense": 24.9,
+          "health_max": 147.7
+        },
+        "dur": 351,
+        "dur_max": 400
+      }
+    ],
+    [
+      3407,
+      1,
+      {
+        "quality": "Common",
+        "stats": {
+          "defense": 14.7,
+          "health_max": 55.1,
+          "speed_bonus": 0.0
+        },
+        "dur": 351,
+        "dur_max": 400
+      }
+    ],
+    [
+      3207,
+      1,
+      {
+        "quality": "Common",
+        "stats": {
+          "attack_power": 33.2,
+          "defense": 13.7,
+          "health_max": 56.7
+        },
+        "dur": 351,
+        "dur_max": 400
+      }
+    ],
+    [
+      3656,
+      1,
+      {
+        "quality": "Rare",
+        "stats": {
+          "stamina_max": 46.4
+        },
+        "dur": 55,
+        "dur_max": 100
+      }
+    ],
+    [
+      3523,
+      1,
+      {
+        "quality": "Rare",
+        "stats": {
+          "speed_bonus": 0.2
+        },
+        "dur": 451,
+        "dur_max": 500
+      }
+    ],
+    [
+      3558,
+      1,
+      {
+        "quality": "Common",
+        "stats": {
+          "defense": 31.8,
+          "health_max": 106.1
+        },
+        "dur": 440,
+        "dur_max": 440
+      }
+    ],
+    [
+      3567,
+      1,
+      {
+        "quality": "Uncommon",
+        "stats": {
+          "defense": 17.8,
+          "health_max": 60.7
+        },
+        "dur": 380,
+        "dur_max": 380
+      }
+    ],
+    [
+      3578,
+      1,
+      {
+        "quality": "Common",
+        "stats": {
+          "attack_power": 25.5,
+          "defense": 10.2,
+          "speed_bonus": 0.9
+        },
+        "dur": 350,
+        "dur_max": 350
+      }
+    ]
+  ]
+}

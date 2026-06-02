@@ -1,0 +1,4370 @@
+{
+  "1": {
+    "category": "weapon",
+    "ingredients": [
+      [
+        10,
+        4
+      ],
+      [
+        28,
+        1
+      ]
+    ],
+    "name": "Wooden Sword",
+    "result": [
+      1050,
+      1
+    ],
+    "station": "crafting_table"
+  },
+  "10": {
+    "category": "tool",
+    "ingredients": [
+      [
+        19,
+        2
+      ],
+      [
+        12,
+        2
+      ]
+    ],
+    "name": "Scrap Axe",
+    "result": [
+      2000,
+      1
+    ]
+  },
+  "102": {
+    "category": "armor",
+    "ingredients": [
+      [
+        110,
+        2
+      ],
+      [
+        101,
+        1
+      ]
+    ],
+    "name": "Bronze Boots",
+    "result": [
+      3402,
+      1
+    ],
+    "station": "crafting_table"
+  },
+  "104": {
+    "category": "smelt",
+    "ingredients": [
+      [
+        20,
+        4
+      ]
+    ],
+    "name": "Carbon",
+    "result": [
+      121,
+      1
+    ],
+    "station": "furnace"
+  },
+  "105": {
+    "category": "place",
+    "ingredients": [
+      [
+        120,
+        6
+      ],
+      [
+        100,
+        2
+      ],
+      [
+        101,
+        4
+      ]
+    ],
+    "name": "Alloy Forge",
+    "result": [
+      202,
+      1
+    ],
+    "station": "crafting_table"
+  },
+  "106": {
+    "category": "weapon",
+    "ingredients": [
+      [
+        101,
+        2
+      ],
+      [
+        12,
+        1
+      ]
+    ],
+    "name": "Copper Dagger",
+    "result": [
+      1151,
+      1
+    ],
+    "station": "crafting_table"
+  },
+  "107": {
+    "category": "weapon",
+    "ingredients": [
+      [
+        101,
+        3
+      ],
+      [
+        19,
+        1
+      ]
+    ],
+    "name": "Copper Mace",
+    "result": [
+      1152,
+      1
+    ],
+    "station": "crafting_table"
+  },
+  "108": {
+    "category": "weapon",
+    "ingredients": [
+      [
+        110,
+        2
+      ],
+      [
+        12,
+        1
+      ]
+    ],
+    "name": "Bronze Dagger",
+    "result": [
+      1201,
+      1
+    ],
+    "station": "crafting_table"
+  },
+  "109": {
+    "category": "weapon",
+    "ingredients": [
+      [
+        110,
+        3
+      ],
+      [
+        19,
+        1
+      ]
+    ],
+    "name": "Bronze Mace",
+    "result": [
+      1202,
+      1
+    ],
+    "station": "crafting_table"
+  },
+  "11": {
+    "category": "tool",
+    "ingredients": [
+      [
+        10,
+        3
+      ],
+      [
+        12,
+        2
+      ]
+    ],
+    "name": "Wooden Axe",
+    "result": [
+      2050,
+      1
+    ],
+    "station": "crafting_table"
+  },
+  "112": {
+    "category": "armor",
+    "ingredients": [
+      [
+        100,
+        4
+      ],
+      [
+        20,
+        1
+      ]
+    ],
+    "name": "Iron Leggings",
+    "result": [
+      3306,
+      1
+    ],
+    "station": "crafting_table"
+  },
+  "113": {
+    "category": "armor",
+    "ingredients": [
+      [
+        101,
+        3
+      ],
+      [
+        12,
+        1
+      ]
+    ],
+    "name": "Copper Bracers",
+    "result": [
+      3202,
+      1
+    ],
+    "station": "crafting_table"
+  },
+  "114": {
+    "category": "armor",
+    "ingredients": [
+      [
+        110,
+        3
+      ],
+      [
+        12,
+        1
+      ]
+    ],
+    "name": "Bronze Bracers",
+    "result": [
+      3203,
+      1
+    ],
+    "station": "crafting_table"
+  },
+  "116": {
+    "category": "armor",
+    "ingredients": [
+      [
+        101,
+        2
+      ],
+      [
+        12,
+        2
+      ]
+    ],
+    "name": "Copper Boots",
+    "result": [
+      3404,
+      1
+    ],
+    "station": "crafting_table"
+  },
+  "12": {
+    "category": "tool",
+    "ingredients": [
+      [
+        11,
+        3
+      ],
+      [
+        12,
+        2
+      ]
+    ],
+    "name": "Stone Axe",
+    "result": [
+      2051,
+      1
+    ],
+    "station": "crafting_table"
+  },
+  "13": {
+    "category": "tool",
+    "ingredients": [
+      [
+        100,
+        3
+      ],
+      [
+        10,
+        2
+      ]
+    ],
+    "name": "Iron Axe",
+    "result": [
+      2100,
+      1
+    ],
+    "station": "crafting_table"
+  },
+  "133": {
+    "category": "part",
+    "ingredients": [
+      [
+        104,
+        5
+      ],
+      [
+        103,
+        1
+      ]
+    ],
+    "name": "Iron Axe Head",
+    "result": [
+      167,
+      1
+    ],
+    "station": "part_maker"
+  },
+  "134": {
+    "category": "part",
+    "ingredients": [
+      [
+        104,
+        3
+      ],
+      [
+        103,
+        1
+      ]
+    ],
+    "name": "Tin Pick Head",
+    "result": [
+      175,
+      1
+    ],
+    "station": "part_maker"
+  },
+  "135": {
+    "category": "part",
+    "ingredients": [
+      [
+        104,
+        4
+      ],
+      [
+        103,
+        1
+      ]
+    ],
+    "name": "Gold Plate",
+    "result": [
+      187,
+      1
+    ],
+    "station": "part_maker"
+  },
+  "136": {
+    "category": "part",
+    "ingredients": [
+      [
+        104,
+        3
+      ]
+    ],
+    "name": "Chest Mold",
+    "result": [
+      195,
+      1
+    ],
+    "station": "part_maker"
+  },
+  "137": {
+    "category": "part",
+    "ingredients": [
+      [
+        26,
+        3
+      ],
+      [
+        103,
+        1
+      ]
+    ],
+    "name": "Silver Blade",
+    "result": [
+      157,
+      1
+    ],
+    "station": "part_maker"
+  },
+  "138": {
+    "category": "part",
+    "ingredients": [
+      [
+        26,
+        5
+      ],
+      [
+        103,
+        2
+      ]
+    ],
+    "name": "Bronze Axe Head",
+    "result": [
+      168,
+      1
+    ],
+    "station": "part_maker"
+  },
+  "139": {
+    "category": "part",
+    "ingredients": [
+      [
+        26,
+        3
+      ],
+      [
+        103,
+        1
+      ]
+    ],
+    "name": "Iron Pick Head",
+    "result": [
+      176,
+      1
+    ],
+    "station": "part_maker"
+  },
+  "14": {
+    "category": "tool",
+    "ingredients": [
+      [
+        10,
+        3
+      ],
+      [
+        12,
+        2
+      ]
+    ],
+    "name": "Wooden Pickaxe",
+    "result": [
+      2052,
+      1
+    ],
+    "station": "crafting_table"
+  },
+  "147": {
+    "category": "place",
+    "ingredients": [
+      [
+        120,
+        6
+      ],
+      [
+        100,
+        4
+      ],
+      [
+        101,
+        2
+      ]
+    ],
+    "name": "Part Maker",
+    "result": [
+      204,
+      1
+    ],
+    "station": "crafting_table"
+  },
+  "15": {
+    "category": "tool",
+    "ingredients": [
+      [
+        11,
+        3
+      ],
+      [
+        12,
+        2
+      ]
+    ],
+    "name": "Stone Pickaxe",
+    "result": [
+      2053,
+      1
+    ],
+    "station": "crafting_table"
+  },
+  "16": {
+    "category": "tool",
+    "ingredients": [
+      [
+        100,
+        3
+      ],
+      [
+        10,
+        2
+      ]
+    ],
+    "name": "Iron Pickaxe",
+    "result": [
+      2101,
+      1
+    ],
+    "station": "crafting_table"
+  },
+  "170": {
+    "category": "part",
+    "ingredients": [
+      [
+        30,
+        2
+      ]
+    ],
+    "name": "Sword Mold",
+    "result": [
+      190,
+      1
+    ],
+    "station": "part_maker"
+  },
+  "171": {
+    "category": "part",
+    "ingredients": [
+      [
+        30,
+        2
+      ]
+    ],
+    "name": "Dagger Mold",
+    "result": [
+      191,
+      1
+    ],
+    "station": "part_maker"
+  },
+  "172": {
+    "category": "part",
+    "ingredients": [
+      [
+        30,
+        2
+      ]
+    ],
+    "name": "Axe Mold",
+    "result": [
+      192,
+      1
+    ],
+    "station": "part_maker"
+  },
+  "173": {
+    "category": "part",
+    "ingredients": [
+      [
+        30,
+        2
+      ]
+    ],
+    "name": "Pickaxe Mold",
+    "result": [
+      193,
+      1
+    ],
+    "station": "part_maker"
+  },
+  "174": {
+    "category": "part",
+    "ingredients": [
+      [
+        30,
+        2
+      ]
+    ],
+    "name": "Helm Mold",
+    "result": [
+      194,
+      1
+    ],
+    "station": "part_maker"
+  },
+  "175": {
+    "category": "part",
+    "ingredients": [
+      [
+        30,
+        2
+      ]
+    ],
+    "name": "Chest Mold",
+    "result": [
+      195,
+      1
+    ],
+    "station": "part_maker"
+  },
+  "176": {
+    "category": "part",
+    "ingredients": [
+      [
+        30,
+        2
+      ]
+    ],
+    "name": "Arms Mold",
+    "result": [
+      196,
+      1
+    ],
+    "station": "part_maker"
+  },
+  "177": {
+    "category": "part",
+    "ingredients": [
+      [
+        30,
+        2
+      ]
+    ],
+    "name": "Leg Mold",
+    "result": [
+      197,
+      1
+    ],
+    "station": "part_maker"
+  },
+  "178": {
+    "category": "part",
+    "ingredients": [
+      [
+        30,
+        2
+      ]
+    ],
+    "name": "Feet Mold",
+    "result": [
+      198,
+      1
+    ],
+    "station": "part_maker"
+  },
+  "179": {
+    "category": "resource",
+    "ingredients": [
+      [
+        11,
+        2
+      ]
+    ],
+    "name": "Flint",
+    "result": [
+      31,
+      1
+    ],
+    "station": "hand"
+  },
+  "180": {
+    "category": "resource",
+    "ingredients": [
+      [
+        18,
+        2
+      ]
+    ],
+    "name": "Paper",
+    "result": [
+      32,
+      2
+    ],
+    "station": "crafting_table"
+  },
+  "181": {
+    "category": "resource",
+    "ingredients": [
+      [
+        28,
+        4
+      ]
+    ],
+    "name": "Slime",
+    "result": [
+      33,
+      1
+    ],
+    "station": "crafting_table"
+  },
+  "182": {
+    "category": "part",
+    "ingredients": [
+      [
+        32,
+        1
+      ]
+    ],
+    "name": "Paper Blade",
+    "result": [
+      148,
+      1
+    ],
+    "station": "part_maker"
+  },
+  "183": {
+    "category": "part",
+    "ingredients": [
+      [
+        31,
+        2
+      ]
+    ],
+    "name": "Flint Blade",
+    "result": [
+      150,
+      1
+    ],
+    "station": "part_maker"
+  },
+  "184": {
+    "category": "part",
+    "ingredients": [
+      [
+        11,
+        2
+      ]
+    ],
+    "name": "Stone Blade",
+    "result": [
+      151,
+      1
+    ],
+    "station": "part_maker"
+  },
+  "185": {
+    "category": "part",
+    "ingredients": [
+      [
+        19,
+        2
+      ]
+    ],
+    "name": "Bone Blade",
+    "result": [
+      152,
+      1
+    ],
+    "station": "part_maker"
+  },
+  "186": {
+    "category": "part",
+    "ingredients": [
+      [
+        101,
+        2
+      ]
+    ],
+    "name": "Copper Blade",
+    "result": [
+      153,
+      1
+    ],
+    "station": "part_maker"
+  },
+  "187": {
+    "category": "part",
+    "ingredients": [
+      [
+        102,
+        2
+      ]
+    ],
+    "name": "Tin Blade",
+    "result": [
+      154,
+      1
+    ],
+    "station": "part_maker"
+  },
+  "188": {
+    "category": "part",
+    "ingredients": [
+      [
+        100,
+        2
+      ]
+    ],
+    "name": "Iron Blade",
+    "result": [
+      155,
+      1
+    ],
+    "station": "part_maker"
+  },
+  "189": {
+    "category": "part",
+    "ingredients": [
+      [
+        110,
+        2
+      ]
+    ],
+    "name": "Bronze Blade",
+    "result": [
+      156,
+      1
+    ],
+    "station": "part_maker"
+  },
+  "190": {
+    "category": "part",
+    "ingredients": [
+      [
+        103,
+        2
+      ]
+    ],
+    "name": "Silver Blade",
+    "result": [
+      157,
+      1
+    ],
+    "station": "part_maker"
+  },
+  "191": {
+    "category": "part",
+    "ingredients": [
+      [
+        104,
+        2
+      ]
+    ],
+    "name": "Gold Blade",
+    "result": [
+      158,
+      1
+    ],
+    "station": "part_maker"
+  },
+  "192": {
+    "category": "part",
+    "ingredients": [
+      [
+        111,
+        2
+      ]
+    ],
+    "name": "Steel Blade",
+    "result": [
+      159,
+      1
+    ],
+    "station": "part_maker"
+  },
+  "193": {
+    "category": "part",
+    "ingredients": [
+      [
+        27,
+        2
+      ]
+    ],
+    "name": "Obsidian Blade",
+    "result": [
+      160,
+      1
+    ],
+    "station": "part_maker"
+  },
+  "194": {
+    "category": "part",
+    "ingredients": [
+      [
+        26,
+        2
+      ]
+    ],
+    "name": "Crystal Blade",
+    "result": [
+      161,
+      1
+    ],
+    "station": "part_maker"
+  },
+  "195": {
+    "category": "part",
+    "ingredients": [
+      [
+        33,
+        3
+      ]
+    ],
+    "name": "Slime Blade",
+    "result": [
+      278,
+      1
+    ],
+    "station": "part_maker"
+  },
+  "196": {
+    "category": "part",
+    "ingredients": [
+      [
+        31,
+        3
+      ]
+    ],
+    "name": "Flint Axe Head",
+    "result": [
+      162,
+      1
+    ],
+    "station": "part_maker"
+  },
+  "197": {
+    "category": "part",
+    "ingredients": [
+      [
+        11,
+        3
+      ]
+    ],
+    "name": "Stone Axe Head",
+    "result": [
+      163,
+      1
+    ],
+    "station": "part_maker"
+  },
+  "198": {
+    "category": "part",
+    "ingredients": [
+      [
+        19,
+        3
+      ]
+    ],
+    "name": "Bone Axe Head",
+    "result": [
+      164,
+      1
+    ],
+    "station": "part_maker"
+  },
+  "199": {
+    "category": "part",
+    "ingredients": [
+      [
+        101,
+        3
+      ]
+    ],
+    "name": "Copper Axe Head",
+    "result": [
+      165,
+      1
+    ],
+    "station": "part_maker"
+  },
+  "2": {
+    "category": "weapon",
+    "ingredients": [
+      [
+        10,
+        3
+      ],
+      [
+        28,
+        1
+      ]
+    ],
+    "name": "Wooden Mace",
+    "result": [
+      1051,
+      1
+    ],
+    "station": "crafting_table"
+  },
+  "20": {
+    "category": "armor",
+    "ingredients": [
+      [
+        120,
+        3
+      ],
+      [
+        28,
+        1
+      ]
+    ],
+    "name": "Stone Helm",
+    "result": [
+      3001,
+      1
+    ],
+    "station": "crafting_table"
+  },
+  "200": {
+    "category": "part",
+    "ingredients": [
+      [
+        102,
+        3
+      ]
+    ],
+    "name": "Tin Axe Head",
+    "result": [
+      166,
+      1
+    ],
+    "station": "part_maker"
+  },
+  "201": {
+    "category": "part",
+    "ingredients": [
+      [
+        100,
+        3
+      ]
+    ],
+    "name": "Iron Axe Head",
+    "result": [
+      167,
+      1
+    ],
+    "station": "part_maker"
+  },
+  "202": {
+    "category": "part",
+    "ingredients": [
+      [
+        110,
+        3
+      ]
+    ],
+    "name": "Bronze Axe Head",
+    "result": [
+      168,
+      1
+    ],
+    "station": "part_maker"
+  },
+  "203": {
+    "category": "part",
+    "ingredients": [
+      [
+        104,
+        3
+      ]
+    ],
+    "name": "Gold Axe Head",
+    "result": [
+      169,
+      1
+    ],
+    "station": "part_maker"
+  },
+  "204": {
+    "category": "part",
+    "ingredients": [
+      [
+        111,
+        3
+      ]
+    ],
+    "name": "Steel Axe Head",
+    "result": [
+      170,
+      1
+    ],
+    "station": "part_maker"
+  },
+  "205": {
+    "category": "part",
+    "ingredients": [
+      [
+        27,
+        3
+      ]
+    ],
+    "name": "Obsidian Axe Head",
+    "result": [
+      171,
+      1
+    ],
+    "station": "part_maker"
+  },
+  "206": {
+    "category": "part",
+    "ingredients": [
+      [
+        103,
+        3
+      ]
+    ],
+    "name": "Silver Axe Head",
+    "result": [
+      281,
+      1
+    ],
+    "station": "part_maker"
+  },
+  "207": {
+    "category": "part",
+    "ingredients": [
+      [
+        26,
+        3
+      ]
+    ],
+    "name": "Crystal Axe Head",
+    "result": [
+      282,
+      1
+    ],
+    "station": "part_maker"
+  },
+  "208": {
+    "category": "part",
+    "ingredients": [
+      [
+        31,
+        3
+      ]
+    ],
+    "name": "Flint Pick Head",
+    "result": [
+      172,
+      1
+    ],
+    "station": "part_maker"
+  },
+  "209": {
+    "category": "part",
+    "ingredients": [
+      [
+        11,
+        3
+      ]
+    ],
+    "name": "Stone Pick Head",
+    "result": [
+      173,
+      1
+    ],
+    "station": "part_maker"
+  },
+  "21": {
+    "category": "armor",
+    "ingredients": [
+      [
+        100,
+        3
+      ],
+      [
+        20,
+        1
+      ]
+    ],
+    "name": "Iron Helm",
+    "result": [
+      3002,
+      1
+    ],
+    "station": "crafting_table"
+  },
+  "210": {
+    "category": "part",
+    "ingredients": [
+      [
+        101,
+        3
+      ]
+    ],
+    "name": "Copper Pick Head",
+    "result": [
+      174,
+      1
+    ],
+    "station": "part_maker"
+  },
+  "211": {
+    "category": "part",
+    "ingredients": [
+      [
+        102,
+        3
+      ]
+    ],
+    "name": "Tin Pick Head",
+    "result": [
+      175,
+      1
+    ],
+    "station": "part_maker"
+  },
+  "212": {
+    "category": "part",
+    "ingredients": [
+      [
+        100,
+        3
+      ]
+    ],
+    "name": "Iron Pick Head",
+    "result": [
+      176,
+      1
+    ],
+    "station": "part_maker"
+  },
+  "213": {
+    "category": "part",
+    "ingredients": [
+      [
+        110,
+        3
+      ]
+    ],
+    "name": "Bronze Pick Head",
+    "result": [
+      177,
+      1
+    ],
+    "station": "part_maker"
+  },
+  "214": {
+    "category": "part",
+    "ingredients": [
+      [
+        104,
+        3
+      ]
+    ],
+    "name": "Gold Pick Head",
+    "result": [
+      178,
+      1
+    ],
+    "station": "part_maker"
+  },
+  "215": {
+    "category": "part",
+    "ingredients": [
+      [
+        111,
+        3
+      ]
+    ],
+    "name": "Steel Pick Head",
+    "result": [
+      179,
+      1
+    ],
+    "station": "part_maker"
+  },
+  "216": {
+    "category": "part",
+    "ingredients": [
+      [
+        27,
+        3
+      ]
+    ],
+    "name": "Obsidian Pick Head",
+    "result": [
+      180,
+      1
+    ],
+    "station": "part_maker"
+  },
+  "217": {
+    "category": "part",
+    "ingredients": [
+      [
+        26,
+        3
+      ]
+    ],
+    "name": "Crystal Pick Head",
+    "result": [
+      181,
+      1
+    ],
+    "station": "part_maker"
+  },
+  "218": {
+    "category": "part",
+    "ingredients": [
+      [
+        19,
+        3
+      ]
+    ],
+    "name": "Bone Pick Head",
+    "result": [
+      283,
+      1
+    ],
+    "station": "part_maker"
+  },
+  "219": {
+    "category": "part",
+    "ingredients": [
+      [
+        103,
+        3
+      ]
+    ],
+    "name": "Silver Pick Head",
+    "result": [
+      284,
+      1
+    ],
+    "station": "part_maker"
+  },
+  "22": {
+    "category": "armor",
+    "ingredients": [
+      [
+        18,
+        6
+      ],
+      [
+        28,
+        2
+      ]
+    ],
+    "name": "Reed Tunic",
+    "result": [
+      3101,
+      1
+    ],
+    "station": "crafting_table"
+  },
+  "220": {
+    "category": "part",
+    "ingredients": [
+      [
+        26,
+        2
+      ]
+    ],
+    "name": "Crystal Plate",
+    "result": [
+      149,
+      1
+    ],
+    "station": "part_maker"
+  },
+  "221": {
+    "category": "part",
+    "ingredients": [
+      [
+        101,
+        2
+      ]
+    ],
+    "name": "Copper Plate",
+    "result": [
+      182,
+      1
+    ],
+    "station": "part_maker"
+  },
+  "222": {
+    "category": "part",
+    "ingredients": [
+      [
+        102,
+        2
+      ]
+    ],
+    "name": "Tin Plate",
+    "result": [
+      183,
+      1
+    ],
+    "station": "part_maker"
+  },
+  "223": {
+    "category": "part",
+    "ingredients": [
+      [
+        100,
+        2
+      ]
+    ],
+    "name": "Iron Plate",
+    "result": [
+      184,
+      1
+    ],
+    "station": "part_maker"
+  },
+  "224": {
+    "category": "part",
+    "ingredients": [
+      [
+        110,
+        2
+      ]
+    ],
+    "name": "Bronze Plate",
+    "result": [
+      185,
+      1
+    ],
+    "station": "part_maker"
+  },
+  "225": {
+    "category": "part",
+    "ingredients": [
+      [
+        103,
+        2
+      ]
+    ],
+    "name": "Silver Plate",
+    "result": [
+      186,
+      1
+    ],
+    "station": "part_maker"
+  },
+  "226": {
+    "category": "part",
+    "ingredients": [
+      [
+        104,
+        2
+      ]
+    ],
+    "name": "Gold Plate",
+    "result": [
+      187,
+      1
+    ],
+    "station": "part_maker"
+  },
+  "227": {
+    "category": "part",
+    "ingredients": [
+      [
+        111,
+        2
+      ]
+    ],
+    "name": "Steel Plate",
+    "result": [
+      188,
+      1
+    ],
+    "station": "part_maker"
+  },
+  "228": {
+    "category": "part",
+    "ingredients": [
+      [
+        27,
+        2
+      ]
+    ],
+    "name": "Obsidian Plate",
+    "result": [
+      189,
+      1
+    ],
+    "station": "part_maker"
+  },
+  "229": {
+    "category": "part",
+    "ingredients": [
+      [
+        11,
+        3
+      ]
+    ],
+    "name": "Stone Plate",
+    "result": [
+      285,
+      1
+    ],
+    "station": "part_maker"
+  },
+  "23": {
+    "category": "armor",
+    "ingredients": [
+      [
+        19,
+        5
+      ],
+      [
+        18,
+        3
+      ]
+    ],
+    "name": "Bone Vest",
+    "result": [
+      3102,
+      1
+    ],
+    "station": "crafting_table"
+  },
+  "230": {
+    "category": "part",
+    "ingredients": [
+      [
+        19,
+        2
+      ]
+    ],
+    "name": "Bone Plate",
+    "result": [
+      286,
+      1
+    ],
+    "station": "part_maker"
+  },
+  "231": {
+    "category": "part",
+    "ingredients": [
+      [
+        32,
+        1
+      ]
+    ],
+    "name": "Paper Plate",
+    "result": [
+      287,
+      1
+    ],
+    "station": "part_maker"
+  },
+  "232": {
+    "category": "part",
+    "ingredients": [
+      [
+        33,
+        3
+      ]
+    ],
+    "name": "Slime Plate",
+    "result": [
+      288,
+      1
+    ],
+    "station": "part_maker"
+  },
+  "233": {
+    "category": "part",
+    "ingredients": [
+      [
+        10,
+        2
+      ]
+    ],
+    "name": "Wood Handle",
+    "result": [
+      260,
+      2
+    ],
+    "station": "part_maker"
+  },
+  "234": {
+    "category": "part",
+    "ingredients": [
+      [
+        19,
+        2
+      ]
+    ],
+    "name": "Bone Handle",
+    "result": [
+      261,
+      2
+    ],
+    "station": "part_maker"
+  },
+  "235": {
+    "category": "part",
+    "ingredients": [
+      [
+        32,
+        1
+      ]
+    ],
+    "name": "Paper Handle",
+    "result": [
+      262,
+      2
+    ],
+    "station": "part_maker"
+  },
+  "236": {
+    "category": "part",
+    "ingredients": [
+      [
+        101,
+        1
+      ]
+    ],
+    "name": "Copper Handle",
+    "result": [
+      263,
+      2
+    ],
+    "station": "part_maker"
+  },
+  "237": {
+    "category": "part",
+    "ingredients": [
+      [
+        100,
+        1
+      ]
+    ],
+    "name": "Iron Handle",
+    "result": [
+      264,
+      2
+    ],
+    "station": "part_maker"
+  },
+  "238": {
+    "category": "part",
+    "ingredients": [
+      [
+        110,
+        1
+      ]
+    ],
+    "name": "Bronze Handle",
+    "result": [
+      265,
+      2
+    ],
+    "station": "part_maker"
+  },
+  "239": {
+    "category": "part",
+    "ingredients": [
+      [
+        103,
+        1
+      ]
+    ],
+    "name": "Silver Handle",
+    "result": [
+      266,
+      2
+    ],
+    "station": "part_maker"
+  },
+  "24": {
+    "category": "armor",
+    "ingredients": [
+      [
+        100,
+        5
+      ],
+      [
+        20,
+        1
+      ]
+    ],
+    "name": "Iron Chestplate",
+    "result": [
+      3103,
+      1
+    ],
+    "station": "crafting_table"
+  },
+  "240": {
+    "category": "part",
+    "ingredients": [
+      [
+        104,
+        1
+      ]
+    ],
+    "name": "Gold Handle",
+    "result": [
+      267,
+      2
+    ],
+    "station": "part_maker"
+  },
+  "241": {
+    "category": "part",
+    "ingredients": [
+      [
+        111,
+        1
+      ]
+    ],
+    "name": "Steel Handle",
+    "result": [
+      268,
+      2
+    ],
+    "station": "part_maker"
+  },
+  "242": {
+    "category": "part",
+    "ingredients": [
+      [
+        102,
+        1
+      ]
+    ],
+    "name": "Tin Handle",
+    "result": [
+      289,
+      2
+    ],
+    "station": "part_maker"
+  },
+  "243": {
+    "category": "part",
+    "ingredients": [
+      [
+        27,
+        1
+      ]
+    ],
+    "name": "Obsidian Handle",
+    "result": [
+      290,
+      2
+    ],
+    "station": "part_maker"
+  },
+  "244": {
+    "category": "part",
+    "ingredients": [
+      [
+        26,
+        1
+      ]
+    ],
+    "name": "Crystal Handle",
+    "result": [
+      291,
+      2
+    ],
+    "station": "part_maker"
+  },
+  "245": {
+    "category": "part",
+    "ingredients": [
+      [
+        33,
+        2
+      ]
+    ],
+    "name": "Slime Handle",
+    "result": [
+      279,
+      2
+    ],
+    "station": "part_maker"
+  },
+  "246": {
+    "category": "part",
+    "ingredients": [
+      [
+        26,
+        1
+      ]
+    ],
+    "name": "Rough Crystal Core",
+    "result": [
+      269,
+      1
+    ],
+    "station": "part_maker"
+  },
+  "247": {
+    "category": "part",
+    "ingredients": [
+      [
+        26,
+        2
+      ],
+      [
+        103,
+        1
+      ]
+    ],
+    "name": "Refined Crystal Core",
+    "result": [
+      270,
+      1
+    ],
+    "station": "part_maker"
+  },
+  "248": {
+    "category": "part",
+    "ingredients": [
+      [
+        26,
+        3
+      ],
+      [
+        103,
+        1
+      ],
+      [
+        121,
+        1
+      ]
+    ],
+    "name": "Crystal Core",
+    "result": [
+      271,
+      1
+    ],
+    "station": "part_maker"
+  },
+  "249": {
+    "category": "part",
+    "ingredients": [
+      [
+        32,
+        1
+      ]
+    ],
+    "name": "Paper Binding",
+    "result": [
+      272,
+      2
+    ],
+    "station": "part_maker"
+  },
+  "25": {
+    "category": "armor",
+    "ingredients": [
+      [
+        19,
+        4
+      ],
+      [
+        28,
+        1
+      ]
+    ],
+    "name": "Bone Bracers",
+    "result": [
+      3200,
+      1
+    ],
+    "station": "crafting_table"
+  },
+  "250": {
+    "category": "part",
+    "ingredients": [
+      [
+        18,
+        2
+      ]
+    ],
+    "name": "Reed Binding",
+    "result": [
+      273,
+      2
+    ],
+    "station": "part_maker"
+  },
+  "251": {
+    "category": "part",
+    "ingredients": [
+      [
+        101,
+        1
+      ]
+    ],
+    "name": "Copper Binding",
+    "result": [
+      274,
+      2
+    ],
+    "station": "part_maker"
+  },
+  "252": {
+    "category": "part",
+    "ingredients": [
+      [
+        100,
+        1
+      ]
+    ],
+    "name": "Iron Binding",
+    "result": [
+      275,
+      2
+    ],
+    "station": "part_maker"
+  },
+  "253": {
+    "category": "part",
+    "ingredients": [
+      [
+        110,
+        1
+      ]
+    ],
+    "name": "Bronze Binding",
+    "result": [
+      276,
+      2
+    ],
+    "station": "part_maker"
+  },
+  "254": {
+    "category": "part",
+    "ingredients": [
+      [
+        103,
+        1
+      ]
+    ],
+    "name": "Silver Binding",
+    "result": [
+      277,
+      2
+    ],
+    "station": "part_maker"
+  },
+  "255": {
+    "category": "part",
+    "ingredients": [
+      [
+        102,
+        1
+      ]
+    ],
+    "name": "Tin Binding",
+    "result": [
+      292,
+      2
+    ],
+    "station": "part_maker"
+  },
+  "256": {
+    "category": "part",
+    "ingredients": [
+      [
+        104,
+        1
+      ]
+    ],
+    "name": "Gold Binding",
+    "result": [
+      293,
+      2
+    ],
+    "station": "part_maker"
+  },
+  "257": {
+    "category": "part",
+    "ingredients": [
+      [
+        111,
+        1
+      ]
+    ],
+    "name": "Steel Binding",
+    "result": [
+      294,
+      2
+    ],
+    "station": "part_maker"
+  },
+  "258": {
+    "category": "part",
+    "ingredients": [
+      [
+        27,
+        1
+      ]
+    ],
+    "name": "Obsidian Binding",
+    "result": [
+      295,
+      2
+    ],
+    "station": "part_maker"
+  },
+  "259": {
+    "category": "part",
+    "ingredients": [
+      [
+        33,
+        1
+      ]
+    ],
+    "name": "Slime Binding",
+    "result": [
+      280,
+      2
+    ],
+    "station": "part_maker"
+  },
+  "26": {
+    "category": "armor",
+    "ingredients": [
+      [
+        100,
+        2
+      ],
+      [
+        20,
+        1
+      ]
+    ],
+    "name": "Iron Bracers",
+    "result": [
+      3201,
+      1
+    ],
+    "station": "crafting_table"
+  },
+  "260": {
+    "category": "place",
+    "ingredients": [
+      [
+        120,
+        8
+      ],
+      [
+        100,
+        6
+      ],
+      [
+        111,
+        2
+      ]
+    ],
+    "name": "Part Combiner",
+    "result": [
+      205,
+      1
+    ],
+    "station": "crafting_table"
+  },
+  "261": {
+    "category": "place",
+    "ingredients": [
+      [
+        10,
+        8
+      ],
+      [
+        100,
+        2
+      ]
+    ],
+    "name": "Chest",
+    "result": [
+      203,
+      1
+    ],
+    "station": "crafting_table"
+  },
+  "262": {
+    "category": "other",
+    "ingredients": [
+      [
+        18,
+        4
+      ]
+    ],
+    "name": "Paper",
+    "result": [
+      32,
+      2
+    ],
+    "station": "crafting_table"
+  },
+  "263": {
+    "category": "place",
+    "ingredients": [
+      [
+        120,
+        6
+      ],
+      [
+        100,
+        4
+      ],
+      [
+        26,
+        2
+      ]
+    ],
+    "name": "Embedder",
+    "result": [
+      206,
+      1
+    ],
+    "station": "crafting_table"
+  },
+  "27": {
+    "category": "armor",
+    "ingredients": [
+      [
+        18,
+        5
+      ],
+      [
+        28,
+        1
+      ]
+    ],
+    "name": "Reed Leggings",
+    "result": [
+      3301,
+      1
+    ],
+    "station": "crafting_table"
+  },
+  "28": {
+    "category": "armor",
+    "ingredients": [
+      [
+        19,
+        4
+      ],
+      [
+        18,
+        2
+      ]
+    ],
+    "name": "Bone Leggings",
+    "result": [
+      3302,
+      1
+    ],
+    "station": "crafting_table"
+  },
+  "29": {
+    "category": "armor",
+    "ingredients": [
+      [
+        10,
+        2
+      ],
+      [
+        18,
+        3
+      ]
+    ],
+    "name": "Leaf Sandals",
+    "result": [
+      3400,
+      1
+    ],
+    "station": "crafting_table"
+  },
+  "3": {
+    "category": "weapon",
+    "ingredients": [
+      [
+        19,
+        3
+      ],
+      [
+        28,
+        2
+      ]
+    ],
+    "name": "Bone Dagger",
+    "result": [
+      1052,
+      1
+    ],
+    "station": "crafting_table"
+  },
+  "30": {
+    "category": "armor",
+    "ingredients": [
+      [
+        100,
+        2
+      ],
+      [
+        10,
+        1
+      ]
+    ],
+    "name": "Iron Boots",
+    "result": [
+      3401,
+      1
+    ],
+    "station": "crafting_table"
+  },
+  "31": {
+    "category": "armor",
+    "ingredients": [
+      [
+        10,
+        4
+      ],
+      [
+        18,
+        3
+      ]
+    ],
+    "name": "Leaf Cloak",
+    "result": [
+      3500,
+      1
+    ],
+    "station": "crafting_table"
+  },
+  "32": {
+    "category": "armor",
+    "ingredients": [
+      [
+        13,
+        4
+      ],
+      [
+        18,
+        1
+      ]
+    ],
+    "name": "Herb Pouch",
+    "result": [
+      3501,
+      1
+    ],
+    "station": "crafting_table"
+  },
+  "362": {
+    "category": "part",
+    "ingredients": [
+      [
+        30,
+        2
+      ]
+    ],
+    "name": "Katana Mold",
+    "result": [
+      199,
+      1
+    ],
+    "station": "part_maker"
+  },
+  "363": {
+    "category": "part",
+    "ingredients": [
+      [
+        30,
+        2
+      ]
+    ],
+    "name": "Saber Mold",
+    "result": [
+      208,
+      1
+    ],
+    "station": "part_maker"
+  },
+  "364": {
+    "category": "part",
+    "ingredients": [
+      [
+        30,
+        2
+      ]
+    ],
+    "name": "Scimitar Mold",
+    "result": [
+      209,
+      1
+    ],
+    "station": "part_maker"
+  },
+  "4": {
+    "category": "weapon",
+    "ingredients": [
+      [
+        11,
+        5
+      ],
+      [
+        19,
+        1
+      ]
+    ],
+    "name": "Stone Mace",
+    "result": [
+      1053,
+      1
+    ],
+    "station": "crafting_table"
+  },
+  "40": {
+    "category": "trinket",
+    "ingredients": [
+      [
+        17,
+        3
+      ],
+      [
+        18,
+        2
+      ]
+    ],
+    "name": "Shell Necklace",
+    "result": [
+      3650,
+      1
+    ],
+    "station": "crafting_table"
+  },
+  "400": {
+    "category": "weapon",
+    "ingredients": [
+      [
+        100,
+        2
+      ],
+      [
+        12,
+        1
+      ]
+    ],
+    "name": "Iron Rapier",
+    "result": [
+      1500,
+      1
+    ],
+    "station": "crafting_table"
+  },
+  "401": {
+    "category": "weapon",
+    "ingredients": [
+      [
+        101,
+        2
+      ],
+      [
+        12,
+        1
+      ]
+    ],
+    "name": "Copper Rapier",
+    "result": [
+      1550,
+      1
+    ],
+    "station": "crafting_table"
+  },
+  "402": {
+    "category": "weapon",
+    "ingredients": [
+      [
+        110,
+        2
+      ],
+      [
+        12,
+        1
+      ]
+    ],
+    "name": "Bronze Rapier",
+    "result": [
+      1600,
+      1
+    ],
+    "station": "crafting_table"
+  },
+  "403": {
+    "category": "weapon",
+    "ingredients": [
+      [
+        10,
+        3
+      ],
+      [
+        26,
+        1
+      ]
+    ],
+    "name": "Wooden Wand",
+    "result": [
+      1800,
+      1
+    ],
+    "station": "crafting_table"
+  },
+  "404": {
+    "category": "weapon",
+    "ingredients": [
+      [
+        100,
+        3
+      ],
+      [
+        10,
+        1
+      ]
+    ],
+    "name": "Iron Katana",
+    "result": [
+      1850,
+      1
+    ],
+    "station": "crafting_table"
+  },
+  "405": {
+    "category": "weapon",
+    "ingredients": [
+      [
+        101,
+        3
+      ],
+      [
+        10,
+        1
+      ]
+    ],
+    "name": "Copper Katana",
+    "result": [
+      1851,
+      1
+    ],
+    "station": "crafting_table"
+  },
+  "406": {
+    "category": "weapon",
+    "ingredients": [
+      [
+        110,
+        3
+      ],
+      [
+        10,
+        1
+      ]
+    ],
+    "name": "Bronze Katana",
+    "result": [
+      1852,
+      1
+    ],
+    "station": "crafting_table"
+  },
+  "407": {
+    "category": "weapon",
+    "ingredients": [
+      [
+        100,
+        3
+      ],
+      [
+        12,
+        1
+      ]
+    ],
+    "name": "Iron Saber",
+    "result": [
+      1860,
+      1
+    ],
+    "station": "crafting_table"
+  },
+  "408": {
+    "category": "weapon",
+    "ingredients": [
+      [
+        101,
+        3
+      ],
+      [
+        12,
+        1
+      ]
+    ],
+    "name": "Copper Saber",
+    "result": [
+      1861,
+      1
+    ],
+    "station": "crafting_table"
+  },
+  "409": {
+    "category": "weapon",
+    "ingredients": [
+      [
+        110,
+        3
+      ],
+      [
+        12,
+        1
+      ]
+    ],
+    "name": "Bronze Saber",
+    "result": [
+      1862,
+      1
+    ],
+    "station": "crafting_table"
+  },
+  "41": {
+    "category": "trinket",
+    "ingredients": [
+      [
+        16,
+        3
+      ],
+      [
+        17,
+        1
+      ]
+    ],
+    "name": "Snow Pendant",
+    "result": [
+      3651,
+      1
+    ],
+    "station": "crafting_table"
+  },
+  "410": {
+    "category": "weapon",
+    "ingredients": [
+      [
+        100,
+        3
+      ],
+      [
+        19,
+        1
+      ]
+    ],
+    "name": "Iron Scimitar",
+    "result": [
+      1870,
+      1
+    ],
+    "station": "crafting_table"
+  },
+  "411": {
+    "category": "weapon",
+    "ingredients": [
+      [
+        101,
+        3
+      ],
+      [
+        19,
+        1
+      ]
+    ],
+    "name": "Copper Scimitar",
+    "result": [
+      1871,
+      1
+    ],
+    "station": "crafting_table"
+  },
+  "412": {
+    "category": "weapon",
+    "ingredients": [
+      [
+        110,
+        3
+      ],
+      [
+        19,
+        1
+      ]
+    ],
+    "name": "Bronze Scimitar",
+    "result": [
+      1872,
+      1
+    ],
+    "station": "crafting_table"
+  },
+  "413": {
+    "category": "weapon",
+    "ingredients": [
+      [
+        100,
+        3
+      ],
+      [
+        10,
+        2
+      ]
+    ],
+    "name": "Iron Hammer",
+    "result": [
+      2500,
+      1
+    ],
+    "station": "crafting_table"
+  },
+  "414": {
+    "category": "weapon",
+    "ingredients": [
+      [
+        101,
+        3
+      ],
+      [
+        10,
+        2
+      ]
+    ],
+    "name": "Copper Hammer",
+    "result": [
+      2550,
+      1
+    ],
+    "station": "crafting_table"
+  },
+  "415": {
+    "category": "weapon",
+    "ingredients": [
+      [
+        110,
+        3
+      ],
+      [
+        10,
+        2
+      ]
+    ],
+    "name": "Bronze Hammer",
+    "result": [
+      2600,
+      1
+    ],
+    "station": "crafting_table"
+  },
+  "42": {
+    "category": "trinket",
+    "ingredients": [
+      [
+        16,
+        2
+      ],
+      [
+        19,
+        1
+      ]
+    ],
+    "name": "Crystal Ring",
+    "result": [
+      3600,
+      1
+    ],
+    "station": "crafting_table"
+  },
+  "420": {
+    "category": "part",
+    "ingredients": [
+      [
+        30,
+        2
+      ]
+    ],
+    "name": "Rapier Mold",
+    "result": [
+      210,
+      1
+    ],
+    "station": "part_maker"
+  },
+  "421": {
+    "category": "part",
+    "ingredients": [
+      [
+        30,
+        2
+      ]
+    ],
+    "name": "Hammer Mold",
+    "result": [
+      211,
+      1
+    ],
+    "station": "part_maker"
+  },
+  "422": {
+    "category": "part",
+    "ingredients": [
+      [
+        30,
+        2
+      ]
+    ],
+    "name": "Wand Mold",
+    "result": [
+      212,
+      1
+    ],
+    "station": "part_maker"
+  },
+  "423": {
+    "category": "part",
+    "ingredients": [
+      [
+        30,
+        2
+      ]
+    ],
+    "name": "Back Mold",
+    "result": [
+      213,
+      1
+    ],
+    "station": "part_maker"
+  },
+  "424": {
+    "category": "part",
+    "ingredients": [
+      [
+        26,
+        2
+      ]
+    ],
+    "name": "Crystal Binding",
+    "result": [
+      296,
+      1
+    ],
+    "station": "part_maker"
+  },
+  "425": {
+    "category": "tool",
+    "ingredients": [
+      [
+        101,
+        3
+      ],
+      [
+        10,
+        2
+      ]
+    ],
+    "name": "Copper Axe",
+    "result": [
+      2150,
+      1
+    ],
+    "station": "crafting_table"
+  },
+  "426": {
+    "category": "armor",
+    "ingredients": [
+      [
+        100,
+        2
+      ],
+      [
+        18,
+        4
+      ]
+    ],
+    "name": "Iron Cape",
+    "result": [
+      3502,
+      1
+    ],
+    "station": "crafting_table"
+  },
+  "427": {
+    "category": "armor",
+    "ingredients": [
+      [
+        110,
+        2
+      ],
+      [
+        18,
+        4
+      ]
+    ],
+    "name": "Bronze Cloak",
+    "result": [
+      3503,
+      1
+    ],
+    "station": "crafting_table"
+  },
+  "428": {
+    "category": "trinket",
+    "ingredients": [
+      [
+        104,
+        2
+      ]
+    ],
+    "name": "Gold Chain",
+    "result": [
+      3652,
+      1
+    ],
+    "station": "crafting_table"
+  },
+  "429": {
+    "category": "trinket",
+    "ingredients": [
+      [
+        100,
+        3
+      ]
+    ],
+    "name": "Iron Cross",
+    "result": [
+      3653,
+      1
+    ],
+    "station": "crafting_table"
+  },
+  "43": {
+    "category": "trinket",
+    "ingredients": [
+      [
+        14,
+        3
+      ],
+      [
+        13,
+        2
+      ]
+    ],
+    "name": "Mushroom Ring",
+    "result": [
+      3601,
+      1
+    ],
+    "station": "crafting_table"
+  },
+  "430": {
+    "category": "trinket",
+    "ingredients": [
+      [
+        104,
+        1
+      ],
+      [
+        26,
+        2
+      ]
+    ],
+    "name": "Sun Amulet",
+    "result": [
+      3654,
+      1
+    ],
+    "station": "crafting_table"
+  },
+  "431": {
+    "category": "trinket",
+    "ingredients": [
+      [
+        103,
+        2
+      ],
+      [
+        26,
+        1
+      ]
+    ],
+    "name": "Holy Pendant",
+    "result": [
+      3655,
+      1
+    ],
+    "station": "crafting_table"
+  },
+  "432": {
+    "category": "trinket",
+    "ingredients": [
+      [
+        103,
+        2
+      ]
+    ],
+    "name": "Silver Chain",
+    "result": [
+      3656,
+      1
+    ],
+    "station": "crafting_table"
+  },
+  "433": {
+    "category": "trinket",
+    "ingredients": [
+      [
+        27,
+        2
+      ],
+      [
+        100,
+        1
+      ]
+    ],
+    "name": "Shadow Star",
+    "result": [
+      3657,
+      1
+    ],
+    "station": "crafting_table"
+  },
+  "434": {
+    "category": "part",
+    "ingredients": [
+      [
+        32,
+        1
+      ]
+    ],
+    "name": "Paper Lining",
+    "result": [
+      297,
+      2
+    ],
+    "station": "part_maker"
+  },
+  "435": {
+    "category": "part",
+    "ingredients": [
+      [
+        18,
+        2
+      ]
+    ],
+    "name": "Reed Lining",
+    "result": [
+      298,
+      2
+    ],
+    "station": "part_maker"
+  },
+  "436": {
+    "category": "part",
+    "ingredients": [
+      [
+        19,
+        2
+      ]
+    ],
+    "name": "Bone Lining",
+    "result": [
+      299,
+      2
+    ],
+    "station": "part_maker"
+  },
+  "437": {
+    "category": "part",
+    "ingredients": [
+      [
+        101,
+        1
+      ]
+    ],
+    "name": "Copper Lining",
+    "result": [
+      300,
+      2
+    ],
+    "station": "part_maker"
+  },
+  "438": {
+    "category": "part",
+    "ingredients": [
+      [
+        102,
+        1
+      ]
+    ],
+    "name": "Tin Lining",
+    "result": [
+      301,
+      2
+    ],
+    "station": "part_maker"
+  },
+  "439": {
+    "category": "part",
+    "ingredients": [
+      [
+        100,
+        1
+      ]
+    ],
+    "name": "Iron Lining",
+    "result": [
+      302,
+      2
+    ],
+    "station": "part_maker"
+  },
+  "440": {
+    "category": "part",
+    "ingredients": [
+      [
+        110,
+        1
+      ]
+    ],
+    "name": "Bronze Lining",
+    "result": [
+      303,
+      2
+    ],
+    "station": "part_maker"
+  },
+  "441": {
+    "category": "part",
+    "ingredients": [
+      [
+        103,
+        1
+      ]
+    ],
+    "name": "Silver Lining",
+    "result": [
+      304,
+      2
+    ],
+    "station": "part_maker"
+  },
+  "442": {
+    "category": "part",
+    "ingredients": [
+      [
+        104,
+        1
+      ]
+    ],
+    "name": "Gold Lining",
+    "result": [
+      305,
+      2
+    ],
+    "station": "part_maker"
+  },
+  "443": {
+    "category": "part",
+    "ingredients": [
+      [
+        111,
+        1
+      ]
+    ],
+    "name": "Steel Lining",
+    "result": [
+      306,
+      2
+    ],
+    "station": "part_maker"
+  },
+  "444": {
+    "category": "part",
+    "ingredients": [
+      [
+        27,
+        1
+      ]
+    ],
+    "name": "Obsidian Lining",
+    "result": [
+      307,
+      2
+    ],
+    "station": "part_maker"
+  },
+  "445": {
+    "category": "part",
+    "ingredients": [
+      [
+        26,
+        2
+      ]
+    ],
+    "name": "Crystal Lining",
+    "result": [
+      308,
+      1
+    ],
+    "station": "part_maker"
+  },
+  "446": {
+    "category": "part",
+    "ingredients": [
+      [
+        33,
+        2
+      ]
+    ],
+    "name": "Slime Lining",
+    "result": [
+      309,
+      2
+    ],
+    "station": "part_maker"
+  },
+  "447": {
+    "category": "armor",
+    "ingredients": [
+      [
+        10,
+        4
+      ],
+      [
+        18,
+        2
+      ]
+    ],
+    "name": "Wooden Shield",
+    "result": [
+      3550,
+      1
+    ],
+    "station": "crafting_table"
+  },
+  "448": {
+    "category": "armor",
+    "ingredients": [
+      [
+        19,
+        4
+      ],
+      [
+        28,
+        1
+      ]
+    ],
+    "name": "Bone Shield",
+    "result": [
+      3551,
+      1
+    ],
+    "station": "crafting_table"
+  },
+  "449": {
+    "category": "armor",
+    "ingredients": [
+      [
+        100,
+        3
+      ],
+      [
+        10,
+        1
+      ]
+    ],
+    "name": "Iron Shield",
+    "result": [
+      3552,
+      1
+    ],
+    "station": "crafting_table"
+  },
+  "450": {
+    "category": "armor",
+    "ingredients": [
+      [
+        101,
+        3
+      ],
+      [
+        10,
+        1
+      ]
+    ],
+    "name": "Copper Shield",
+    "result": [
+      3553,
+      1
+    ],
+    "station": "crafting_table"
+  },
+  "451": {
+    "category": "armor",
+    "ingredients": [
+      [
+        110,
+        3
+      ],
+      [
+        10,
+        1
+      ]
+    ],
+    "name": "Bronze Shield",
+    "result": [
+      3554,
+      1
+    ],
+    "station": "crafting_table"
+  },
+  "452": {
+    "category": "armor",
+    "ingredients": [
+      [
+        111,
+        3
+      ],
+      [
+        10,
+        1
+      ]
+    ],
+    "name": "Steel Shield",
+    "result": [
+      3555,
+      1
+    ],
+    "station": "crafting_table"
+  },
+  "453": {
+    "category": "armor",
+    "ingredients": [
+      [
+        104,
+        4
+      ],
+      [
+        10,
+        1
+      ]
+    ],
+    "name": "Gold Shield",
+    "result": [
+      3556,
+      1
+    ],
+    "station": "crafting_table"
+  },
+  "454": {
+    "category": "armor",
+    "ingredients": [
+      [
+        26,
+        5
+      ],
+      [
+        100,
+        2
+      ]
+    ],
+    "name": "Crystal Shield",
+    "result": [
+      3557,
+      1
+    ],
+    "station": "crafting_table"
+  },
+  "455": {
+    "category": "armor",
+    "ingredients": [
+      [
+        27,
+        5
+      ],
+      [
+        100,
+        2
+      ]
+    ],
+    "name": "Obsidian Shield",
+    "result": [
+      3558,
+      1
+    ],
+    "station": "crafting_table"
+  },
+  "456": {
+    "category": "armor",
+    "ingredients": [
+      [
+        19,
+        3
+      ],
+      [
+        18,
+        1
+      ]
+    ],
+    "name": "Bone Pauldrons",
+    "result": [
+      3560,
+      1
+    ],
+    "station": "crafting_table"
+  },
+  "457": {
+    "category": "armor",
+    "ingredients": [
+      [
+        100,
+        2
+      ],
+      [
+        20,
+        1
+      ]
+    ],
+    "name": "Iron Pauldrons",
+    "result": [
+      3561,
+      1
+    ],
+    "station": "crafting_table"
+  },
+  "458": {
+    "category": "armor",
+    "ingredients": [
+      [
+        101,
+        2
+      ]
+    ],
+    "name": "Copper Pauldrons",
+    "result": [
+      3562,
+      1
+    ],
+    "station": "crafting_table"
+  },
+  "459": {
+    "category": "armor",
+    "ingredients": [
+      [
+        110,
+        2
+      ]
+    ],
+    "name": "Bronze Pauldrons",
+    "result": [
+      3563,
+      1
+    ],
+    "station": "crafting_table"
+  },
+  "460": {
+    "category": "armor",
+    "ingredients": [
+      [
+        111,
+        2
+      ]
+    ],
+    "name": "Steel Pauldrons",
+    "result": [
+      3564,
+      1
+    ],
+    "station": "crafting_table"
+  },
+  "461": {
+    "category": "armor",
+    "ingredients": [
+      [
+        104,
+        2
+      ]
+    ],
+    "name": "Gold Pauldrons",
+    "result": [
+      3565,
+      1
+    ],
+    "station": "crafting_table"
+  },
+  "462": {
+    "category": "armor",
+    "ingredients": [
+      [
+        26,
+        3
+      ],
+      [
+        100,
+        1
+      ]
+    ],
+    "name": "Crystal Pauldrons",
+    "result": [
+      3566,
+      1
+    ],
+    "station": "crafting_table"
+  },
+  "463": {
+    "category": "armor",
+    "ingredients": [
+      [
+        27,
+        3
+      ],
+      [
+        100,
+        1
+      ]
+    ],
+    "name": "Obsidian Pauldrons",
+    "result": [
+      3567,
+      1
+    ],
+    "station": "crafting_table"
+  },
+  "464": {
+    "category": "armor",
+    "ingredients": [
+      [
+        18,
+        3
+      ]
+    ],
+    "name": "Cloth Gloves",
+    "result": [
+      3570,
+      1
+    ],
+    "station": "crafting_table"
+  },
+  "465": {
+    "category": "armor",
+    "ingredients": [
+      [
+        19,
+        3
+      ],
+      [
+        28,
+        1
+      ]
+    ],
+    "name": "Bone Gloves",
+    "result": [
+      3571,
+      1
+    ],
+    "station": "crafting_table"
+  },
+  "466": {
+    "category": "armor",
+    "ingredients": [
+      [
+        100,
+        2
+      ],
+      [
+        10,
+        1
+      ]
+    ],
+    "name": "Iron Gloves",
+    "result": [
+      3572,
+      1
+    ],
+    "station": "crafting_table"
+  },
+  "467": {
+    "category": "armor",
+    "ingredients": [
+      [
+        101,
+        2
+      ],
+      [
+        10,
+        1
+      ]
+    ],
+    "name": "Copper Gloves",
+    "result": [
+      3573,
+      1
+    ],
+    "station": "crafting_table"
+  },
+  "468": {
+    "category": "armor",
+    "ingredients": [
+      [
+        110,
+        2
+      ],
+      [
+        10,
+        1
+      ]
+    ],
+    "name": "Bronze Gloves",
+    "result": [
+      3574,
+      1
+    ],
+    "station": "crafting_table"
+  },
+  "469": {
+    "category": "armor",
+    "ingredients": [
+      [
+        111,
+        2
+      ],
+      [
+        10,
+        1
+      ]
+    ],
+    "name": "Steel Gloves",
+    "result": [
+      3575,
+      1
+    ],
+    "station": "crafting_table"
+  },
+  "470": {
+    "category": "armor",
+    "ingredients": [
+      [
+        104,
+        2
+      ],
+      [
+        10,
+        1
+      ]
+    ],
+    "name": "Gold Gloves",
+    "result": [
+      3576,
+      1
+    ],
+    "station": "crafting_table"
+  },
+  "471": {
+    "category": "armor",
+    "ingredients": [
+      [
+        26,
+        4
+      ],
+      [
+        100,
+        1
+      ]
+    ],
+    "name": "Crystal Gloves",
+    "result": [
+      3577,
+      1
+    ],
+    "station": "crafting_table"
+  },
+  "472": {
+    "category": "armor",
+    "ingredients": [
+      [
+        27,
+        4
+      ],
+      [
+        100,
+        1
+      ]
+    ],
+    "name": "Obsidian Gloves",
+    "result": [
+      3578,
+      1
+    ],
+    "station": "crafting_table"
+  },
+  "473": {
+    "category": "food",
+    "ingredients": [
+      [
+        59,
+        1
+      ]
+    ],
+    "name": "Cooked Meat",
+    "result": [
+      60,
+      1
+    ],
+    "station": "campfire"
+  },
+  "474": {
+    "category": "place",
+    "ingredients": [
+      [10, 2],
+      [20, 1]
+    ],
+    "name": "Torch",
+    "result": [214, 4],
+    "station": "crafting_table"
+  },
+  "475": {
+    "category": "place",
+    "ingredients": [
+      [100, 2],
+      [214, 1]
+    ],
+    "name": "Lantern",
+    "result": [215, 1],
+    "station": "crafting_table"
+  },
+  "476": {
+    "category": "food",
+    "ingredients": [
+      [13, 3],
+      [16, 2]
+    ],
+    "name": "Stamina Brew",
+    "result": [4003, 1],
+    "station": "crafting_table"
+  },
+  "477": {
+    "category": "weapon",
+    "ingredients": [
+      [212, 1],
+      [15,  5],
+      [269, 1]
+    ],
+    "name": "Fire Wand",
+    "result": [1802, 1],
+    "station": "crafting_table"
+  },
+  "478": {
+    "category": "weapon",
+    "ingredients": [
+      [212,  1],
+      [26,   5],
+      [270,  1]
+    ],
+    "name": "Storm Wand",
+    "result": [1803, 1],
+    "station": "crafting_table"
+  },
+  "479": {
+    "category": "weapon",
+    "ingredients": [
+      [212, 1],
+      [13,  5],
+      [269, 1]
+    ],
+    "name": "Nature Wand",
+    "result": [1804, 1],
+    "station": "crafting_table"
+  },
+  "480": {
+    "category": "weapon",
+    "ingredients": [
+      [212, 1],
+      [19,  3],
+      [271, 1]
+    ],
+    "name": "Shadow Wand",
+    "result": [1805, 1],
+    "station": "crafting_table"
+  },
+  "5": {
+    "category": "weapon",
+    "ingredients": [
+      [
+        100,
+        2
+      ],
+      [
+        19,
+        1
+      ]
+    ],
+    "name": "Iron Dagger",
+    "result": [
+      1100,
+      1
+    ],
+    "station": "crafting_table"
+  },
+  "50": {
+    "category": "food",
+    "ingredients": [
+      [
+        13,
+        2
+      ],
+      [
+        18,
+        1
+      ]
+    ],
+    "name": "Herb Tea",
+    "result": [
+      4000,
+      1
+    ],
+    "station": "crafting_table"
+  },
+  "51": {
+    "category": "food",
+    "ingredients": [
+      [
+        14,
+        2
+      ],
+      [
+        13,
+        1
+      ]
+    ],
+    "name": "Mushroom Stew",
+    "result": [
+      4001,
+      1
+    ],
+    "station": "campfire"
+  },
+  "52": {
+    "category": "food",
+    "ingredients": [
+      [
+        13,
+        3
+      ],
+      [
+        17,
+        1
+      ]
+    ],
+    "name": "Healing Potion",
+    "result": [
+      4002,
+      1
+    ],
+    "station": "crafting_table"
+  },
+  "53": {
+    "category": "smelt",
+    "ingredients": [
+      [
+        21,
+        2
+      ],
+      [
+        20,
+        1
+      ]
+    ],
+    "name": "Iron Bar",
+    "result": [
+      100,
+      1
+    ],
+    "station": "furnace"
+  },
+  "54": {
+    "category": "smelt",
+    "ingredients": [
+      [
+        11,
+        3
+      ]
+    ],
+    "name": "Stone Brick",
+    "result": [
+      120,
+      4
+    ],
+    "station": "furnace"
+  },
+  "55": {
+    "category": "place",
+    "ingredients": [
+      [
+        10,
+        5
+      ]
+    ],
+    "name": "Campfire",
+    "result": [
+      207,
+      1
+    ],
+    "station": "crafting_table"
+  },
+  "56": {
+    "category": "place",
+    "ingredients": [
+      [
+        10,
+        8
+      ],
+      [
+        11,
+        4
+      ]
+    ],
+    "name": "Crafting Table",
+    "result": [
+      200,
+      1
+    ]
+  },
+  "57": {
+    "category": "place",
+    "ingredients": [
+      [
+        11,
+        10
+      ],
+      [
+        20,
+        2
+      ]
+    ],
+    "name": "Furnace",
+    "result": [
+      201,
+      1
+    ],
+    "station": "crafting_table"
+  },
+  "58": {
+    "category": "place",
+    "ingredients": [
+      [
+        10,
+        2
+      ]
+    ],
+    "name": "Wood Wall x4",
+    "result": [
+      250,
+      4
+    ],
+    "station": "crafting_table"
+  },
+  "59": {
+    "category": "place",
+    "ingredients": [
+      [
+        11,
+        3
+      ]
+    ],
+    "name": "Stone Wall x4",
+    "result": [
+      251,
+      4
+    ],
+    "station": "crafting_table"
+  },
+  "6": {
+    "category": "weapon",
+    "ingredients": [
+      [
+        100,
+        3
+      ],
+      [
+        10,
+        2
+      ]
+    ],
+    "name": "Iron Sword",
+    "result": [
+      1101,
+      1
+    ],
+    "station": "crafting_table"
+  },
+  "60": {
+    "category": "place",
+    "ingredients": [
+      [
+        10,
+        6
+      ]
+    ],
+    "name": "Wooden Door",
+    "result": [
+      252,
+      1
+    ],
+    "station": "crafting_table"
+  },
+  "61": {
+    "category": "place",
+    "ingredients": [
+      [
+        10,
+        5
+      ],
+      [
+        18,
+        3
+      ]
+    ],
+    "name": "Bed",
+    "result": [
+      220,
+      1
+    ],
+    "station": "crafting_table"
+  },
+  "62": {
+    "category": "weapon",
+    "ingredients": [
+      [
+        19,
+        2
+      ],
+      [
+        12,
+        1
+      ]
+    ],
+    "name": "Scrap Knife",
+    "result": [
+      1000,
+      1
+    ]
+  },
+  "63": {
+    "category": "weapon",
+    "ingredients": [
+      [
+        19,
+        2
+      ],
+      [
+        12,
+        3
+      ]
+    ],
+    "name": "Scrap Club",
+    "result": [
+      1001,
+      1
+    ]
+  },
+  "64": {
+    "category": "tool",
+    "ingredients": [
+      [
+        19,
+        3
+      ],
+      [
+        12,
+        2
+      ]
+    ],
+    "name": "Scrap Pickaxe",
+    "result": [
+      2001,
+      1
+    ]
+  },
+  "65": {
+    "category": "armor",
+    "ingredients": [
+      [
+        18,
+        4
+      ]
+    ],
+    "name": "Scrap Cap",
+    "result": [
+      3000,
+      1
+    ]
+  },
+  "66": {
+    "category": "armor",
+    "ingredients": [
+      [
+        18,
+        5
+      ]
+    ],
+    "name": "Scrap Vest",
+    "result": [
+      3100,
+      1
+    ]
+  },
+  "67": {
+    "category": "armor",
+    "ingredients": [
+      [
+        18,
+        4
+      ]
+    ],
+    "name": "Scrap Leggings",
+    "result": [
+      3300,
+      1
+    ]
+  },
+  "68": {
+    "category": "place",
+    "ingredients": [
+      [
+        120,
+        3
+      ]
+    ],
+    "name": "Stone Brick Wall x4",
+    "result": [
+      253,
+      4
+    ],
+    "station": "crafting_table"
+  },
+  "69": {
+    "category": "place",
+    "ingredients": [
+      [
+        120,
+        2
+      ]
+    ],
+    "name": "Stone Brick Floor x4",
+    "result": [
+      254,
+      4
+    ],
+    "station": "crafting_table"
+  },
+  "7": {
+    "category": "weapon",
+    "ingredients": [
+      [
+        100,
+        3
+      ],
+      [
+        19,
+        1
+      ]
+    ],
+    "name": "Iron Mace",
+    "result": [
+      1102,
+      1
+    ],
+    "station": "crafting_table"
+  },
+  "70": {
+    "category": "smelt",
+    "ingredients": [
+      [
+        22,
+        2
+      ],
+      [
+        20,
+        1
+      ]
+    ],
+    "name": "Copper Bar",
+    "result": [
+      101,
+      1
+    ],
+    "station": "furnace"
+  },
+  "71": {
+    "category": "smelt",
+    "ingredients": [
+      [
+        23,
+        2
+      ],
+      [
+        20,
+        1
+      ]
+    ],
+    "name": "Tin Bar",
+    "result": [
+      102,
+      1
+    ],
+    "station": "furnace"
+  },
+  "72": {
+    "category": "smelt",
+    "ingredients": [
+      [
+        101,
+        1
+      ],
+      [
+        102,
+        1
+      ]
+    ],
+    "name": "Bronze Bar",
+    "result": [
+      110,
+      1
+    ],
+    "station": "furnace"
+  },
+  "73": {
+    "category": "smelt",
+    "ingredients": [
+      [
+        24,
+        2
+      ],
+      [
+        20,
+        1
+      ]
+    ],
+    "name": "Silver Bar",
+    "result": [
+      103,
+      1
+    ],
+    "station": "furnace"
+  },
+  "74": {
+    "category": "smelt",
+    "ingredients": [
+      [
+        25,
+        2
+      ],
+      [
+        20,
+        1
+      ]
+    ],
+    "name": "Gold Bar",
+    "result": [
+      104,
+      1
+    ],
+    "station": "furnace"
+  },
+  "75": {
+    "category": "smelt",
+    "ingredients": [
+      [
+        100,
+        2
+      ],
+      [
+        121,
+        2
+      ],
+      [
+        24,
+        1
+      ]
+    ],
+    "name": "Steel Bar",
+    "result": [
+      111,
+      1
+    ],
+    "station": "alloy_forge"
+  },
+  "76": {
+    "category": "weapon",
+    "ingredients": [
+      [
+        101,
+        3
+      ],
+      [
+        12,
+        2
+      ]
+    ],
+    "name": "Copper Sword",
+    "result": [
+      1150,
+      1
+    ],
+    "station": "crafting_table"
+  },
+  "77": {
+    "category": "weapon",
+    "ingredients": [
+      [
+        110,
+        3
+      ],
+      [
+        12,
+        2
+      ]
+    ],
+    "name": "Bronze Sword",
+    "result": [
+      1200,
+      1
+    ],
+    "station": "crafting_table"
+  },
+  "83": {
+    "category": "tool",
+    "ingredients": [
+      [
+        101,
+        3
+      ],
+      [
+        12,
+        2
+      ]
+    ],
+    "name": "Copper Pickaxe",
+    "result": [
+      2151,
+      1
+    ],
+    "station": "crafting_table"
+  },
+  "84": {
+    "category": "tool",
+    "ingredients": [
+      [
+        110,
+        2
+      ],
+      [
+        12,
+        3
+      ]
+    ],
+    "name": "Bronze Axe",
+    "result": [
+      2200,
+      1
+    ],
+    "station": "crafting_table"
+  },
+  "85": {
+    "category": "tool",
+    "ingredients": [
+      [
+        110,
+        3
+      ],
+      [
+        12,
+        2
+      ]
+    ],
+    "name": "Bronze Pickaxe",
+    "result": [
+      2201,
+      1
+    ],
+    "station": "crafting_table"
+  },
+  "90": {
+    "category": "armor",
+    "ingredients": [
+      [
+        101,
+        3
+      ]
+    ],
+    "name": "Copper Helm",
+    "result": [
+      3003,
+      1
+    ],
+    "station": "crafting_table"
+  },
+  "91": {
+    "category": "armor",
+    "ingredients": [
+      [
+        110,
+        3
+      ]
+    ],
+    "name": "Bronze Helm",
+    "result": [
+      3004,
+      1
+    ],
+    "station": "crafting_table"
+  },
+  "94": {
+    "category": "armor",
+    "ingredients": [
+      [
+        101,
+        5
+      ]
+    ],
+    "name": "Copper Vest",
+    "result": [
+      3104,
+      1
+    ],
+    "station": "crafting_table"
+  },
+  "95": {
+    "category": "armor",
+    "ingredients": [
+      [
+        110,
+        5
+      ]
+    ],
+    "name": "Bronze Vest",
+    "result": [
+      3105,
+      1
+    ],
+    "station": "crafting_table"
+  },
+  "97": {
+    "category": "armor",
+    "ingredients": [
+      [
+        101,
+        4
+      ]
+    ],
+    "name": "Copper Leggings",
+    "result": [
+      3303,
+      1
+    ],
+    "station": "crafting_table"
+  },
+  "98": {
+    "category": "armor",
+    "ingredients": [
+      [
+        110,
+        4
+      ]
+    ],
+    "name": "Bronze Leggings",
+    "result": [
+      3304,
+      1
+    ],
+    "station": "crafting_table"
+  }
+}

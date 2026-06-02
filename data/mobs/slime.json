@@ -1,0 +1,39 @@
+{
+  "behavior":             "melee",
+  "max_count":            7,
+  "spawn_interval_mult":  1.0,
+  "spawn_biomes":         [],
+  "spawn_night_only":     true,
+  "hp":                   100.0,
+  "hp_scale_per_level":   0.5,
+  "damage":               10.0,
+  "damage_scale":         0.4,
+  "speed":                1.5,
+  "speed_scale":          0.1,
+  "windup":               0.45,
+  "lunge_speed":          12.0,
+  "lunge_overshoot":      1.0,
+  "lunge_hit_radius":     0.7,
+  "landing_pause":        0.2,
+  "attack_range":         2.0,
+  "attack_cooldown":      2.5,
+  "aggro_range":          3.0,
+  "deaggro_range":        7.0,
+  "despawn_radius":       50,
+  "exp":                  25,
+  "drop_id":              28,
+  "wander_radius":        6.25,
+  "wander_idle_min":      2.0,
+  "wander_idle_max":      5.0,
+  "special": {
+    "slow_range":         1.2,
+    "slow_contact":       0.6,
+    "slow_on_hit":        3.0
+  },
+  "sprite": {
+    "type":   "frames",
+    "path":   "assets/mobs/slime/slime{dir}{frame}.png",
+    "frames": 3,
+    "fps":    6.0
+  }
+}
