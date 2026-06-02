@@ -13,10 +13,12 @@ except ImportError:
 MAX_MESSAGE_SIZE = 10 * 1024 * 1024  # 10 MB — mirrors server/network/net_utils.py
 
 
-def identify_socket(sock, socket_type, player_id=None):
+def identify_socket(sock, socket_type, player_id=None, session_token=None):
     msg = {"socket_type": socket_type}
     if player_id is not None:
         msg["player_id"] = player_id
+    if session_token is not None:
+        msg["session_token"] = session_token
     send_json(sock, msg)
 
 

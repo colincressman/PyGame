@@ -24,6 +24,24 @@ _UPGRADES = {
 _clients: dict | None = None
 
 
+def _is_slot(value, limit: int = 48) -> bool:
+    return isinstance(value, int) and 0 <= value < limit
+
+
+def _is_vec2(value) -> bool:
+    return (
+        isinstance(value, list)
+        and len(value) == 2
+        and all(isinstance(v, (int, float)) for v in value)
+    )
+
+
+def _safe_stations(value) -> list[str]:
+    if not isinstance(value, list):
+        return []
+    return [v for v in value[:16] if isinstance(v, str) and 0 < len(v) <= 64]
+
+
 def set_chat_refs(refs: dict) -> None:
     global _clients
     _clients = refs.get("clients")
@@ -46,7 +64,13 @@ def kick_player(player_id: str) -> None:
 
 
 def dispatch_message(data, player_id: str, players: dict, give_item, world_items: dict) -> bool:
+    if not isinstance(data, dict):
+        print(f"[DISPATCH] non-dict message from {player_id}: {type(data).__name__}")
+        return False
     msg_type = data.get("type")
+    if not isinstance(msg_type, str):
+        print(f"[DISPATCH] invalid type from {player_id}: {msg_type!r}")
+        return False
     handler = _HANDLERS.get(msg_type)
     if handler is None:
         print(f"[DISPATCH] unknown type={msg_type!r} from {player_id}")
@@ -85,8 +109,11 @@ def _handle_inv_swap(data, player_id: str, players: dict, _give_item, _world_ite
 
 
 def _handle_craft(data, player_id: str, players: dict, _give_item, _world_items: dict) -> None:
-    stations = data.get("nearby_stations") or []
-    if handle_craft(player_id, data.get("recipe_id"), players, stations):
+    recipe_id = data.get("recipe_id")
+    if recipe_id is not None and not isinstance(recipe_id, (str, int)):
+        return
+    stations = _safe_stations(data.get("nearby_stations"))
+    if handle_craft(player_id, recipe_id, players, stations):
         mark_inventory_dirty(player_id)
 
 
@@ -131,11 +158,11 @@ def _handle_cactus_hit(data, player_id: str, players: dict, _give_item, _world_i
 def _handle_place_object(data, player_id: str, players: dict, _give_item, _world_items: dict) -> None:
     obj_type = data.get("obj_type", "")
     pos = data.get("pos", [0, 0])
-    if not (isinstance(obj_type, str) and isinstance(pos, list) and len(pos) == 2):
+    if not (isinstance(obj_type, str) and obj_type and _is_vec2(pos)):
         return
     with players_lock:
         if player_id in players:
-            ok, _result = _place_object(player_id, obj_type, pos, players[player_id]["inventory"])
+            ok, _result = _place_object(player_id, obj_type, [int(pos[0]), int(pos[1])], players[player_id]["inventory"])
             if ok:
                 mark_inventory_dirty(player_id)
 
@@ -179,7 +206,9 @@ def _handle_chest_swap(data, player_id: str, players: dict, _give_item, _world_i
     merge_dest = data.get("merge_dest")
     if not (isinstance(uid, str) and uid
             and isinstance(chest_slot, int) and 0 <= chest_slot < 27
-            and isinstance(player_slot, int) and 0 <= player_slot < 47):
+            and _is_slot(player_slot, 48)):
+        return
+    if merge_dest is not None and merge_dest not in ("player", "chest"):
         return
     ok = False
     with players_lock:
@@ -196,14 +225,15 @@ def _handle_combine_parts(data, player_id: str, players: dict, give_item, world_
     primary_idx = data.get("primary_slot")
     handle_idx = data.get("handle_slot")
     binding_idx = data.get("binding_slot")
-    nearby = data.get("nearby_stations")
-    if all(isinstance(x, int) for x in (mold_idx, primary_idx, handle_idx, binding_idx)):
+    nearby = _safe_stations(data.get("nearby_stations"))
+    if all(_is_slot(x, 48) for x in (mold_idx, primary_idx, handle_idx, binding_idx)):
         from server.game_state.part_combiner import combine_parts as _combine
         ok, reason = _combine(player_id, mold_idx, primary_idx, handle_idx, binding_idx, players, nearby)
         if ok:
             mark_inventory_dirty(player_id)
         elif reason:
             print(f"[COMBINER] {player_id} failed: {reason}")
+        return
     uid = data.get("uid")
     if not isinstance(uid, str):
         return
@@ -228,8 +258,8 @@ def _handle_combine_parts(data, player_id: str, players: dict, give_item, world_
 def _handle_embed_gem(data, player_id: str, players: dict, _give_item, _world_items: dict) -> None:
     item_slot = data.get("item_slot")
     gem_slot = data.get("gem_slot")
-    nearby = data.get("nearby_stations")
-    if not (isinstance(item_slot, int) and isinstance(gem_slot, int)):
+    nearby = _safe_stations(data.get("nearby_stations"))
+    if not (_is_slot(item_slot, 48) and _is_slot(gem_slot, 48)):
         return
     from server.game_state.embedder import embed_gem as _embed
     ok, reason = _embed(player_id, item_slot, gem_slot, players, nearby)
@@ -241,8 +271,8 @@ def _handle_embed_gem(data, player_id: str, players: dict, _give_item, _world_it
 
 def _handle_repair_item(data, player_id: str, players: dict, _give_item, _world_items: dict) -> None:
     item_slot = data.get("item_slot")
-    nearby = data.get("nearby_stations")
-    if not isinstance(item_slot, int):
+    nearby = _safe_stations(data.get("nearby_stations"))
+    if not _is_slot(item_slot, 48):
         return
     from server.game_state.repair import repair_item as _repair
     ok, reason = _repair(player_id, item_slot, players, nearby)
@@ -254,7 +284,7 @@ def _handle_repair_item(data, player_id: str, players: dict, _give_item, _world_
 
 def _handle_use_item(data, player_id: str, players: dict, _give_item, _world_items: dict) -> None:
     slot_idx = data.get("slot")
-    if not (isinstance(slot_idx, int) and 0 <= slot_idx <= 44):
+    if not _is_slot(slot_idx, 48):
         return
     with players_lock:
         if player_id in players:
@@ -481,7 +511,7 @@ def _handle_give_item(data, player_id: str, players: dict, give_item, _world_ite
     if not (isinstance(item_id, int) and isinstance(qty, int) and qty > 0):
         return
     from server.item_data import get_item as _get_item
-    if _get_item(item_id) is None:
+    if not _get_item(item_id):
         return
     with players_lock:
         if player_id in players:
@@ -492,7 +522,7 @@ def _handle_give_item(data, player_id: str, players: dict, give_item, _world_ite
 def _handle_shop_buy(data, player_id: str, players: dict, give_item, _world_items: dict) -> None:
     npc_type  = data.get("npc_type", "")
     shop_slot = data.get("shop_slot")
-    if not (isinstance(npc_type, str) and isinstance(shop_slot, int)):
+    if not (isinstance(npc_type, str) and 0 < len(npc_type) <= 64 and isinstance(shop_slot, int) and shop_slot >= 0):
         return
     from server.world.npc_shops import handle_shop_buy as _shop_buy, get_shop as _get_shop
     with players_lock:
@@ -505,9 +535,9 @@ def _handle_shop_buy(data, player_id: str, players: dict, give_item, _world_item
 def _handle_shop_sell(data, player_id: str, players: dict, _give_item, _world_items: dict) -> None:
     inv_slot = data.get("slot")
     npc_type = data.get("npc_type", "merchant")
-    if not (isinstance(inv_slot, int) and 0 <= inv_slot < 47):
+    if not _is_slot(inv_slot, 48):
         return
-    if not isinstance(npc_type, str):
+    if not isinstance(npc_type, str) or not npc_type:
         npc_type = "merchant"
     from server.world.npc_shops import handle_shop_sell as _shop_sell, get_shop as _get_shop
     with players_lock:
@@ -533,7 +563,11 @@ def _handle_update_appearance(data, player_id: str, players: dict, _give_item, _
         return
     _ALLOWED_KEYS = {"body", "hair_style", "hair_color", "skin_tint",
                      "back_ext", "back_ext_color", "aura"}
-    safe = {k: v for k, v in appearance.items() if k in _ALLOWED_KEYS}
+    safe = {
+        k: v
+        for k, v in appearance.items()
+        if k in _ALLOWED_KEYS and isinstance(v, (str, int, float, bool, type(None)))
+    }
     with players_lock:
         if player_id in players:
             players[player_id]["appearance"] = safe
@@ -564,6 +598,8 @@ def _handle_fire_spell(data, player_id: str, players: dict, _give_item, _world_i
         if not can_fire(player_id):
             return
         hotbar_slot = player.get("hotbar_slot", 0)
+        if not isinstance(hotbar_slot, int) or not 0 <= hotbar_slot <= 8:
+            return
         inv         = player.get("inventory", [])
         weapon_idx  = 27 + hotbar_slot
         weapon      = inv[weapon_idx] if weapon_idx < len(inv) else None
@@ -578,6 +614,8 @@ def _handle_fire_spell(data, player_id: str, players: dict, _give_item, _world_i
                + get_equip_bonuses(inv)["attack_power"]
                + get_hotbar_bonus(inv, hotbar_slot)["attack_power"])
         pos = player.get("pos", [0.0, 0.0])
+        if not _is_vec2(pos):
+            return
         ox  = float(pos[0]) + 0.5   # fire from player centre
         oy  = float(pos[1]) + 0.5
 
@@ -593,7 +631,14 @@ def _handle_forget_chunks(data, player_id: str, players: dict, _give_item, _worl
     if len(chunks) > 512:
         return
     from server.game_state.sync import forget_player_chunks as _forget
-    _forget(player_id, chunks)
+    safe_chunks = [
+        [int(c[0]), int(c[1])]
+        for c in chunks
+        if isinstance(c, (list, tuple)) and len(c) == 2
+        and isinstance(c[0], int) and isinstance(c[1], int)
+    ]
+    if safe_chunks:
+        _forget(player_id, safe_chunks)
 
 
 _HANDLERS = {

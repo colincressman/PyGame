@@ -2,6 +2,7 @@ from .shared_lock import clients_lock, players_lock, hashes_lock
 from server.game_state.sync import invalidate_player as _sync_invalidate
 from server.game_state.game_sync import invalidate_node_snapshot as _game_sync_invalidate
 from server.player_save import save_player
+from server.session_auth import revoke_token
 
 # Persists last known position across disconnect/reconnect within the same server session
 last_positions = {}  # {player_id: [x, y]}
@@ -60,6 +61,7 @@ def cleanup_player(player_id):
     # Clear sent-chunk cache so the next connection for this ID gets a full resend
     _sync_invalidate(player_id)
     _game_sync_invalidate(player_id)
+    revoke_token(player_id)
 
     # Persist player state to disk outside all locks (avoids blocking other threads)
     if player_snapshot:

@@ -34,6 +34,7 @@ def reset_client_state():
     config.WINDOW_HEIGHT = 720
 
     config.ping = 0
+    config.session_token = None
     config.last_ping_sent = 0.0
     config.awaiting_ping = False
     config.client_running = True
@@ -92,8 +93,12 @@ def reset_client_state():
     _disp._MISSING_TILE_SURFACE = None
     _mobs._mob_timers.clear()
     _mobs._mob_buf.clear()
+    if hasattr(_mobs, "_mob_sprites"):
+        _mobs._mob_sprites.clear()
     _mobs._loaded = False
-    _mobs._slime.clear()
+    for attr in ("_scorpion_surf", "_yeti_surf", "_deer_surf", "_slime_king_surf"):
+        if hasattr(_mobs, attr):
+            setattr(_mobs, attr, None)
     _mobs._level_font = None
     _ss._font_title = None
     _ss._font_body = None

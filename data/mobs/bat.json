@@ -34,6 +34,7 @@
     "walk_frames":     3,
     "fps":             8.0,
     "frame_w":         48,
-    "frame_h":         64
+    "frame_h":         64,
+    "row_order":       {"down": 0, "left": 1, "right": 2, "up": 3}
   }
 }
