@@ -19,25 +19,6 @@ for _fname in os.listdir(_MOB_DATA_DIR):
         with open(os.path.join(_MOB_DATA_DIR, _fname), encoding="utf-8") as _f:
             _MOB_SPRITE_CFG[_t] = json.load(_f).get("sprite", {})
 
-_SLIME_CFG    = _MOB_SPRITE_CFG.get("slime", {})
-_SKELETON_CFG = _MOB_SPRITE_CFG.get("skeleton", {})
-_SPIDER_CFG = _MOB_SPRITE_CFG.get("spider", {})
-_BAT_CFG = _MOB_SPRITE_CFG.get("bat", {})
-_RABBIT_CFG = _MOB_SPRITE_CFG.get("rabbit", {})
-
-_SLIME_FRAMES    = _SLIME_CFG.get("frames", 3)
-_SLIME_FPS       = _SLIME_CFG.get("fps", 6.0)
-_SKELETON_FRAMES = _SKELETON_CFG.get("frames", 9)
-_SKELETON_FPS    = _SKELETON_CFG.get("fps", 8.0)
-_SPIDER_FRAMES   = _SPIDER_CFG.get("walk_frames", 6)
-_SPIDER_FPS      = _SPIDER_CFG.get("fps", 8.0)
-_BAT_FRAMES   = _BAT_CFG.get("walk_frames", 8)
-_BAT_FPS      = _BAT_CFG.get("fps", 8.0)
-_RABBIT_FRAMES   = _RABBIT_CFG.get("walk_frames", 8)
-_RABBIT_FPS      = _RABBIT_CFG.get("fps", 8.0)
-_LPC_FRAME_W     = _SKELETON_CFG.get("frame_w", 64)
-_LPC_FRAME_H     = _SKELETON_CFG.get("frame_h", 64)
-
 _DIRS          = ("down", "up", "left", "right")
 # LPC walk row order: down=0, left=1, right=2, up=3
 _LPC_WALK_ROWS = {"down": 2, "left": 1, "right": 3, "up": 0}
@@ -49,11 +30,7 @@ _LPC_WALK_ROWS_SWEN = {"down": 0, "left": 1, "right": 2, "up": 3}
 _INTERP_DELAY  = 3.0 / 60   # seconds
 _BUFFER_MAXLEN = 12          # ~200 ms of history at 60 Hz
 
-_slime: dict    = {}   # {dir: [Surface, ...]}
-_skeleton: dict  = {}   # {dir: [Surface, ...]}  — loaded from LPC walk sheet
-_spider: dict   = {}
-_bat: dict   = {}
-_rabbit: dict   = {}
+_mob_sprites: dict = {}  # {mob_type: {dir: [Surface, ...]}}
 
 _scorpion_surf: pygame.Surface | None = None   # procedural, direction-agnostic
 _yeti_surf:     pygame.Surface | None = None
@@ -68,43 +45,78 @@ def _get_level_font():
         _level_font = pygame.font.SysFont("Arial", 11, bold=True)
     return _level_font
 
-_ASSETS_DIR   = os.path.join(_CLIENT_DIR, "assets", "mobs", "slime")
-
-_SKELETON_WALK_PATH = os.path.join(
-    _CLIENT_DIR,
-    _SKELETON_CFG.get(
-        "path",
-        "Universal-LPC-Spritesheet-Character-Generator/spritesheets/body/bodies/skeleton/walk/skeleton.png",
-    ),
-)
-
-_SPIDER_WALK_PATH = os.path.join(
-    _CLIENT_DIR,
-    _SPIDER_CFG.get(
-        "path",
-        "Universal-LPC-Spritesheet-Character-Generator/spritesheets/mobs/spider/spider05.png",
-    ),
-)
-
-_BAT_WALK_PATH = os.path.join(
-    _CLIENT_DIR,
-    _BAT_CFG.get(
-        "path",
-        "Universal-LPC-Spritesheet-Character-Generator/spritesheets/mobs/bat/bat-SWEN.png",
-    ),
-)
-
-_RABBIT_WALK_PATH = os.path.join(
-    _CLIENT_DIR,
-    _RABBIT_CFG.get(
-        "path",
-        "Universal-LPC-Spritesheet-Character-Generator/spritesheets/mobs/bunny/rabbit.png",
-    ),
-)
-
 # Per-mob state keyed by mob_id
 _mob_timers: dict = {}   # {mob_id: float}           — animation clock
 _mob_buf:    dict = {}   # {mob_id: deque[(t, x, y)]} — interpolation buffer
+
+
+def _load_mob_sprite(mob_type: str, cfg: dict) -> dict:
+    """Load all directional frames for one mob from its sprite config.
+
+    Supported sprite types:
+      "frames"     — per-direction individual files; path uses {dir} and {frame}
+      "lpc_walk"   — LPC spritesheet (rows = directions) with optional head overlay
+      "walk_strip" — generic spritesheet strip (rows = directions, cols = frames)
+
+    Returns {direction: [Surface, ...]} for each direction in row_order.
+    """
+    stype = cfg.get("type", "")
+    result: dict = {}
+
+    if stype == "frames":
+        path_tmpl = cfg["path"]
+        frame_count = cfg.get("frames", 3)
+        for d in _DIRS:
+            result[d] = [
+                pygame.image.load(
+                    os.path.join(_CLIENT_DIR, path_tmpl.format(dir=d, frame=i))
+                ).convert_alpha()
+                for i in range(frame_count)
+            ]
+
+    elif stype == "lpc_walk":
+        fw = cfg.get("frame_w", 64)
+        fh = cfg.get("frame_h", 64)
+        frame_count = cfg.get("frames", 9)
+        row_order = cfg.get("row_order", _LPC_WALK_ROWS)
+        body_sheet = pygame.image.load(
+            os.path.join(_CLIENT_DIR, cfg["path"])
+        ).convert_alpha()
+        head_sheet = None
+        head_path = cfg.get("head_path")
+        if head_path:
+            full = os.path.join(_CLIENT_DIR, head_path)
+            if os.path.exists(full):
+                head_sheet = pygame.image.load(full).convert_alpha()
+            else:
+                print(f"[MOBS] {mob_type} head sheet not found: {full}")
+        for direction, row in row_order.items():
+            frames = []
+            for col in range(frame_count):
+                rect = pygame.Rect(col * fw, row * fh, fw, fh)
+                frame = body_sheet.subsurface(rect).copy()
+                if head_sheet is not None:
+                    frame.blit(head_sheet.subsurface(rect), (0, 0))
+                frames.append(frame)
+            result[direction] = frames
+
+    elif stype == "walk_strip":
+        fw = cfg.get("frame_w", 64)
+        fh = cfg.get("frame_h", 64)
+        frame_count = cfg.get("walk_frames", cfg.get("frames", 4))
+        start_col = cfg.get("walk_start_col", 0)
+        row_order = cfg.get("row_order", _LPC_WALK_ROWS)
+        sheet = pygame.image.load(
+            os.path.join(_CLIENT_DIR, cfg["path"])
+        ).convert_alpha()
+        for direction, row in row_order.items():
+            frames = []
+            for col in range(start_col, start_col + frame_count):
+                rect = pygame.Rect(col * fw, row * fh, fw, fh)
+                frames.append(sheet.subsurface(rect).copy())
+            result[direction] = frames
+
+    return result
 
 
 def _ensure_loaded():
@@ -114,85 +126,14 @@ def _ensure_loaded():
     if _loaded:
         return
     _loaded = True
-    for d in _DIRS:
-        _slime_path_tmpl = _SLIME_CFG.get("path", "assets/mobs/slime/slime{dir}{frame}.png")
-        _slime[d] = [
-            pygame.image.load(
-                os.path.join(_CLIENT_DIR, _slime_path_tmpl.format(dir=d, frame=i))
-            ).convert_alpha()
-            for i in range(_SLIME_FRAMES)
-        ]
-    # Load skeleton walk animation from LPC spritesheet (body + head overlay)
-    try:
-        body_sheet = pygame.image.load(_SKELETON_WALK_PATH).convert_alpha()
-        _head_path = _SKELETON_CFG.get("head_path")
-        head_sheet = None
-        if _head_path:
-            _head_full = os.path.join(_CLIENT_DIR, _head_path)
-            if os.path.exists(_head_full):
-                head_sheet = pygame.image.load(_head_full).convert_alpha()
-            else:
-                print(f"[MOBS] Skeleton head sheet not found: {_head_full}")
-        for direction, row in _LPC_WALK_ROWS.items():
-            frames = []
-            for col in range(_SKELETON_FRAMES):
-                rect = pygame.Rect(col * _LPC_FRAME_W, row * _LPC_FRAME_H,
-                                   _LPC_FRAME_W, _LPC_FRAME_H)
-                frame = body_sheet.subsurface(rect).copy()
-                if head_sheet is not None:
-                    frame.blit(head_sheet.subsurface(rect), (0, 0))
-                frames.append(frame)
-            _skeleton[direction] = frames
-    except Exception as e:
-        print(f"[MOBS] Failed to load skeleton walk sheet: {e}")
 
-    # --- Spider sprite (walk strip: row 0, cols walk_start_col .. walk_start_col+walk_frames) ---
-    try:
-        body_sheet = pygame.image.load(_SPIDER_WALK_PATH).convert_alpha()
-        _walk_start = _SPIDER_CFG.get("walk_start_col", 5)
-        for direction, row in _LPC_WALK_ROWS.items():
-            frames = []
-            for col in range(_walk_start, _walk_start + _SPIDER_FRAMES):
-                rect = pygame.Rect(col * _LPC_FRAME_W, row * _LPC_FRAME_H,
-                                   _LPC_FRAME_W, _LPC_FRAME_H)
-                frame = body_sheet.subsurface(rect).copy()
-                frames.append(frame)
-            _spider[direction] = frames
-    except Exception as e:
-        print(f"[MOBS] Failed to load spider walk sheet: {e}")
-
-    # --- Bat sprite (SWEN sheet: 3 cols × 4 rows, frame 48×64) ---
-    try:
-        body_sheet = pygame.image.load(_BAT_WALK_PATH).convert_alpha()
-        _bat_fw = _BAT_CFG.get("frame_w", 48)
-        _bat_fh = _BAT_CFG.get("frame_h", 64)
-        _bat_start = _BAT_CFG.get("walk_start_col", 0)
-        for direction, row in _LPC_WALK_ROWS_SWEN.items():
-            frames = []
-            for col in range(_bat_start, _bat_start + _BAT_FRAMES):
-                rect = pygame.Rect(col * _bat_fw, row * _bat_fh, _bat_fw, _bat_fh)
-                frame = body_sheet.subsurface(rect).copy()
-                frames.append(frame)
-            _bat[direction] = frames
-    except Exception as e:
-        print(f"[MOBS] Failed to load bat walk sheet: {e}")
-
-    # --- Rabbit sprite (SWEN sheet: 3 cols × 6 rows, frame 53×54) ---
-    try:
-        body_sheet = pygame.image.load(_RABBIT_WALK_PATH).convert_alpha()
-        _rab_fw = _RABBIT_CFG.get("frame_w", 40)
-        _rab_fh = _RABBIT_CFG.get("frame_h", 40)
-        _rab_start = _RABBIT_CFG.get("walk_start_col", 0)
-        for direction, row in _LPC_WALK_ROWS.items():
-            frames = []
-            for col in range(_rab_start, _rab_start + _RABBIT_FRAMES):
-                rect = pygame.Rect(col * _rab_fw, row * _rab_fh, _rab_fw, _rab_fh)
-                frame = body_sheet.subsurface(rect).copy()
-                frames.append(frame)
-            _rabbit[direction] = frames
-    except Exception as e:
-        print(f"[MOBS] Failed to load rabbit walk sheet: {e}")
-
+    for mob_type, cfg in _MOB_SPRITE_CFG.items():
+        if cfg.get("type") == "procedural":
+            continue
+        try:
+            _mob_sprites[mob_type] = _load_mob_sprite(mob_type, cfg)
+        except Exception as e:
+            print(f"[MOBS] Failed to load {mob_type} sprite: {e}")
 
     # --- Procedural scorpion sprite (40×40) ---
     _scorpion_surf = pygame.Surface((40, 40), pygame.SRCALPHA)
@@ -361,31 +302,28 @@ def get_mob_drawables(screen: pygame.Surface, mobs: list, player_pos: list,
                 mx, my = buf[-1][1], buf[-1][2]
 
         _mob_timers[mid] = _mob_timers.get(mid, 0.0) + dt
-        frame = int(_mob_timers[mid] * _SLIME_FPS) % _SLIME_FRAMES
 
         mob_type = mob.get("type", "slime")
-        if mob_type == "skeleton" and _skeleton:
-            frame_sk = int(_mob_timers[mid] * _SKELETON_FPS) % _SKELETON_FRAMES
-            img = _skeleton[facing][frame_sk]
-        elif mob_type == "spider" and _spider:
-            frame_sk = int(_mob_timers[mid] * _SPIDER_FPS) % _SPIDER_FRAMES
-            img = _spider[facing][frame_sk]
+        sprite_data = _mob_sprites.get(mob_type)
+        if sprite_data:
+            cfg = _MOB_SPRITE_CFG.get(mob_type, {})
+            fps = cfg.get("fps", 8.0)
+            frames_list = sprite_data.get(facing) or sprite_data.get("down", [])
+            frame_idx = int(_mob_timers[mid] * fps) % max(len(frames_list), 1)
+            img = frames_list[frame_idx]
         elif mob_type == "scorpion" and _scorpion_surf is not None:
             img = _scorpion_surf
-        elif mob_type == "bat" and _bat:
-            frame_sk = int(_mob_timers[mid] * _BAT_FPS) % _BAT_FRAMES
-            img = _bat[facing][frame_sk]
         elif mob_type == "yeti" and _yeti_surf is not None:
             img = _yeti_surf
-        elif mob_type == "rabbit" and _rabbit:
-            frame_sk = int(_mob_timers[mid] * _RABBIT_FPS) % _RABBIT_FRAMES
-            img = _rabbit[facing][frame_sk]
         elif mob_type == "deer" and _deer_surf is not None:
             img = _deer_surf
         elif mob_type == "slime_king" and _slime_king_surf is not None:
             img = _slime_king_surf
         else:
-            img = _slime[facing][frame]
+            # Unknown type — use first available sprite as fallback
+            fallback = next(iter(_mob_sprites.values()), None)
+            frames_list = (fallback or {}).get("down", [])
+            img = frames_list[0] if frames_list else pygame.Surface((32, 32))
         w, h = img.get_width(), img.get_height()
         sx = round((mx - px) * 32 + window_width  // 2 - w // 2)
         sy = round((my - py) * 32 + window_height // 2 - h // 2)
