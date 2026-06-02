@@ -10,6 +10,7 @@ from server.network.net_utils import send_json, recv_json
 from server.network.tcp_state_handlers_v2 import dispatch_message as _dispatch_state_message_v2
 from server.cleanup import cleanup_player
 from server.item_data import get_item, roll_item_stats
+from server.session_auth import verify_token
 
 # Shared game_state references to be injected
 clients = None
@@ -26,6 +27,19 @@ def set_tcp_state_refs(refs):
     clients = refs["clients"]
     players = refs["players"]
     player_positions = refs["player_positions"]
+
+
+def _valid_handshake(handshake: dict | None, socket_type: str, addr) -> str | None:
+    if not handshake or handshake.get("socket_type") != socket_type:
+        return None
+    player_id = handshake.get("player_id", f"Unknown_{addr}")
+    if not _is_safe_player_id(player_id):
+        print(f"[{socket_type.upper()} REJECT] unsafe player_id from {addr}: {player_id!r}")
+        return None
+    if not verify_token(player_id, handshake.get("session_token")):
+        print(f"[{socket_type.upper()} REJECT] invalid session token for {player_id} from {addr}")
+        return None
+    return player_id
 
 
 # ---------------------------------------------------------------------------
@@ -68,14 +82,11 @@ def _give_item(player: dict, item_id: int, qty: int) -> bool:
     return remaining == 0
 
 def handle_world(sock, addr):
+    player_id = None
     try:
         handshake = recv_json(sock)
-        if not handshake or handshake.get("socket_type") != "world":
-            sock.close()
-            return
-        player_id = handshake.get("player_id", f"Unknown_{addr}")
-        if not _is_safe_player_id(player_id):
-            print(f"[WORLD REJECT] unsafe player_id from {addr}: {player_id!r}")
+        player_id = _valid_handshake(handshake, "world", addr)
+        if player_id is None:
             sock.close()
             return
         clients["world"][player_id] = sock
@@ -99,19 +110,17 @@ def handle_world(sock, addr):
         print(f"[WORLD ERROR] {e}")
     finally:
         print(f"[WORLD DISCONNECT] {player_id}")
-        cleanup_player(player_id)
+        if player_id is not None:
+            cleanup_player(player_id)
         sock.close()
 
 
 def handle_state(sock, addr):
+    player_id = None
     try:
         handshake = recv_json(sock)
-        if not handshake or handshake.get("socket_type") != "game_state":
-            sock.close()
-            return
-        player_id = handshake.get("player_id", f"Unknown_{addr}")
-        if not _is_safe_player_id(player_id):
-            print(f"[STATE REJECT] unsafe player_id from {addr}: {player_id!r}")
+        player_id = _valid_handshake(handshake, "game_state", addr)
+        if player_id is None:
             sock.close()
             return
         clients["game_state"][player_id] = sock
@@ -162,5 +171,6 @@ def handle_state(sock, addr):
         print(f"[STATE ERROR] {e}")
     finally:
         print(f"[STATE DISCONNECT] {player_id}")
-        cleanup_player(player_id)
+        if player_id is not None:
+            cleanup_player(player_id)
         sock.close()

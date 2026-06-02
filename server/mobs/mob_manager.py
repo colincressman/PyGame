@@ -1,16 +1,16 @@
 # server/mobs/mob_manager.py
 """
-Slime mob AI and lifecycle management.
+Data-driven mob AI and lifecycle management.
 
 States
 ------
 wander          — mob picks a random nearby target and ambles toward it
-aggro           — a player is within AGGRO_RANGE; mob chases; holds at _S["attack_range"]
+aggro           — a player is within the mob JSON aggro_range; mob chases; holds at attack_range
 windup          — stopped at attack range, telegraphing charge (yellow flash)
 lunge           — charging at locked target point
 return_to_origin — bouncing back to where the windup started
 
-Spawn cap: MAX_SLIMES concurrent mobs, one spawn per SPAWN_INTERVAL seconds.
+Spawn caps and spawn cadence are read from MOB_TYPES, which is expected to be populated from the mob JSON folder.
 """
 import math
 import random
@@ -54,74 +54,59 @@ _MOB_OBJ_MIN_DSQ   = (0.35 + 0.40) ** 2
 # STEALTH_AGGRO_MULT — all imported from server.config above
 
 # ---------------------------------------------------------------------------
-# Per-mob shorthands derived from MOB_TYPES
+# Data-driven mob defaults and helpers
 # ---------------------------------------------------------------------------
-_S  = MOB_TYPES["slime"]
-_SK = MOB_TYPES["skeleton"]
-_SP = MOB_TYPES["spider"]
-_SC = MOB_TYPES["scorpion"]
-_B  = MOB_TYPES["bat"]
-_Y  = MOB_TYPES["yeti"]
-_R  = MOB_TYPES["rabbit"]
-_D  = MOB_TYPES["deer"]
-_BK = MOB_TYPES["slime_king"]
+DEFAULT_MOB_TYPE = next((k for k, v in MOB_TYPES.items() if v.get("behavior") == "melee"), next(iter(MOB_TYPES), None))
+DEFAULT_MOB = MOB_TYPES.get(DEFAULT_MOB_TYPE, {})
+BOSS_MOB_TYPE = next((k for k, v in MOB_TYPES.items() if v.get("behavior") == "boss"), None)
 
-MAX_SLIMES    = _S["max_count"]
-MAX_SKELETONS = _SK["max_count"]
-MAX_SPIDERS   = _SP["max_count"]
-MAX_SCORPIONS = _SC["max_count"]
-MAX_BATS      = _B["max_count"]
-MAX_YETIS     = _Y["max_count"]
-MAX_RABBITS   = _R["max_count"]
-MAX_DEER      = _D["max_count"]
-MAX_BOSS      = _BK["max_count"]
-
-SKELETON_SPAWN_INTERVAL  = SPAWN_INTERVAL * _SK["spawn_interval_mult"]
-SPIDER_SPAWN_INTERVAL    = SPAWN_INTERVAL * _SP["spawn_interval_mult"]
-SCORPION_SPAWN_INTERVAL  = SPAWN_INTERVAL * _SC["spawn_interval_mult"]
-BAT_SPAWN_INTERVAL       = SPAWN_INTERVAL * _B["spawn_interval_mult"]
-YETI_SPAWN_INTERVAL      = SPAWN_INTERVAL * _Y["spawn_interval_mult"]
-RABBIT_SPAWN_INTERVAL    = SPAWN_INTERVAL * _R["spawn_interval_mult"]
-DEER_SPAWN_INTERVAL      = SPAWN_INTERVAL * _D["spawn_interval_mult"]
-
-SLIME_SLOW_RANGE   = _S["special"]["slow_range"]
-SLIME_SLOW_CONTACT = _S["special"]["slow_contact"]
-SLIME_SLOW_HIT     = _S["special"]["slow_on_hit"]
-
-SPIDER_WEB_SLOW          = _SP["special"]["web_slow_on_hit"]
-SCORPION_POISON_DURATION = _SC["special"]["poison_duration"]
-SCORPION_POISON_DPS      = _SC["special"]["poison_dps"]
-
-YETI_SLAM_RANGE    = _Y["special"]["slam_range"]
-YETI_SLAM_COOLDOWN = _Y["special"]["slam_cooldown"]
-YETI_SLAM_RADIUS   = _Y["special"]["slam_radius"]
-YETI_SLAM_CHARGE   = _Y["special"]["slam_charge"]
-
-DESPAWN_RADIUS    = _S["despawn_radius"]
+DESPAWN_RADIUS    = DEFAULT_MOB.get("despawn_radius", 50)
 DESPAWN_RADIUS_SQ = DESPAWN_RADIUS ** 2
 
-WANDER_RADIUS   = _S["wander_radius"]
-WANDER_IDLE_MIN = _S["wander_idle_min"]
-WANDER_IDLE_MAX = _S["wander_idle_max"]
+WANDER_RADIUS   = DEFAULT_MOB.get("wander_radius", 6.25)
+WANDER_IDLE_MIN = DEFAULT_MOB.get("wander_idle_min", 2.0)
+WANDER_IDLE_MAX = DEFAULT_MOB.get("wander_idle_max", 5.0)
 
-AGGRO_RANGE          = _S["aggro_range"]
-AGGRO_RANGE_SQ       = _S["aggro_range_sq"]
-DEAGGRO_RANGE        = _S["deaggro_range"]
-ANIMAL_DEAGGRO_RANGE = _R["deaggro_range"]
+AGGRO_RANGE          = DEFAULT_MOB.get("aggro_range", 3.0)
+AGGRO_RANGE_SQ       = AGGRO_RANGE ** 2
+DEAGGRO_RANGE        = DEFAULT_MOB.get("deaggro_range", 7.0)
+ANIMAL_DEAGGRO_RANGE = DEFAULT_MOB.get("deaggro_range", 7.0)
+
+_next_spawn_times: dict[str, float] = {
+    mob_type: 0.0
+    for mob_type, cfg in MOB_TYPES.items()
+    if cfg.get("max_count", 0) > 0 and cfg.get("behavior") != "boss"
+}
+
+
+def _mob_cfg(mob_or_type):
+    mob_type = mob_or_type.get("type") if isinstance(mob_or_type, dict) else mob_or_type
+    return MOB_TYPES.get(mob_type, DEFAULT_MOB)
+
+
+def _mob_special(mob_or_type):
+    return _mob_cfg(mob_or_type).get("special", {})
+
+
+def _mob_behavior(mob_or_type):
+    return _mob_cfg(mob_or_type).get("behavior", "melee")
+
+
+def _is_passive_mob(mob_or_type):
+    return _mob_behavior(mob_or_type) in ("passive", "flee", "animal")
+
+
+def _cfg_float(cfg, key, default=0.0):
+    try:
+        return float(cfg.get(key, default))
+    except (TypeError, ValueError):
+        return float(default)
 
 # ---------------------------------------------------------------------------
 # Shared state
 # ---------------------------------------------------------------------------
 mobs: dict       = {}      # {mob_id: MobData dict}
-_next_spawn_time:           float = 0.0
-_next_skeleton_spawn_time:  float = 0.0
-_next_spider_spawn_time:    float = 0.0
-_next_scorpion_spawn_time:  float = 0.0
-_next_bat_spawn_time:       float = 0.0
-_next_yeti_spawn_time:      float = 0.0
-_next_rabbit_spawn_time:    float = 0.0
-_next_deer_spawn_time:      float = 0.0
-_slime_king_active:         bool  = False  # at most one Slime King per server
+_boss_active:         bool  = False  # at most one configured boss per server
 _boss_dungeon_pos:          list | None = None  # dungeon centre that spawned the boss
 _pending_events:            list  = []     # {"type": ...} dicts drained by drain_events()
 # mobs_lock imported from server.shared_lock (defined once, re-exported here for backward compat)
@@ -240,371 +225,142 @@ def _is_obj_blocked(x, y, solid_tile_set):
     return False
 
 
-def _spawn_slime_near(player_pos, floor_positions: frozenset = frozenset()):
-    for _ in range(10):  # retry to avoid spawning in water or on floor tiles
+
+def _spawn_biome_allowed(pos, cfg):
+    biome_ids = cfg.get("biome_ids")
+    if not biome_ids:
+        return True
+    return _biome_at(pos) in biome_ids
+
+
+def _find_spawn_pos(player_pos, cfg, floor_positions: frozenset):
+    attempts = int(cfg.get("spawn_attempts", cfg.get("spawn_attempts_near_player", 15)))
+    avoid_water = cfg.get("spawn_avoid_water", True)
+    avoid_floor = cfg.get("spawn_avoid_floor", True)
+
+    for _ in range(attempts):
         angle  = random.uniform(0, 2 * math.pi)
         radius = random.uniform(SPAWN_MIN_DIST, SPAWN_RADIUS)
         pos    = [player_pos[0] + math.cos(angle) * radius,
                   player_pos[1] + math.sin(angle) * radius]
-        if not _is_water(pos):
-            tx, ty = int(pos[0]), int(pos[1])
-            if (tx, ty) not in floor_positions:
-                break
-    else:
-        return  # all attempts landed in water or on floor; skip this spawn
-    # Level scales with distance from world origin — farther = harder
-    # 100 tiles per level: level 1 near origin, level 10 at ~1000 tiles
+
+        if avoid_water and _is_water(pos):
+            continue
+        if not _spawn_biome_allowed(pos, cfg):
+            continue
+        if avoid_floor and (int(pos[0]), int(pos[1])) in floor_positions:
+            continue
+        return pos
+
+    return None
+
+
+def _scaled_mob_level(player_pos, cfg):
+    if cfg.get("fixed_level") is not None:
+        return int(cfg["fixed_level"])
+    if _is_passive_mob(cfg):
+        return 1
     dist = math.sqrt(player_pos[0] ** 2 + player_pos[1] ** 2)
     base_level = max(1, int(dist / LEVEL_DIST_SCALE))
-    level = max(1, min(MAX_SLIME_LEVEL, base_level + random.randint(-1, 1)))
-    mob_hp = round(_S["hp"] * (1.0 + _S["hp_scale_per_level"] * (level - 1)))
-    mob_id = str(uuid.uuid4())[:8]
-    mobs[mob_id] = {
-        "type":          "slime",
+    return max(1, min(MAX_SLIME_LEVEL, base_level + random.randint(-1, 1)))
+
+
+def _build_spawned_mob(mob_type, pos, player_pos):
+    cfg = _mob_cfg(mob_type)
+    level = _scaled_mob_level(player_pos, cfg)
+    passive = _is_passive_mob(cfg)
+
+    hp = round(_cfg_float(cfg, "hp", 1.0) * (1.0 + _cfg_float(cfg, "hp_scale_per_level", 0.0) * (level - 1)))
+    damage = 0.0 if passive else round(_cfg_float(cfg, "damage", 0.0) * (1.0 + _cfg_float(cfg, "damage_scale", 0.0) * (level - 1)), 2)
+    speed = _cfg_float(cfg, "speed", 1.0) * (1.0 + _cfg_float(cfg, "speed_scale", 0.0) * (level - 1))
+
+    idle_min = _cfg_float(cfg, "wander_idle_min", WANDER_IDLE_MIN)
+    idle_max = _cfg_float(cfg, "wander_idle_max", WANDER_IDLE_MAX)
+
+    mob = {
+        "type":          mob_type,
+        "behavior":      cfg.get("behavior", "melee"),
         "pos":           pos,
-        "health":        mob_hp,
-        "health_max":    mob_hp,
+        "health":        hp,
+        "health_max":    hp,
         "level":         level,
-        "damage":        round(_S["damage"] * (1.0 + _S["damage_scale"] * (level - 1)), 2),
-        "speed":         _S["speed"] * (1.0 + _S["speed_scale"] * (level - 1)),
-        "windup_time":   _S["windup"],
-        "exp_reward":    _S["exp"] * level,
-        "drop_id":       _S["drop_id"],
+        "damage":        damage,
+        "speed":         speed,
+        "windup_time":   _cfg_float(cfg, "windup", 0.0),
+        "exp_reward":    int(cfg.get("exp", 0)) * level,
+        "drop_id":       cfg.get("drop_id"),
         "state":         "idle",
-        "idle_timer":    random.uniform(WANDER_IDLE_MIN, WANDER_IDLE_MAX),
-        "home_pos":      list(pos),      # permanent spawn anchor; wander stays within WANDER_RADIUS of this
-        "origin_pos":    list(pos),      # pre-attack position; reset each windup, returned to after lunge
-        "target_player": None,
-        "last_attack":   0.0,
-        "facing":        "down",
-    }
-
-
-def _spawn_skeleton_near(player_pos, floor_positions: frozenset = frozenset()):
-    """Spawn a skeleton near player_pos, only in desert or tundra biomes."""
-    for _ in range(15):
-        angle  = random.uniform(0, 2 * math.pi)
-        radius = random.uniform(SPAWN_MIN_DIST, SPAWN_RADIUS)
-        pos    = [player_pos[0] + math.cos(angle) * radius,
-                  player_pos[1] + math.sin(angle) * radius]
-        if _is_water(pos):
-            continue
-        if _biome_at(pos) not in _SK["biome_ids"]:
-            continue
-        tx, ty = int(pos[0]), int(pos[1])
-        if (tx, ty) not in floor_positions:
-            break
-    else:
-        return  # no valid biome position found nearby
-    dist       = math.sqrt(player_pos[0] ** 2 + player_pos[1] ** 2)
-    base_level = max(1, int(dist / LEVEL_DIST_SCALE))
-    level      = max(1, min(MAX_SLIME_LEVEL, base_level + random.randint(-1, 1)))
-    mob_hp     = round(_SK["hp"] * (1.0 + _SK["hp_scale_per_level"] * (level - 1)))
-    mob_id     = str(uuid.uuid4())[:8]
-    mobs[mob_id] = {
-        "type":          "skeleton",
-        "pos":           pos,
-        "health":        mob_hp,
-        "health_max":    mob_hp,
-        "level":         level,
-        "damage":        round(_SK["damage"] * (1.0 + _SK["damage_scale"] * (level - 1)), 2),
-        "speed":         _SK["speed"],
-        "windup_time":   _SK["windup"],
-        "exp_reward":    _SK["exp"] * level,
-        "drop_id":       _SK["drop_id"],
-        "state":         "idle",
-        "idle_timer":    random.uniform(WANDER_IDLE_MIN, WANDER_IDLE_MAX),
+        "idle_timer":    random.uniform(idle_min, idle_max),
         "home_pos":      list(pos),
         "origin_pos":    list(pos),
         "target_player": None,
         "last_attack":   0.0,
         "facing":        "down",
+        "aggro_range_sq": _cfg_float(cfg, "aggro_range", AGGRO_RANGE) ** 2,
+        "deaggro_range": _cfg_float(cfg, "deaggro_range", DEAGGRO_RANGE),
+        "despawn_radius_sq": _cfg_float(cfg, "despawn_radius", DESPAWN_RADIUS) ** 2,
     }
 
+    flee_range = cfg.get("flee_range")
+    if flee_range is not None:
+        mob["flee_range_sq"] = float(flee_range) ** 2
 
-def _spawn_spider_near(player_pos, floor_positions: frozenset = frozenset()):
-    """Spawn a Forest Spider near player_pos, only in swamp or forest biomes."""
-    for _ in range(15):
-        angle  = random.uniform(0, 2 * math.pi)
-        radius = random.uniform(SPAWN_MIN_DIST, SPAWN_RADIUS)
-        pos    = [player_pos[0] + math.cos(angle) * radius,
-                  player_pos[1] + math.sin(angle) * radius]
-        if _is_water(pos):
-            continue
-        if _biome_at(pos) not in _SP["biome_ids"]:
-            continue
-        tx, ty = int(pos[0]), int(pos[1])
-        if (tx, ty) not in floor_positions:
-            break
-    else:
+    if "slam_range" in cfg.get("special", {}):
+        mob["last_slam"] = 0.0
+
+    return mob
+
+
+def _spawn_mob_near(mob_type, player_pos, floor_positions: frozenset = frozenset()):
+    cfg = _mob_cfg(mob_type)
+    pos = _find_spawn_pos(player_pos, cfg, floor_positions)
+    if pos is None:
         return
-    dist       = math.sqrt(player_pos[0] ** 2 + player_pos[1] ** 2)
-    base_level = max(1, int(dist / LEVEL_DIST_SCALE))
-    level      = max(1, min(MAX_SLIME_LEVEL, base_level + random.randint(-1, 1)))
-    mob_hp     = round(_SP["hp"] * (1.0 + _SP["hp_scale_per_level"] * (level - 1)))
-    mob_id     = str(uuid.uuid4())[:8]
-    mobs[mob_id] = {
-        "type":          "spider",
-        "pos":           pos,
-        "health":        mob_hp,
-        "health_max":    mob_hp,
-        "level":         level,
-        "damage":        round(_SP["damage"] * (1.0 + _SP["damage_scale"] * (level - 1)), 2),
-        "speed":         _SP["speed"],
-        "windup_time":   _SP["windup"],
-        "exp_reward":    _SP["exp"] * level,
-        "drop_id":       _SP["drop_id"],
-        "state":         "idle",
-        "idle_timer":    random.uniform(WANDER_IDLE_MIN, WANDER_IDLE_MAX),
-        "home_pos":      list(pos),
-        "origin_pos":    list(pos),
-        "target_player": None,
-        "last_attack":   0.0,
-        "facing":        "down",
-    }
-
-
-def _spawn_scorpion_near(player_pos, floor_positions: frozenset = frozenset()):
-    """Spawn a Desert Scorpion near player_pos, only in desert biomes."""
-    for _ in range(15):
-        angle  = random.uniform(0, 2 * math.pi)
-        radius = random.uniform(SPAWN_MIN_DIST, SPAWN_RADIUS)
-        pos    = [player_pos[0] + math.cos(angle) * radius,
-                  player_pos[1] + math.sin(angle) * radius]
-        if _is_water(pos):
-            continue
-        if _biome_at(pos) not in _SC["biome_ids"]:
-            continue
-        tx, ty = int(pos[0]), int(pos[1])
-        if (tx, ty) not in floor_positions:
-            break
-    else:
-        return
-    dist       = math.sqrt(player_pos[0] ** 2 + player_pos[1] ** 2)
-    base_level = max(1, int(dist / LEVEL_DIST_SCALE))
-    level      = max(1, min(MAX_SLIME_LEVEL, base_level + random.randint(-1, 1)))
-    mob_hp     = round(_SC["hp"] * (1.0 + _SC["hp_scale_per_level"] * (level - 1)))
-    mob_id     = str(uuid.uuid4())[:8]
-    mobs[mob_id] = {
-        "type":          "scorpion",
-        "pos":           pos,
-        "health":        mob_hp,
-        "health_max":    mob_hp,
-        "level":         level,
-        "damage":        round(_SC["damage"] * (1.0 + _SC["damage_scale"] * (level - 1)), 2),
-        "speed":         _SC["speed"],
-        "windup_time":   _SC["windup"],
-        "exp_reward":    _SC["exp"] * level,
-        "drop_id":       _SC["drop_id"],
-        "state":         "idle",
-        "idle_timer":    random.uniform(WANDER_IDLE_MIN, WANDER_IDLE_MAX),
-        "home_pos":      list(pos),
-        "origin_pos":    list(pos),
-        "target_player": None,
-        "last_attack":   0.0,
-        "facing":        "down",
-    }
-
-
-def _spawn_bat_near(player_pos, floor_positions: frozenset = frozenset()):
-    """Spawn a Cave Bat near player_pos — any non-water biome (night-only, checked by caller)."""
-    for _ in range(10):
-        angle  = random.uniform(0, 2 * math.pi)
-        radius = random.uniform(SPAWN_MIN_DIST, SPAWN_RADIUS)
-        pos    = [player_pos[0] + math.cos(angle) * radius,
-                  player_pos[1] + math.sin(angle) * radius]
-        if not _is_water(pos):
-            tx, ty = int(pos[0]), int(pos[1])
-            if (tx, ty) not in floor_positions:
-                break
-    else:
-        return
-    dist       = math.sqrt(player_pos[0] ** 2 + player_pos[1] ** 2)
-    base_level = max(1, int(dist / LEVEL_DIST_SCALE))
-    level      = max(1, min(MAX_SLIME_LEVEL, base_level + random.randint(-1, 1)))
-    mob_hp     = round(_B["hp"] * (1.0 + _B["hp_scale_per_level"] * (level - 1)))
-    mob_id     = str(uuid.uuid4())[:8]
-    mobs[mob_id] = {
-        "type":           "bat",
-        "pos":            pos,
-        "health":         mob_hp,
-        "health_max":     mob_hp,
-        "level":          level,
-        "damage":         round(_B["damage"] * (1.0 + _B["damage_scale"] * (level - 1)), 2),
-        "speed":          _B["speed"],
-        "windup_time":    _B["windup"],
-        "exp_reward":     _B["exp"] * level,
-        "drop_id":        _B["drop_id"],
-        "state":          "idle",
-        "idle_timer":     random.uniform(WANDER_IDLE_MIN, WANDER_IDLE_MAX),
-        "home_pos":       list(pos),
-        "origin_pos":     list(pos),
-        "target_player":  None,
-        "last_attack":    0.0,
-        "facing":         "down",
-        "aggro_range_sq": _B["aggro_range"] ** 2,
-    }
-
-
-def _spawn_yeti_near(player_pos, floor_positions: frozenset = frozenset()):
-    """Spawn a Snow Yeti near player_pos, only in tundra or mountain biomes."""
-    for _ in range(15):
-        angle  = random.uniform(0, 2 * math.pi)
-        radius = random.uniform(SPAWN_MIN_DIST, SPAWN_RADIUS)
-        pos    = [player_pos[0] + math.cos(angle) * radius,
-                  player_pos[1] + math.sin(angle) * radius]
-        if _is_water(pos):
-            continue
-        if _biome_at(pos) not in _Y["biome_ids"]:
-            continue
-        tx, ty = int(pos[0]), int(pos[1])
-        if (tx, ty) not in floor_positions:
-            break
-    else:
-        return
-    dist       = math.sqrt(player_pos[0] ** 2 + player_pos[1] ** 2)
-    base_level = max(1, int(dist / LEVEL_DIST_SCALE))
-    level      = max(1, min(MAX_SLIME_LEVEL, base_level + random.randint(-1, 1)))
-    mob_hp     = round(_Y["hp"] * (1.0 + _Y["hp_scale_per_level"] * (level - 1)))
-    mob_id     = str(uuid.uuid4())[:8]
-    mobs[mob_id] = {
-        "type":          "yeti",
-        "pos":           pos,
-        "health":        mob_hp,
-        "health_max":    mob_hp,
-        "level":         level,
-        "damage":        round(_Y["damage"] * (1.0 + _Y["damage_scale"] * (level - 1)), 2),
-        "speed":         _Y["speed"],
-        "windup_time":   _Y["windup"],
-        "exp_reward":    _Y["exp"] * level,
-        "drop_id":       _Y["drop_id"],
-        "state":         "idle",
-        "idle_timer":    random.uniform(WANDER_IDLE_MIN, WANDER_IDLE_MAX),
-        "home_pos":      list(pos),
-        "origin_pos":    list(pos),
-        "target_player": None,
-        "last_attack":   0.0,
-        "last_slam":     0.0,
-        "facing":        "down",
-    }
-
-
-def _spawn_rabbit_near(player_pos, floor_positions: frozenset = frozenset()):
-    """Spawn a Rabbit near player_pos — plains or beach biomes."""
-    for _ in range(15):
-        angle  = random.uniform(0, 2 * math.pi)
-        radius = random.uniform(SPAWN_MIN_DIST, SPAWN_RADIUS)
-        pos    = [player_pos[0] + math.cos(angle) * radius,
-                  player_pos[1] + math.sin(angle) * radius]
-        if _is_water(pos):
-            continue
-        if _biome_at(pos) not in _R["biome_ids"]:
-            continue
-        tx, ty = int(pos[0]), int(pos[1])
-        if (tx, ty) not in floor_positions:
-            break
-    else:
-        return
-    mob_hp = round(_R["hp"])
-    mob_id = str(uuid.uuid4())[:8]
-    mobs[mob_id] = {
-        "type":          "rabbit",
-        "pos":           pos,
-        "health":        mob_hp,
-        "health_max":    mob_hp,
-        "level":         1,
-        "damage":        0.0,
-        "speed":         _R["speed"],
-        "windup_time":   0.0,
-        "exp_reward":    _R["exp"],
-        "drop_id":       _R["drop_id"],
-        "state":         "idle",
-        "idle_timer":    random.uniform(WANDER_IDLE_MIN, WANDER_IDLE_MAX),
-        "home_pos":      list(pos),
-        "origin_pos":    list(pos),
-        "target_player": None,
-        "last_attack":   0.0,
-        "facing":        "down",
-        "flee_range_sq": _R["flee_range"] ** 2,
-    }
-
-
-def _spawn_deer_near(player_pos, floor_positions: frozenset = frozenset()):
-    """Spawn a Deer near player_pos — forest or plains biomes."""
-    for _ in range(15):
-        angle  = random.uniform(0, 2 * math.pi)
-        radius = random.uniform(SPAWN_MIN_DIST, SPAWN_RADIUS)
-        pos    = [player_pos[0] + math.cos(angle) * radius,
-                  player_pos[1] + math.sin(angle) * radius]
-        if _is_water(pos):
-            continue
-        if _biome_at(pos) not in _D["biome_ids"]:
-            continue
-        tx, ty = int(pos[0]), int(pos[1])
-        if (tx, ty) not in floor_positions:
-            break
-    else:
-        return
-    mob_hp = round(_D["hp"])
-    mob_id = str(uuid.uuid4())[:8]
-    mobs[mob_id] = {
-        "type":          "deer",
-        "pos":           pos,
-        "health":        mob_hp,
-        "health_max":    mob_hp,
-        "level":         1,
-        "damage":        0.0,
-        "speed":         _D["speed"],
-        "windup_time":   0.0,
-        "exp_reward":    _D["exp"],
-        "drop_id":       _D["drop_id"],
-        "state":         "idle",
-        "idle_timer":    random.uniform(WANDER_IDLE_MIN, WANDER_IDLE_MAX),
-        "home_pos":      list(pos),
-        "origin_pos":    list(pos),
-        "target_player": None,
-        "last_attack":   0.0,
-        "facing":        "down",
-        "flee_range_sq": _D["flee_range"] ** 2,
-    }
+    mobs[str(uuid.uuid4())[:8]] = _build_spawned_mob(mob_type, pos, player_pos)
 
 
 def spawn_boss_at(pos: list) -> bool:
-    """Spawn the Slime King at world position *pos* (the dungeon centre).
+    """Spawn the configured boss mob at world position *pos*.
 
-    Called by game_sync when a player enters a Slime Lair.
+    Called by game_sync when a player enters the boss dungeon.
     Must be called while holding mobs_lock.
     Returns True if spawned, False if the boss is already active.
     """
-    global _slime_king_active, _boss_dungeon_pos
-    if _slime_king_active:
+    global _boss_active, _boss_dungeon_pos
+    if _boss_active or BOSS_MOB_TYPE is None:
         return False
     mob_id = str(uuid.uuid4())[:8]
     spawn_pos = list(pos)
+    cfg = _mob_cfg(BOSS_MOB_TYPE)
     mobs[mob_id] = {
-        "type":          "slime_king",
-        "pos":           spawn_pos,
-        "health":        _BK["hp"],
-        "health_max":    _BK["hp"],
-        "level":         _BK["fixed_level"],
-        "damage":        _BK["damage"],
-        "speed":         _BK["speed"],
-        "windup_time":   _BK["windup"],
-        "exp_reward":    _BK["exp"],
-        "drop_id":       _BK["drop_id"],
+        "type":          BOSS_MOB_TYPE,
+        "behavior":      cfg.get("behavior", "melee"),
+        "pos":           list(pos),
+        "health":        cfg["hp"],
+        "health_max":    cfg["hp"],
+        "level":         cfg.get("fixed_level", 1),
+        "damage":        cfg.get("damage", 0.0),
+        "speed":         cfg.get("speed", 0.0),
+        "windup_time":   cfg.get("windup", 0.0),
+        "exp_reward":    cfg.get("exp", 0),
+        "drop_id":       cfg.get("drop_id"),
         "state":         "idle",
-        "idle_timer":    _BK["spawn_idle"],
-        "home_pos":      list(spawn_pos),
-        "origin_pos":    list(spawn_pos),
+        "idle_timer":    cfg.get("spawn_idle", 0.0),
+        "home_pos":      list(pos),
+        "origin_pos":    list(pos),
         "target_player": None,
         "last_attack":   0.0,
         "facing":        "down",
+        "aggro_range_sq": cfg.get("aggro_range", AGGRO_RANGE) ** 2,
+        "deaggro_range": cfg.get("deaggro_range", DEAGGRO_RANGE),
+        "despawn_radius_sq": cfg.get("despawn_radius", DESPAWN_RADIUS) ** 2,
     }
-    _slime_king_active = True
+    _boss_active = True
     _boss_dungeon_pos  = list(spawn_pos)
-    _pending_events.append({"type": "boss_spawned", "name": "Slime King",
+    _pending_events.append({"type": "boss_spawned", "name": _mob_cfg(BOSS_MOB_TYPE).get('name', (BOSS_MOB_TYPE or "boss").replace("_", " ").title()),
                              "pos": list(spawn_pos)})
-    print(f"[BOSS] Slime King awakened in dungeon at {spawn_pos}")
+    print(f"[BOSS] {_mob_cfg(BOSS_MOB_TYPE).get('name', BOSS_MOB_TYPE)} awakened in dungeon at {spawn_pos}")
+    return True
 
 
 # ---------------------------------------------------------------------------
@@ -668,62 +424,30 @@ def update_mobs(dt: float):
 
     with mobs_lock:
         # --- Spawn (cooldown-regulated to prevent burst spawning) ---
-        global _next_spawn_time, _next_skeleton_spawn_time, _next_spider_spawn_time, _next_scorpion_spawn_time
-        global _next_bat_spawn_time, _next_yeti_spawn_time, _next_rabbit_spawn_time, _next_deer_spawn_time
         _wt       = _get_world_time()
         _is_night = _wt < _DAY_START_HOUR or _wt > _DAY_END_HOUR
-        # Single-pass type count (replaces 8 separate O(n) sum() calls)
         _tc: dict = {}
         for _m in mobs.values():
             _t = _m["type"]
             _tc[_t] = _tc.get(_t, 0) + 1
-        slime_count    = _tc.get("slime",    0)
-        skeleton_count = _tc.get("skeleton", 0)
-        spider_count   = _tc.get("spider",   0)
-        scorpion_count = _tc.get("scorpion", 0)
-        bat_count      = _tc.get("bat",      0)
-        yeti_count     = _tc.get("yeti",     0)
-        rabbit_count   = _tc.get("rabbit",   0)
-        deer_count     = _tc.get("deer",     0)
-        # Build player list once; reused by every spawn eligibility check below
+
         _player_vals = list(player_snapshot.values()) if player_snapshot else []
-        if _is_night and slime_count < MAX_SLIMES * max(1, len(player_snapshot)) and _player_vals and now >= _next_spawn_time:
-            ref_pos = random.choice(_player_vals)
-            _spawn_slime_near(ref_pos, _floor_positions)
-            _next_spawn_time = now + SPAWN_INTERVAL
-        if _is_night and skeleton_count < MAX_SKELETONS and _player_vals and now >= _next_skeleton_spawn_time:
-            ref_pos = random.choice(_player_vals)
-            _spawn_skeleton_near(ref_pos, _floor_positions)
-            _next_skeleton_spawn_time = now + SKELETON_SPAWN_INTERVAL
-        if _is_night and spider_count < MAX_SPIDERS and _player_vals and now >= _next_spider_spawn_time:
-            ref_pos = random.choice(_player_vals)
-            _spawn_spider_near(ref_pos, _floor_positions)
-            _next_spider_spawn_time = now + SPIDER_SPAWN_INTERVAL
-        if _is_night and scorpion_count < MAX_SCORPIONS and _player_vals and now >= _next_scorpion_spawn_time:
-            ref_pos = random.choice(_player_vals)
-            _spawn_scorpion_near(ref_pos, _floor_positions)
-            _next_scorpion_spawn_time = now + SCORPION_SPAWN_INTERVAL
-        # Bats — night only, any biome
-        if _is_night and bat_count < MAX_BATS and _player_vals and now >= _next_bat_spawn_time:
-            ref_pos = random.choice(_player_vals)
-            _spawn_bat_near(ref_pos, _floor_positions)
-            _next_bat_spawn_time = now + BAT_SPAWN_INTERVAL
-        # Yetis — always (they live in cold biomes; day/night irrelevant for them)
-        if yeti_count < MAX_YETIS and _player_vals and now >= _next_yeti_spawn_time:
-            ref_pos = random.choice(_player_vals)
-            _spawn_yeti_near(ref_pos, _floor_positions)
-            _next_yeti_spawn_time = now + YETI_SPAWN_INTERVAL
-        # Passive animals — always, daytime preferred (but we don't gate on day)
-        if rabbit_count < MAX_RABBITS and _player_vals and now >= _next_rabbit_spawn_time:
-            ref_pos = random.choice(_player_vals)
-            _spawn_rabbit_near(ref_pos, _floor_positions)
-            _next_rabbit_spawn_time = now + RABBIT_SPAWN_INTERVAL
-        if deer_count < MAX_DEER and _player_vals and now >= _next_deer_spawn_time:
-            ref_pos = random.choice(_player_vals)
-            _spawn_deer_near(ref_pos, _floor_positions)
-            _next_deer_spawn_time = now + DEER_SPAWN_INTERVAL
-        # NOTE: Slime King boss is no longer spawned by a random timer here.
-        # It spawns when a player enters a Slime Lair (see dungeon_gen + game_sync).
+        if _player_vals:
+            for _mob_type, _cfg in MOB_TYPES.items():
+                _max_count = int(_cfg.get("max_count", 0))
+                if _max_count <= 0 or _cfg.get("behavior") == "boss":
+                    continue
+                if _cfg.get("spawn_night_only", False) and not _is_night:
+                    continue
+                if _cfg.get("spawn_cap_per_player", _mob_type == DEFAULT_MOB_TYPE):
+                    _max_count *= max(1, len(player_snapshot))
+                if _tc.get(_mob_type, 0) >= _max_count:
+                    continue
+                if now < _next_spawn_times.get(_mob_type, 0.0):
+                    continue
+                _spawn_mob_near(_mob_type, random.choice(_player_vals), _floor_positions)
+                _next_spawn_times[_mob_type] = now + SPAWN_INTERVAL * _cfg.get("spawn_interval_mult", 1.0)
+        # Boss mobs are spawned explicitly through spawn_boss_at().
 
         # --- Update each mob ---
         for mob_id, mob in mobs.items():
@@ -733,9 +457,9 @@ def update_mobs(dt: float):
 
             pos = mob["pos"]
 
-            # --- Despawn hostile mobs when day breaks ---
-            _NIGHT_ONLY = frozenset({"slime", "skeleton", "spider", "scorpion", "bat"})
-            if not _is_night and mob.get("type") in _NIGHT_ONLY:
+            # --- Despawn mobs whose JSON says they are night-only when day breaks ---
+            _cfg = _mob_cfg(mob)
+            if not _is_night and _cfg.get("spawn_night_only", False):
                 dead.append(mob_id)
                 pending_despawn.append(mob_id)
                 continue
@@ -746,7 +470,7 @@ def update_mobs(dt: float):
                     (pos[0] - pp[0]) ** 2 + (pos[1] - pp[1]) ** 2
                     for pp in player_snapshot.values()
                 )
-                if min_dsq > DESPAWN_RADIUS_SQ:
+                if min_dsq > mob.get("despawn_radius_sq", DESPAWN_RADIUS_SQ):
                     dead.append(mob_id)
                     pending_despawn.append(mob_id)
                     continue
@@ -790,7 +514,7 @@ def update_mobs(dt: float):
 
             # --- Windup: stopped, telegraphing attack ---
             if state == "windup":
-                mob["windup_timer"] = mob.get("windup_timer", _S["windup"]) - dt
+                mob["windup_timer"] = mob.get("windup_timer", mob.get("windup_time", 0.0)) - dt
                 if mob["windup_timer"] <= 0:
                     mob["state"]     = "lunge"
                     mob["lunge_hit"] = False
@@ -805,41 +529,37 @@ def update_mobs(dt: float):
                 if not mob.get("lunge_hit", False):
                     tpid = mob.get("target_player")
                     if tpid and tpid in player_snapshot:
-                        if _dist(pos, player_snapshot[tpid]) < _S["lunge_hit_radius"]:
-                            pending_melee.append((tpid, mob.get("damage", _S["damage"]), list(pos), mob_id))
+                        if _dist(pos, player_snapshot[tpid]) < _mob_cfg(mob).get("lunge_hit_radius", 0.7):
+                            pending_melee.append((tpid, mob.get("damage", _mob_cfg(mob).get("damage", 0.0)), list(pos), mob_id))
                             mob["lunge_hit"] = True
-                            # Type-specific on-hit effects
-                            _mob_type = mob.get("type", "slime")
-                            if _mob_type == "scorpion":
-                                pending_poison[tpid] = (SCORPION_POISON_DURATION, SCORPION_POISON_DPS)
-                            elif _mob_type == "spider":
-                                pending_slow[tpid] = max(pending_slow.get(tpid, 0.0), SPIDER_WEB_SLOW)
-                            elif _mob_type == "slime_king":
-                                # Phase-based effects on direct hit
+                            _special = _mob_special(mob)
+                            if "poison_duration" in _special and "poison_dps" in _special:
+                                pending_poison[tpid] = (_special["poison_duration"], _special["poison_dps"])
+                            if "web_slow_on_hit" in _special:
+                                pending_slow[tpid] = max(pending_slow.get(tpid, 0.0), _special["web_slow_on_hit"])
+                            if "slow_on_hit" in _special:
+                                pending_slow[tpid] = max(pending_slow.get(tpid, 0.0), _special["slow_on_hit"])
+                            if _special.get("phase2_spawn_type"):
                                 _hp_pct = mob.get("health", 0) / max(mob.get("health_max", 1), 1)
-                                if _hp_pct < _BK["phase2_hp_pct"] and not mob.get("phase2_spawned_this_lunge"):
-                                    # Phase 2+: spawn 2 mini-slimes near hit point
+                                if _hp_pct < _special.get("phase2_hp_pct", 0.5) and not mob.get("phase2_spawned_this_lunge"):
                                     _spos = list(pos)
-                                    pending_spawns.append(
-                                        lambda _pp=_spos: _spawn_slime_near(_pp, _floor_positions))
-                                    pending_spawns.append(
-                                        lambda _pp=_spos: _spawn_slime_near(_pp, _floor_positions))
+                                    _spawn_type = _special["phase2_spawn_type"]
+                                    _spawn_count = int(_special.get("phase2_spawn_count", 2))
+                                    for _ in range(_spawn_count):
+                                        pending_spawns.append(lambda _pp=_spos, _mt=_spawn_type: _spawn_mob_near(_mt, _pp, _floor_positions))
                                     mob["phase2_spawned_this_lunge"] = True
-                                if _hp_pct < _BK["phase3_hp_pct"]:
-                                    # Phase 3: AOE splash to all nearby players
+                            if "phase3_hp_pct" in _special and "phase3_aoe_radius" in _special:
+                                _hp_pct = mob.get("health", 0) / max(mob.get("health_max", 1), 1)
+                                if _hp_pct < _special["phase3_hp_pct"]:
                                     for _apid, _appos in player_snapshot.items():
-                                        if _apid != tpid and _dist(pos, _appos) < _BK["phase3_aoe_radius"]:
-                                            pending_melee.append(
-                                                (_apid,
-                                                 mob.get("damage", _BK["damage"]) * 0.5,
-                                                 list(pos),
-                                                 None))
+                                        if _apid != tpid and _dist(pos, _appos) < _special["phase3_aoe_radius"]:
+                                            pending_melee.append((_apid, mob.get("damage", 0.0) * _special.get("phase3_damage_mult", 0.5), list(pos), None))
                 if d < 0.2:  # reached endpoint
                     mob["state"]         = "landing"
-                    mob["landing_timer"] = _S["landing_pause"]
+                    mob["landing_timer"] = _mob_cfg(mob).get("landing_pause", 0.2)
                     mob["last_attack"]   = now
                 else:
-                    _lunge_spd = _B["lunge_speed"] if mob.get("type") == "bat" else _S["lunge_speed"]
+                    _lunge_spd = _mob_cfg(mob).get("lunge_speed", 12.0)
                     nx, ny = ddx / d, ddy / d
                     pos[0] += nx * _lunge_spd * dt
                     pos[1] += ny * _lunge_spd * dt
@@ -854,10 +574,10 @@ def update_mobs(dt: float):
             # --- Landing: brief pause at endpoint (punish window) ---
             if state == "landing":
                 # Bats fly straight through — no landing pause
-                if mob.get("type") == "bat":
+                if _mob_cfg(mob).get("landing_pause", 0.2) <= 0:
                     mob["state"] = "return_to_origin"
                     continue
-                mob["landing_timer"] = mob.get("landing_timer", _S["landing_pause"]) - dt
+                mob["landing_timer"] = mob.get("landing_timer", _mob_cfg(mob).get("landing_pause", 0.2)) - dt
                 if mob["landing_timer"] <= 0:
                     mob["state"] = "return_to_origin"
                 continue
@@ -869,7 +589,7 @@ def update_mobs(dt: float):
                 d = math.sqrt(ddx * ddx + ddy * ddy)
                 if d < 0.3:
                     mob["state"] = "idle"
-                    mob["idle_timer"] = random.uniform(WANDER_IDLE_MIN, WANDER_IDLE_MAX)
+                    mob["idle_timer"] = random.uniform(_mob_cfg(mob).get("wander_idle_min", WANDER_IDLE_MIN), _mob_cfg(mob).get("wander_idle_max", WANDER_IDLE_MAX))
                     pos[0] = origin[0]   # snap to exact spawn point
                     pos[1] = origin[1]
                     mob.pop("lunge_target", None)
@@ -877,20 +597,21 @@ def update_mobs(dt: float):
                     mob.pop("phase2_spawned_this_lunge", None)
                 else:
                     nx, ny = ddx / d, ddy / d
-                    pos[0] += nx * _S["lunge_speed"] * dt
-                    pos[1] += ny * _S["lunge_speed"] * dt
+                    pos[0] += nx * _mob_cfg(mob).get("lunge_speed", 12.0) * dt
+                    pos[1] += ny * _mob_cfg(mob).get("lunge_speed", 12.0) * dt
                     if _is_water(pos) or _is_obj_blocked(pos[0], pos[1], _solid_tile_set):
                         pos[0], pos[1] = prev_x, prev_y
                 continue
 
-            # --- Yeti AOE slam charge (entered from aggro) ---
+            # --- Configured AOE slam charge (entered from aggro) ---
             if state == "slam_charge":
-                mob["slam_timer"] = mob.get("slam_timer", YETI_SLAM_CHARGE) - dt
+                _special = _mob_special(mob)
+                mob["slam_timer"] = mob.get("slam_timer", _special.get("slam_charge", 0.0)) - dt
                 if mob["slam_timer"] <= 0:
                     _slam_pos = list(pos)
                     for _apid, _appos in player_snapshot.items():
-                        if _dist(_slam_pos, _appos) <= YETI_SLAM_RADIUS:
-                            pending_melee.append((_apid, mob.get("damage", _Y["damage"]), _slam_pos, None))
+                        if _dist(_slam_pos, _appos) <= _special.get("slam_radius", 0.0):
+                            pending_melee.append((_apid, mob.get("damage", _mob_cfg(mob).get("damage", 0.0)), _slam_pos, None))
                     mob["last_slam"] = now
                     mob["state"]     = "idle"
                     mob["idle_timer"] = random.uniform(1.5, 3.0)
@@ -909,7 +630,7 @@ def update_mobs(dt: float):
 
             # --- Flee: passive animals run away from the closest player ---
             if state == "flee":
-                if not player_snapshot or closest_dist_sq > (ANIMAL_DEAGGRO_RANGE ** 2):
+                if not player_snapshot or closest_dist_sq > (mob.get("deaggro_range", ANIMAL_DEAGGRO_RANGE) ** 2):
                     mob["state"] = "wander"
                     continue
                 if closest_pid:
@@ -939,30 +660,27 @@ def update_mobs(dt: float):
                     continue
                 tppos = player_snapshot[tp]
                 da    = _dist(pos, tppos)
-                if da > DEAGGRO_RANGE:
+                if da > mob.get("deaggro_range", DEAGGRO_RANGE):
                     mob["state"]         = "wander"
                     mob["target_player"] = None
                     continue
-                _mob_type_ag = mob.get("type", "slime")
-                # Yeti uses AOE slam instead of regular lunge
-                if _mob_type_ag == "yeti":
-                    if da <= YETI_SLAM_RANGE and now - mob.get("last_slam", 0.0) >= YETI_SLAM_COOLDOWN:
+                _special = _mob_special(mob)
+                if "slam_range" in _special:
+                    if da <= _special["slam_range"] and now - mob.get("last_slam", 0.0) >= _special.get("slam_cooldown", 0.0):
                         mob["state"]      = "slam_charge"
-                        mob["slam_timer"] = YETI_SLAM_CHARGE
+                        mob["slam_timer"] = _special.get("slam_charge", 0.0)
                         continue
-                elif da <= _S["attack_range"] and now - mob.get("last_attack", 0.0) >= _S["attack_cooldown"]:
+                if da <= _mob_cfg(mob).get("attack_range", 2.0) and now - mob.get("last_attack", 0.0) >= _mob_cfg(mob).get("attack_cooldown", 2.5):
                     # Inline windup using the tracked target
                     dx_, dy_ = tppos[0] - pos[0], tppos[1] - pos[1]
                     d_   = math.sqrt(dx_ * dx_ + dy_ * dy_) or 1.0
                     nx_, ny_ = dx_ / d_, dy_ / d_
                     mob["state"]         = "windup"
-                    mob["windup_timer"]  = mob.get("windup_time", _S["windup"])
+                    mob["windup_timer"]  = mob.get("windup_time", _mob_cfg(mob).get("windup", 0.0))
                     mob["origin_pos"]    = list(pos)
-                    # Bats use a large overshoot for fly-through feel
-                    if _mob_type_ag == "bat":
-                        _overshoot = _B["lunge_overshoot"]
-                    else:
-                        _overshoot = _S["lunge_overshoot"] * (1.0 + 0.3 * (mob.get("level", 1) - 1))
+                    _overshoot = _mob_cfg(mob).get("lunge_overshoot", 1.0)
+                    if _mob_cfg(mob).get("scale_lunge_overshoot", False):
+                        _overshoot *= 1.0 + 0.3 * (mob.get("level", 1) - 1)
                     mob["lunge_target"]  = [
                         pos[0] + nx_ * (d_ + _overshoot),
                         pos[1] + ny_ * (d_ + _overshoot),
@@ -975,7 +693,7 @@ def update_mobs(dt: float):
                 dx, dy = tppos[0] - pos[0], tppos[1] - pos[1]
                 d = math.sqrt(dx * dx + dy * dy) or 1.0
                 nx, ny = dx / d, dy / d
-                spd = mob.get("speed", _S["speed"]) * (0.4 if mob.get("slow_timer", 0.0) > 0 else 1.0)
+                spd = mob.get("speed", _mob_cfg(mob).get("speed", 1.0)) * (0.4 if mob.get("slow_timer", 0.0) > 0 else 1.0)
                 pos[0] += nx * spd * dt
                 pos[1] += ny * spd * dt
                 if _is_water(pos) or _is_obj_blocked(pos[0], pos[1], _solid_tile_set):
@@ -988,9 +706,9 @@ def update_mobs(dt: float):
 
             # --- Wander: amble slowly toward a chosen point near origin ---
             if state == "wander":
-                _is_passive = mob.get("type") in ("rabbit", "deer")
+                _is_passive = _is_passive_mob(mob)
                 if _is_passive:
-                    _fl_sq = mob.get("flee_range_sq", _R["flee_range"] ** 2)
+                    _fl_sq = mob.get("flee_range_sq", 0.0)
                     if closest_pid and closest_dist_sq <= _fl_sq:
                         mob["state"] = "flee"
                         continue
@@ -1005,16 +723,16 @@ def update_mobs(dt: float):
                 d = math.sqrt(ddx * ddx + ddy * ddy)
                 if d < 0.3:
                     mob["state"]      = "idle"
-                    mob["idle_timer"] = random.uniform(WANDER_IDLE_MIN, WANDER_IDLE_MAX)
+                    mob["idle_timer"] = random.uniform(_mob_cfg(mob).get("wander_idle_min", WANDER_IDLE_MIN), _mob_cfg(mob).get("wander_idle_max", WANDER_IDLE_MAX))
                 else:
-                    spd = mob.get("speed", _S["speed"]) * (0.4 if mob.get("slow_timer", 0.0) > 0 else 1.0)
+                    spd = mob.get("speed", _mob_cfg(mob).get("speed", 1.0)) * (0.4 if mob.get("slow_timer", 0.0) > 0 else 1.0)
                     nx, ny = ddx / d, ddy / d
                     pos[0] += nx * spd * dt
                     pos[1] += ny * spd * dt
                     if _is_water(pos) or _is_obj_blocked(pos[0], pos[1], _solid_tile_set):
                         pos[0], pos[1] = prev_x, prev_y
                         mob["state"]      = "idle"
-                        mob["idle_timer"] = random.uniform(WANDER_IDLE_MIN, WANDER_IDLE_MAX)
+                        mob["idle_timer"] = random.uniform(_mob_cfg(mob).get("wander_idle_min", WANDER_IDLE_MIN), _mob_cfg(mob).get("wander_idle_max", WANDER_IDLE_MAX))
                     else:
                         mob["facing"] = ("right" if nx > abs(ny) else
                                          "left"  if -nx > abs(ny) else
@@ -1022,9 +740,9 @@ def update_mobs(dt: float):
                 continue
 
             # --- Idle: rest, then pick next wander target ---
-            _is_passive_idle = mob.get("type") in ("rabbit", "deer")
+            _is_passive_idle = _is_passive_mob(mob)
             if _is_passive_idle:
-                _fl_sq_idle = mob.get("flee_range_sq", _R["flee_range"] ** 2)
+                _fl_sq_idle = mob.get("flee_range_sq", 0.0)
                 if closest_pid and closest_dist_sq <= _fl_sq_idle:
                     mob["state"] = "flee"
                     continue
@@ -1040,18 +758,18 @@ def update_mobs(dt: float):
                 origin = mob.get("home_pos", pos)
                 for _ in range(5):  # retry to avoid water
                     angle = random.uniform(0, 2 * math.pi)
-                    r     = random.uniform(WANDER_RADIUS * 0.3, WANDER_RADIUS)
+                    r     = random.uniform(_mob_cfg(mob).get("wander_radius", WANDER_RADIUS) * 0.3, _mob_cfg(mob).get("wander_radius", WANDER_RADIUS))
                     tgt   = [origin[0] + math.cos(angle) * r,
                              origin[1] + math.sin(angle) * r]
                     if not _is_water(tgt):
                         mob["wander_target"] = tgt
                         mob["state"]         = "wander"
                         break
-                mob["idle_timer"] = random.uniform(WANDER_IDLE_MIN, WANDER_IDLE_MAX)
+                mob["idle_timer"] = random.uniform(_mob_cfg(mob).get("wander_idle_min", WANDER_IDLE_MIN), _mob_cfg(mob).get("wander_idle_max", WANDER_IDLE_MAX))
             else:
                 mob["idle_timer"] = idle_t
 
-        # Execute deferred spawns (e.g., Slime King phase 2 mini-slimes)
+        # Execute deferred spawns, such as configured phase-spawn effects
         for _spawn_fn in pending_spawns:
             _spawn_fn()
 
@@ -1090,9 +808,11 @@ def update_mobs(dt: float):
                     nx, ny = ddx / d, ddy / d
                     mob["pos"][0] += nx * push
                     mob["pos"][1] += ny * push
-                if d < SLIME_SLOW_RANGE and mob.get("type") in ("slime", "slime_king"):
-                    if pid not in pending_slow or pending_slow[pid] < SLIME_SLOW_CONTACT:
-                        pending_slow[pid] = SLIME_SLOW_CONTACT
+                _contact_slow = _mob_special(mob).get("slow_contact")
+                _slow_range = _mob_special(mob).get("slow_range", 0.0)
+                if _contact_slow and d < _slow_range:
+                    if pid not in pending_slow or pending_slow[pid] < _contact_slow:
+                        pending_slow[pid] = _contact_slow
 
         # --- Clamp all mob positions to world boundary ---
         for mob in mobs.values():
@@ -1101,30 +821,30 @@ def update_mobs(dt: float):
             p[1] = max(-WORLD_RADIUS, min(WORLD_RADIUS, p[1]))
 
         # --- Remove dead mobs and drop items ---
-    global _slime_king_active, _boss_dungeon_pos
+    global _boss_active, _boss_dungeon_pos
     despawn_set = set(pending_despawn)
     for mob_id in dead:
         drop_pos    = list(mobs[mob_id]["pos"])
         killed_by   = mobs[mob_id].get("killed_by")
-        exp_reward  = mobs[mob_id].get("exp_reward", _S["exp"])
+        exp_reward  = mobs[mob_id].get("exp_reward", 0)
         mob_level   = mobs[mob_id].get("level", 1)
-        mob_drop_id = mobs[mob_id].get("drop_id", _S["drop_id"])
-        mob_type    = mobs[mob_id].get("type", "slime")
+        mob_drop_id = mobs[mob_id].get("drop_id")
+        mob_type    = mobs[mob_id].get("type", DEFAULT_MOB_TYPE)
         del mobs[mob_id]
         if mob_id in despawn_set:
             continue  # silent despawn — no drops, no exp, no log
-        if mob_type == "slime_king":
-            _slime_king_active = False
-            _pending_events.append({"type": "boss_defeated", "name": "Slime King",
+        if mob_type == BOSS_MOB_TYPE:
+            _boss_active = False
+            _pending_events.append({"type": "boss_defeated", "name": _mob_cfg(BOSS_MOB_TYPE).get('name', (BOSS_MOB_TYPE or "boss").replace("_", " ").title()),
                                     "dungeon_pos": list(_boss_dungeon_pos) if _boss_dungeon_pos else None})
             _boss_dungeon_pos = None
         if killed_by:
             pending_exp.append((killed_by, exp_reward))
             if mob_drop_id is not None:
                 _spawn_world_item(mob_drop_id, drop_pos, qty=1)
-            # Slime King also drops a random gem (items 50–56)
-            if mob_type == "slime_king":
-                gem_id = random.randint(_BK["gem_drop_range"][0], _BK["gem_drop_range"][1])
+            # Bosses can also drop a random item range from special.gem_drop_range
+            if mob_type == BOSS_MOB_TYPE:
+                gem_id = random.randint(_mob_special(mob_type).get("gem_drop_range", [50, 56])[0], _mob_special(mob_type).get("gem_drop_range", [50, 56])[1])
                 _spawn_world_item(gem_id, [drop_pos[0] + 0.5, drop_pos[1] + 0.5], qty=1)
             _spawn_world_item(COIN_ITEM_ID, drop_pos, qty=random.randint(mob_level * _COIN_DROP_MIN_MULT, mob_level * _COIN_DROP_MAX_MULT))
             print(f"[MOB] {mob_type.title()} {mob_id} (Lv{mob_level}) died — dropped items at {drop_pos}")
@@ -1178,12 +898,12 @@ def update_mobs(dt: float):
             if actual_dmg <= 0.0:
                 continue
             _players[pid]["health"] = max(0.0, _players[pid]["health"] - actual_dmg)
-            print(f"[MOB] Slime hit {pid} for {actual_dmg:.1f} dmg (def {defense:.0f}) "
+            print(f"[MOB] Mob hit {pid} for {actual_dmg:.1f} dmg (def {defense:.0f}) "
                   f"(hp now {_players[pid]['health']:.1f})")
             # Drain 1 durability from each equipped armor piece on mob hit
             for eq_idx in range(36, 45):
                 _drain_durability(_players[pid].get("inventory", []), eq_idx)
-            # Knockback: push player away from the slime
+            # Knockback: push player away from the mob
             pp = _players[pid]["pos"]
             ddx = pp[0] - mob_pos[0]
             ddy = pp[1] - mob_pos[1]
@@ -1196,18 +916,16 @@ def update_mobs(dt: float):
             _players[pid]["pos"][0] += kb[0]
             _players[pid]["pos"][1] += kb[1]
             _players[pid]["knockback"] = kb   # picked up by game_sync next tick
-            # Only apply slime-specific slow when the attacker is actually a slime
-            if (attacker_mid is not None
-                    and mobs.get(attacker_mid, {}).get("type") == "slime"):
-                _players[pid]["slow_timer"] = max(
-                    _players[pid].get("slow_timer", 0.0), SLIME_SLOW_HIT
-                )
-        # Apply scorpion poison (inline to avoid double-acquiring players_lock)
+            if attacker_mid is not None and attacker_mid in mobs:
+                _slow_hit = _mob_special(mobs[attacker_mid]).get("slow_on_hit")
+                if _slow_hit:
+                    _players[pid]["slow_timer"] = max(_players[pid].get("slow_timer", 0.0), _slow_hit)
+        # Apply configured poison effects (inline to avoid double-acquiring players_lock)
         for pid, (dur, dps) in pending_poison.items():
             if pid in _players and not _players[pid].get("creative", False):
                 _players[pid]["poison_timer"] = max(_players[pid].get("poison_timer", 0.0), dur)
                 _players[pid]["poison_dps"]   = dps
-                print(f"[MOB] Scorpion poisoned {pid} for {dur}s at {dps} dps")
+                print(f"[MOB] Poisoned {pid} for {dur}s at {dps} dps")
         for pid, exp_amount in pending_exp:
             _apply_exp(pid, exp_amount)
 

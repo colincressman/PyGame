@@ -138,7 +138,7 @@ def handle_world(HOST, PORT_WORLD, chunk_queue, player_id):
     sock = connect_with_retry(HOST, PORT_WORLD)
     if not sock:
         return
-    identify_socket(sock, "world", player_id)
+    identify_socket(sock, "world", player_id, config.session_token)
     sock.settimeout(0.1)  # avoid blocking forever
     print("[WORLD] Connected and handshake sent.")
 
@@ -192,7 +192,7 @@ def handle_state(HOST, PORT_STATE, player_id):
     sock = connect_with_retry(HOST, PORT_STATE)
     if not sock:
         return
-    identify_socket(sock, "game_state", player_id)
+    identify_socket(sock, "game_state", player_id, config.session_token)
     print("[STATE] Connected and handshake sent.")
     sock.settimeout(0.1)
 
@@ -401,6 +401,10 @@ def send_and_receive_udp():
         player_id = payload["player_id"]
         player_id_dict["player_id"] = player_id
         config.last_player_id = player_id
+        config.session_token = payload.get("session_token")
+        if not config.session_token:
+            print("[UDP INIT ERROR] Server did not provide a session token")
+            return
         # Use server-provided spawn position (may be saved location on rejoin)
         assigned_pos = payload.get("pos", [PLAYER_START_X, PLAYER_START_Y])
         player_data["pos"] = [assigned_pos[0], assigned_pos[1]]
@@ -415,6 +419,7 @@ def send_and_receive_udp():
         config.last_ping_sent = time.time()
         pos_payload = orjson.dumps({
             "player_id": player_id,
+            "session_token": config.session_token,
             "pos": player_data["pos"],
             "stealthy": config.is_stealthy,
             "hotbar_slot": config.hotbar_slot,
@@ -427,6 +432,9 @@ def send_and_receive_udp():
         while not config.udp_outbox.empty():
             try:
                 msg = config.udp_outbox.get_nowait()
+                if isinstance(msg, dict):
+                    msg.setdefault("player_id", player_id)
+                    msg.setdefault("session_token", config.session_token)
                 raw = orjson.dumps(msg)
                 udp_sock.sendto(struct.pack("!I", len(raw)) + raw, (HOST, PORT_UDP))
             except Exception:

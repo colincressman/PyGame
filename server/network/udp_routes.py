@@ -11,6 +11,7 @@ from server.cleanup import last_positions
 from server.player_save import load_player, default_player_stats, _SAFE_ID
 from server.network.combat import handle_attack
 from server.ops import is_banned
+from server.session_auth import issue_token, verify_token
 
 # Minimum interval between accepted movement packets per client (half the server tick period)
 _UDP_MIN_INTERVAL = 1.0 / (TICK_RATE * 2)
@@ -76,6 +77,7 @@ def udp_loop():
 
             player_id = payload.get("player_id")
             pos = payload.get("pos")
+            session_token = payload.get("session_token")
 
             if player_id is not None and not _is_safe_player_id(player_id):
                 continue
@@ -157,10 +159,16 @@ def udp_loop():
                         'pos': spawn_pos, 'vel': [0, 0], 'timestamp': time.time(), 'seq': 0
                     }
                     pending_udp_assignments.add(player_id)
+                    assigned_token = issue_token(player_id)
                 with clients_lock:
                     clients["udp"][player_id] = addr
 
-                response = orjson.dumps({"type": "assign_id", "player_id": player_id, "pos": spawn_pos})
+                response = orjson.dumps({
+                    "type": "assign_id",
+                    "player_id": player_id,
+                    "pos": spawn_pos,
+                    "session_token": assigned_token,
+                })
                 sock.sendto(struct.pack("!I", len(response)) + response, addr)
                 print(f"[UDP ASSIGN] {player_id} assigned to {addr}")
 
@@ -169,6 +177,8 @@ def udp_loop():
                     pending_udp_assignments.discard(player_id)
 
             elif payload.get("type") == "attack":
+                if not verify_token(player_id, session_token):
+                    continue
                 # Must be checked BEFORE `elif pos` — attack packets also carry a pos field.
                 from server.mobs.mob_manager import mobs
                 direction = payload.get("direction", "down")
@@ -207,6 +217,8 @@ def udp_loop():
                                 pass
 
             elif pos:
+                if not verify_token(player_id, session_token):
+                    continue
                 # --- Rate limiting: drop packets arriving too fast ---
                 now_t = time.time()
                 if now_t - _last_udp_time.get(player_id, 0.0) < _UDP_MIN_INTERVAL:

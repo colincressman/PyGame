@@ -1,6 +1,7 @@
 # server/network/combat.py
 import math
 import random
+import time
 from server.shared_lock import players_lock
 from server.item_data import get_equip_bonuses, get_hotbar_bonus, drain_durability
 from server.config import KNOCKBACK_DECAY as _KB_DECAY
@@ -54,6 +55,8 @@ KNOCKBACK         = 0.5    # tiles — player-on-player
 MOB_KNOCKBACK     = 1.5    # tiles — player-on-mob (more satisfying)
 ATK_GAIN          = 0.001  # attack_power increase per successful hit
 MAX_ATK_POWER     = 500.0  # hard cap — prevents unbounded growth
+ATK_COOLDOWN      = 0.45   # server-side minimum seconds between accepted melee swings
+_last_attack_times: dict[str, float] = {}
 
 _DIR_VEC = {
     "down":  ( 0,  1),
@@ -84,11 +87,16 @@ def handle_attack(attacker_id: str, direction: str, pos: list, players: dict, mo
         return
 
     vx, vy = _DIR_VEC[direction]
+    now = time.monotonic()
 
     with players_lock:
         attacker = players.get(attacker_id)
         if not attacker:
             return
+        last_attack = _last_attack_times.get(attacker_id, 0.0)
+        if now - last_attack < ATK_COOLDOWN:
+            return
+        _last_attack_times[attacker_id] = now
         attacker_pos = attacker.get("pos", [0.0, 0.0])
         if not isinstance(pos, list) or len(pos) != 2:
             pos = attacker_pos

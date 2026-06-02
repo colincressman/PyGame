@@ -108,6 +108,7 @@ screen = None
 
 # Networking
 last_player_id = None  # persists across sessions for rejoin
+session_token = None  # assigned by server; required on UDP/TCP packets
 session_id = 0  # incremented each time a game session ends; threads compare against their captured value
 
 # Player stats (server-authoritative, updated by game state channel)
