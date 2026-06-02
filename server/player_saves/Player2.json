@@ -1,0 +1,129 @@
+{
+  "pos": [
+    -96.39511580029473,
+    -620.9459370125287
+  ],
+  "health": 30.0,
+  "health_max": 100,
+  "stamina": 100.0,
+  "stamina_max": 100.0,
+  "attack_power": 10.0,
+  "speed_bonus": 0.0,
+  "hp_regen": 0.0,
+  "sp_regen_bonus": 0.0,
+  "level": 1,
+  "exp": 0,
+  "exp_next": 100,
+  "stat_points": 0,
+  "coins": 26,
+  "inventory": [
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    [
+      1102,
+      1,
+      {
+        "quality": "Common",
+        "stats": {
+          "attack_power": 40.2
+        },
+        "dur": 92,
+        "dur_max": 120
+      }
+    ],
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    [
+      3000,
+      1,
+      {
+        "quality": "Common",
+        "stats": {
+          "defense": 1,
+          "health_max": 4
+        },
+        "dur": 36,
+        "dur_max": 40
+      }
+    ],
+    [
+      3100,
+      1,
+      {
+        "quality": "Common",
+        "stats": {
+          "defense": 1,
+          "health_max": 7
+        },
+        "dur": 36,
+        "dur_max": 40
+      }
+    ],
+    null,
+    null,
+    [
+      3300,
+      1,
+      {
+        "quality": "Uncommon",
+        "stats": {
+          "defense": 1,
+          "health_max": 5
+        },
+        "dur": 36,
+        "dur_max": 40
+      }
+    ],
+    [
+      3401,
+      1,
+      {
+        "quality": "Uncommon",
+        "stats": {
+          "defense": 3.5,
+          "health_max": 17.6,
+          "speed_bonus": 0.1
+        },
+        "dur": 116,
+        "dur_max": 120
+      }
+    ],
+    null,
+    null,
+    null,
+    null,
+    null,
+    null
+  ]
+}

@@ -1,0 +1,38 @@
+{
+  "behavior":             "melee",
+  "max_count":            3,
+  "spawn_interval_mult":  5.0,
+  "spawn_biomes":         ["tundra", "mountain"],
+  "spawn_night_only":     false,
+  "hp":                   300.0,
+  "hp_scale_per_level":   0.3,
+  "damage":               25.0,
+  "damage_scale":         0.25,
+  "speed":                1.2,
+  "speed_scale":          0.0,
+  "windup":               0.60,
+  "lunge_speed":          12.0,
+  "lunge_overshoot":      1.0,
+  "lunge_hit_radius":     0.7,
+  "landing_pause":        0.2,
+  "attack_range":         2.0,
+  "attack_cooldown":      2.5,
+  "aggro_range":          3.0,
+  "deaggro_range":        7.0,
+  "despawn_radius":       50,
+  "exp":                  80,
+  "drop_id":              61,
+  "wander_radius":        6.25,
+  "wander_idle_min":      2.0,
+  "wander_idle_max":      5.0,
+  "special": {
+    "slam_range":         2.5,
+    "slam_cooldown":      8.0,
+    "slam_radius":        2.0,
+    "slam_charge":        1.0
+  },
+  "sprite": {
+    "type":   "procedural",
+    "key":    "yeti"
+  }
+}

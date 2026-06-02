@@ -1,0 +1,3820 @@
+{
+  "1": {
+    "max_stack": 999999,
+    "name": "Coin",
+    "sell_price": 0,
+    "stackable": true
+  },
+  "10": {
+    "max_stack": 64,
+    "name": "Wood",
+    "sell_price": 3,
+    "stackable": true
+  },
+  "100": {
+    "max_stack": 64,
+    "name": "Iron Bar",
+    "sell_price": 14,
+    "stackable": true
+  },
+  "1000": {
+    "durability": 40,
+    "max_stack": 1,
+    "name": "Scrap Knife",
+    "sell_price": 3,
+    "slot_type": "weapon",
+    "stackable": false,
+    "stats": {
+      "attack_power": 4
+    }
+  },
+  "1001": {
+    "durability": 40,
+    "max_stack": 1,
+    "name": "Scrap Club",
+    "sell_price": 5,
+    "slot_type": "weapon",
+    "stackable": false,
+    "stats": {
+      "attack_power": 7
+    }
+  },
+  "101": {
+    "max_stack": 64,
+    "name": "Copper Bar",
+    "sell_price": 18,
+    "stackable": true
+  },
+  "102": {
+    "max_stack": 64,
+    "name": "Tin Bar",
+    "sell_price": 18,
+    "stackable": true
+  },
+  "103": {
+    "max_stack": 64,
+    "name": "Silver Bar",
+    "sell_price": 28,
+    "stackable": true
+  },
+  "104": {
+    "max_stack": 64,
+    "name": "Gold Bar",
+    "sell_price": 45,
+    "stackable": true
+  },
+  "1050": {
+    "durability": 65,
+    "max_stack": 1,
+    "name": "Wooden Sword",
+    "sell_price": 20,
+    "slot_type": "weapon",
+    "stackable": false,
+    "stats": {
+      "attack_power": 8
+    }
+  },
+  "1051": {
+    "durability": 65,
+    "max_stack": 1,
+    "name": "Wooden Mace",
+    "sell_price": 22,
+    "slot_type": "weapon",
+    "stackable": false,
+    "stats": {
+      "attack_power": 12
+    }
+  },
+  "1052": {
+    "durability": 90,
+    "max_stack": 1,
+    "name": "Bone Dagger",
+    "sell_price": 35,
+    "slot_type": "weapon",
+    "stackable": false,
+    "stats": {
+      "attack_power": 15
+    }
+  },
+  "1053": {
+    "durability": 90,
+    "max_stack": 1,
+    "name": "Stone Mace",
+    "sell_price": 50,
+    "slot_type": "weapon",
+    "stackable": false,
+    "stats": {
+      "attack_power": 22
+    }
+  },
+  "11": {
+    "max_stack": 64,
+    "name": "Stone",
+    "sell_price": 3,
+    "stackable": true
+  },
+  "110": {
+    "max_stack": 64,
+    "name": "Bronze Bar",
+    "sell_price": 30,
+    "stackable": true
+  },
+  "1100": {
+    "durability": 120,
+    "max_stack": 1,
+    "name": "Iron Dagger",
+    "sell_price": 48,
+    "slot_type": "weapon",
+    "stackable": false,
+    "stats": {
+      "attack_power": 28
+    }
+  },
+  "1101": {
+    "durability": 120,
+    "max_stack": 1,
+    "name": "Iron Sword",
+    "sell_price": 60,
+    "slot_type": "weapon",
+    "stackable": false,
+    "stats": {
+      "attack_power": 38
+    }
+  },
+  "1102": {
+    "durability": 120,
+    "max_stack": 1,
+    "name": "Iron Mace",
+    "sell_price": 65,
+    "slot_type": "weapon",
+    "stackable": false,
+    "stats": {
+      "attack_power": 45
+    }
+  },
+  "111": {
+    "max_stack": 64,
+    "name": "Steel Bar",
+    "sell_price": 35,
+    "stackable": true
+  },
+  "1150": {
+    "durability": 150,
+    "max_stack": 1,
+    "name": "Copper Sword",
+    "sell_price": 75,
+    "slot_type": "weapon",
+    "stackable": false,
+    "stats": {
+      "attack_power": 52
+    }
+  },
+  "1151": {
+    "durability": 150,
+    "max_stack": 1,
+    "name": "Copper Dagger",
+    "sell_price": 55,
+    "slot_type": "weapon",
+    "stackable": false,
+    "stats": {
+      "attack_power": 38
+    }
+  },
+  "1152": {
+    "durability": 150,
+    "max_stack": 1,
+    "name": "Copper Mace",
+    "sell_price": 80,
+    "slot_type": "weapon",
+    "stackable": false,
+    "stats": {
+      "attack_power": 62
+    }
+  },
+  "12": {
+    "max_stack": 64,
+    "name": "Stick",
+    "sell_price": 1,
+    "stackable": true
+  },
+  "120": {
+    "max_stack": 64,
+    "name": "Stone Brick",
+    "sell_price": 8,
+    "stackable": true
+  },
+  "1200": {
+    "durability": 200,
+    "max_stack": 1,
+    "name": "Bronze Sword",
+    "sell_price": 95,
+    "slot_type": "weapon",
+    "stackable": false,
+    "stats": {
+      "attack_power": 65
+    }
+  },
+  "1201": {
+    "durability": 200,
+    "max_stack": 1,
+    "name": "Bronze Dagger",
+    "sell_price": 75,
+    "slot_type": "weapon",
+    "stackable": false,
+    "stats": {
+      "attack_power": 48
+    }
+  },
+  "1202": {
+    "durability": 200,
+    "max_stack": 1,
+    "name": "Bronze Mace",
+    "sell_price": 100,
+    "slot_type": "weapon",
+    "stackable": false,
+    "stats": {
+      "attack_power": 78
+    }
+  },
+  "121": {
+    "max_stack": 64,
+    "name": "Carbon",
+    "sell_price": 4,
+    "stackable": true
+  },
+  "1250": {
+    "durability": 260,
+    "max_stack": 1,
+    "name": "Steel Sword",
+    "sell_price": 135,
+    "slot_type": "weapon",
+    "stackable": false,
+    "stats": {
+      "attack_power": 82
+    }
+  },
+  "1251": {
+    "durability": 260,
+    "max_stack": 1,
+    "name": "Steel Dagger",
+    "sell_price": 105,
+    "slot_type": "weapon",
+    "stackable": false,
+    "stats": {
+      "attack_power": 60
+    }
+  },
+  "1252": {
+    "durability": 260,
+    "max_stack": 1,
+    "name": "Steel Mace",
+    "sell_price": 148,
+    "slot_type": "weapon",
+    "stackable": false,
+    "stats": {
+      "attack_power": 98
+    }
+  },
+  "13": {
+    "max_stack": 64,
+    "name": "Herb",
+    "sell_price": 5,
+    "stackable": true
+  },
+  "1300": {
+    "durability": 300,
+    "max_stack": 1,
+    "name": "Gold Sword",
+    "sell_price": 170,
+    "slot_type": "weapon",
+    "stackable": false,
+    "stats": {
+      "attack_power": 98
+    }
+  },
+  "1301": {
+    "durability": 300,
+    "max_stack": 1,
+    "name": "Gold Dagger",
+    "sell_price": 135,
+    "slot_type": "weapon",
+    "stackable": false,
+    "stats": {
+      "attack_power": 72
+    }
+  },
+  "1302": {
+    "durability": 300,
+    "max_stack": 1,
+    "name": "Gold Mace",
+    "sell_price": 185,
+    "slot_type": "weapon",
+    "stackable": false,
+    "stats": {
+      "attack_power": 118
+    }
+  },
+  "1350": {
+    "durability": 350,
+    "max_stack": 1,
+    "name": "Crystal Sword",
+    "sell_price": 210,
+    "slot_type": "weapon",
+    "stackable": false,
+    "stats": {
+      "attack_power": 118
+    }
+  },
+  "1351": {
+    "durability": 350,
+    "max_stack": 1,
+    "name": "Crystal Dagger",
+    "sell_price": 165,
+    "slot_type": "weapon",
+    "stackable": false,
+    "stats": {
+      "attack_power": 88
+    }
+  },
+  "1352": {
+    "durability": 350,
+    "max_stack": 1,
+    "name": "Crystal Mace",
+    "sell_price": 225,
+    "slot_type": "weapon",
+    "stackable": false,
+    "stats": {
+      "attack_power": 140
+    }
+  },
+  "14": {
+    "max_stack": 64,
+    "name": "Mushroom",
+    "sell_price": 5,
+    "stackable": true
+  },
+  "1400": {
+    "durability": 400,
+    "max_stack": 1,
+    "name": "Obsidian Sword",
+    "sell_price": 260,
+    "slot_type": "weapon",
+    "stackable": false,
+    "stats": {
+      "attack_power": 140
+    }
+  },
+  "1401": {
+    "durability": 400,
+    "max_stack": 1,
+    "name": "Obsidian Dagger",
+    "sell_price": 200,
+    "slot_type": "weapon",
+    "stackable": false,
+    "stats": {
+      "attack_power": 105
+    }
+  },
+  "1402": {
+    "durability": 400,
+    "max_stack": 1,
+    "name": "Obsidian Mace",
+    "sell_price": 280,
+    "slot_type": "weapon",
+    "stackable": false,
+    "stats": {
+      "attack_power": 165
+    }
+  },
+  "148": {
+    "max_stack": 10,
+    "name": "Paper Blade",
+    "part_stats": {
+      "base_atk": 5,
+      "base_dur": 20,
+      "gem_slots": 2,
+      "slot": "blade",
+      "trait": "papery"
+    },
+    "sell_price": 2,
+    "stackable": true
+  },
+  "149": {
+    "max_stack": 10,
+    "name": "Crystal Plate",
+    "part_stats": {
+      "base_def": 16,
+      "base_dur": 280,
+      "base_hp": 75,
+      "slot": "plate",
+      "trait": "magical"
+    },
+    "sell_price": 40,
+    "stackable": true
+  },
+  "15": {
+    "max_stack": 64,
+    "name": "Cactus Spine",
+    "sell_price": 4,
+    "stackable": true
+  },
+  "150": {
+    "max_stack": 10,
+    "name": "Flint Blade",
+    "part_stats": {
+      "base_atk": 12,
+      "base_dur": 30,
+      "slot": "blade",
+      "trait": "sharp"
+    },
+    "sell_price": 3,
+    "stackable": true
+  },
+  "1500": {
+    "durability": 120,
+    "max_stack": 1,
+    "name": "Iron Rapier",
+    "sell_price": 52,
+    "slot_type": "weapon",
+    "stackable": false,
+    "stats": {
+      "attack_power": 32
+    }
+  },
+  "151": {
+    "max_stack": 10,
+    "name": "Stone Blade",
+    "part_stats": {
+      "base_atk": 15,
+      "base_dur": 60,
+      "slot": "blade",
+      "trait": "stonebound"
+    },
+    "sell_price": 4,
+    "stackable": true
+  },
+  "152": {
+    "max_stack": 10,
+    "name": "Bone Blade",
+    "part_stats": {
+      "base_atk": 18,
+      "base_dur": 70,
+      "slot": "blade",
+      "trait": null
+    },
+    "sell_price": 5,
+    "stackable": true
+  },
+  "153": {
+    "max_stack": 10,
+    "name": "Copper Blade",
+    "part_stats": {
+      "base_atk": 28,
+      "base_dur": 110,
+      "slot": "blade",
+      "trait": null
+    },
+    "sell_price": 8,
+    "stackable": true
+  },
+  "154": {
+    "max_stack": 10,
+    "name": "Tin Blade",
+    "part_stats": {
+      "base_atk": 22,
+      "base_dur": 85,
+      "slot": "blade",
+      "trait": null
+    },
+    "sell_price": 7,
+    "stackable": true
+  },
+  "155": {
+    "max_stack": 10,
+    "name": "Iron Blade",
+    "part_stats": {
+      "base_atk": 35,
+      "base_dur": 120,
+      "slot": "blade",
+      "trait": null
+    },
+    "sell_price": 12,
+    "stackable": true
+  },
+  "1550": {
+    "durability": 150,
+    "max_stack": 1,
+    "name": "Copper Rapier",
+    "sell_price": 68,
+    "slot_type": "weapon",
+    "stackable": false,
+    "stats": {
+      "attack_power": 44
+    }
+  },
+  "156": {
+    "max_stack": 10,
+    "name": "Bronze Blade",
+    "part_stats": {
+      "base_atk": 45,
+      "base_dur": 160,
+      "slot": "blade",
+      "trait": "dense"
+    },
+    "sell_price": 18,
+    "stackable": true
+  },
+  "157": {
+    "max_stack": 10,
+    "name": "Silver Blade",
+    "part_stats": {
+      "base_atk": 50,
+      "base_dur": 140,
+      "slot": "blade",
+      "trait": "magical"
+    },
+    "sell_price": 22,
+    "stackable": true
+  },
+  "158": {
+    "max_stack": 10,
+    "name": "Gold Blade",
+    "part_stats": {
+      "base_atk": 50,
+      "base_dur": 140,
+      "slot": "blade",
+      "trait": "shiny"
+    },
+    "sell_price": 25,
+    "stackable": true
+  },
+  "159": {
+    "max_stack": 10,
+    "name": "Steel Blade",
+    "part_stats": {
+      "base_atk": 58,
+      "base_dur": 220,
+      "slot": "blade",
+      "trait": "sturdy"
+    },
+    "sell_price": 30,
+    "stackable": true
+  },
+  "16": {
+    "max_stack": 64,
+    "name": "Snow Crystal",
+    "sell_price": 8,
+    "stackable": true
+  },
+  "160": {
+    "max_stack": 10,
+    "name": "Obsidian Blade",
+    "part_stats": {
+      "base_atk": 105,
+      "base_dur": 260,
+      "slot": "blade",
+      "trait": "heavy"
+    },
+    "sell_price": 45,
+    "stackable": true
+  },
+  "1600": {
+    "durability": 200,
+    "max_stack": 1,
+    "name": "Bronze Rapier",
+    "sell_price": 88,
+    "slot_type": "weapon",
+    "stackable": false,
+    "stats": {
+      "attack_power": 55
+    }
+  },
+  "161": {
+    "max_stack": 10,
+    "name": "Crystal Blade",
+    "part_stats": {
+      "base_atk": 80,
+      "base_dur": 280,
+      "slot": "blade",
+      "trait": "magical"
+    },
+    "sell_price": 40,
+    "stackable": true
+  },
+  "162": {
+    "max_stack": 10,
+    "name": "Flint Axe Head",
+    "part_stats": {
+      "base_atk": 12,
+      "base_dur": 30,
+      "slot": "axe_head",
+      "trait": "sharp"
+    },
+    "sell_price": 3,
+    "stackable": true
+  },
+  "163": {
+    "max_stack": 10,
+    "name": "Stone Axe Head",
+    "part_stats": {
+      "base_atk": 15,
+      "base_dur": 60,
+      "slot": "axe_head",
+      "trait": "stonebound"
+    },
+    "sell_price": 4,
+    "stackable": true
+  },
+  "164": {
+    "max_stack": 10,
+    "name": "Bone Axe Head",
+    "part_stats": {
+      "base_atk": 18,
+      "base_dur": 70,
+      "slot": "axe_head",
+      "trait": null
+    },
+    "sell_price": 5,
+    "stackable": true
+  },
+  "165": {
+    "max_stack": 10,
+    "name": "Copper Axe Head",
+    "part_stats": {
+      "base_atk": 28,
+      "base_dur": 110,
+      "slot": "axe_head",
+      "trait": null
+    },
+    "sell_price": 8,
+    "stackable": true
+  },
+  "1650": {
+    "durability": 260,
+    "max_stack": 1,
+    "name": "Steel Rapier",
+    "sell_price": 125,
+    "slot_type": "weapon",
+    "stackable": false,
+    "stats": {
+      "attack_power": 70
+    }
+  },
+  "166": {
+    "max_stack": 10,
+    "name": "Tin Axe Head",
+    "part_stats": {
+      "base_atk": 22,
+      "base_dur": 85,
+      "slot": "axe_head",
+      "trait": null
+    },
+    "sell_price": 7,
+    "stackable": true
+  },
+  "167": {
+    "max_stack": 10,
+    "name": "Iron Axe Head",
+    "part_stats": {
+      "base_atk": 35,
+      "base_dur": 120,
+      "slot": "axe_head",
+      "trait": null
+    },
+    "sell_price": 12,
+    "stackable": true
+  },
+  "168": {
+    "max_stack": 10,
+    "name": "Bronze Axe Head",
+    "part_stats": {
+      "base_atk": 45,
+      "base_dur": 160,
+      "slot": "axe_head",
+      "trait": "dense"
+    },
+    "sell_price": 18,
+    "stackable": true
+  },
+  "169": {
+    "max_stack": 10,
+    "name": "Gold Axe Head",
+    "part_stats": {
+      "base_atk": 50,
+      "base_dur": 140,
+      "slot": "axe_head",
+      "trait": "shiny"
+    },
+    "sell_price": 25,
+    "stackable": true
+  },
+  "17": {
+    "max_stack": 64,
+    "name": "Seashell",
+    "sell_price": 6,
+    "stackable": true
+  },
+  "170": {
+    "max_stack": 10,
+    "name": "Steel Axe Head",
+    "part_stats": {
+      "base_atk": 58,
+      "base_dur": 220,
+      "slot": "axe_head",
+      "trait": "sturdy"
+    },
+    "sell_price": 30,
+    "stackable": true
+  },
+  "1700": {
+    "durability": 300,
+    "max_stack": 1,
+    "name": "Gold Rapier",
+    "sell_price": 158,
+    "slot_type": "weapon",
+    "stackable": false,
+    "stats": {
+      "attack_power": 84
+    }
+  },
+  "171": {
+    "max_stack": 10,
+    "name": "Obsidian Axe Head",
+    "part_stats": {
+      "base_atk": 105,
+      "base_dur": 260,
+      "slot": "axe_head",
+      "trait": "heavy"
+    },
+    "sell_price": 45,
+    "stackable": true
+  },
+  "172": {
+    "max_stack": 10,
+    "name": "Flint Pick Head",
+    "part_stats": {
+      "base_dur": 30,
+      "base_mining": 2,
+      "mining_tier": "pickaxe_stone",
+      "slot": "pick_head",
+      "trait": "sharp"
+    },
+    "sell_price": 3,
+    "stackable": true
+  },
+  "173": {
+    "max_stack": 10,
+    "name": "Stone Pick Head",
+    "part_stats": {
+      "base_dur": 60,
+      "base_mining": 2,
+      "mining_tier": "pickaxe_stone",
+      "slot": "pick_head",
+      "trait": "stonebound"
+    },
+    "sell_price": 4,
+    "stackable": true
+  },
+  "174": {
+    "max_stack": 10,
+    "name": "Copper Pick Head",
+    "part_stats": {
+      "base_dur": 110,
+      "base_mining": 5,
+      "mining_tier": "pickaxe_stone",
+      "slot": "pick_head",
+      "trait": null
+    },
+    "sell_price": 8,
+    "stackable": true
+  },
+  "175": {
+    "max_stack": 10,
+    "name": "Tin Pick Head",
+    "part_stats": {
+      "base_dur": 85,
+      "base_mining": 4,
+      "mining_tier": "pickaxe_stone",
+      "slot": "pick_head",
+      "trait": null
+    },
+    "sell_price": 7,
+    "stackable": true
+  },
+  "1750": {
+    "durability": 350,
+    "max_stack": 1,
+    "name": "Crystal Rapier",
+    "sell_price": 192,
+    "slot_type": "weapon",
+    "stackable": false,
+    "stats": {
+      "attack_power": 102
+    }
+  },
+  "176": {
+    "max_stack": 10,
+    "name": "Iron Pick Head",
+    "part_stats": {
+      "base_dur": 120,
+      "base_mining": 4,
+      "mining_tier": "pickaxe_iron",
+      "slot": "pick_head",
+      "trait": null
+    },
+    "sell_price": 12,
+    "stackable": true
+  },
+  "177": {
+    "max_stack": 10,
+    "name": "Bronze Pick Head",
+    "part_stats": {
+      "base_dur": 160,
+      "base_mining": 7,
+      "mining_tier": "pickaxe_iron",
+      "slot": "pick_head",
+      "trait": "dense"
+    },
+    "sell_price": 18,
+    "stackable": true
+  },
+  "178": {
+    "max_stack": 10,
+    "name": "Gold Pick Head",
+    "part_stats": {
+      "base_dur": 140,
+      "base_mining": 9,
+      "mining_tier": "pickaxe_iron",
+      "slot": "pick_head",
+      "trait": "shiny"
+    },
+    "sell_price": 25,
+    "stackable": true
+  },
+  "179": {
+    "max_stack": 10,
+    "name": "Steel Pick Head",
+    "part_stats": {
+      "base_dur": 220,
+      "base_mining": 8,
+      "mining_tier": "pickaxe_steel",
+      "slot": "pick_head",
+      "trait": "sturdy"
+    },
+    "sell_price": 30,
+    "stackable": true
+  },
+  "18": {
+    "max_stack": 64,
+    "name": "Reed",
+    "sell_price": 3,
+    "stackable": true
+  },
+  "180": {
+    "max_stack": 10,
+    "name": "Obsidian Pick Head",
+    "part_stats": {
+      "base_dur": 260,
+      "base_mining": 18,
+      "mining_tier": "pickaxe_steel",
+      "slot": "pick_head",
+      "trait": "heavy"
+    },
+    "sell_price": 45,
+    "stackable": true
+  },
+  "1800": {
+    "durability": 50,
+    "max_stack": 1,
+    "name": "Wooden Wand",
+    "projectile": "arcane",
+    "sell_price": 25,
+    "slot_type": "weapon",
+    "stackable": false,
+    "stats": {
+      "attack_power": 12
+    }
+  },
+  "1801": {
+    "durability": 280,
+    "max_stack": 1,
+    "name": "Crystal Wand",
+    "projectile": "ice",
+    "sell_price": 185,
+    "slot_type": "weapon",
+    "stackable": false,
+    "stats": {
+      "attack_power": 95
+    }
+  },
+  "1802": {
+    "durability": 150,
+    "max_stack": 1,
+    "name": "Fire Wand",
+    "projectile": "fire",
+    "sell_price": 90,
+    "slot_type": "weapon",
+    "stackable": false,
+    "stats": {
+      "attack_power": 55
+    }
+  },
+  "1803": {
+    "durability": 200,
+    "max_stack": 1,
+    "name": "Storm Wand",
+    "projectile": "lightning",
+    "sell_price": 140,
+    "slot_type": "weapon",
+    "stackable": false,
+    "stats": {
+      "attack_power": 72
+    }
+  },
+  "1804": {
+    "durability": 180,
+    "max_stack": 1,
+    "name": "Nature Wand",
+    "projectile": "nature",
+    "sell_price": 110,
+    "slot_type": "weapon",
+    "stackable": false,
+    "stats": {
+      "attack_power": 48
+    }
+  },
+  "1805": {
+    "durability": 220,
+    "max_stack": 1,
+    "name": "Shadow Wand",
+    "projectile": "shadow",
+    "sell_price": 165,
+    "slot_type": "weapon",
+    "stackable": false,
+    "stats": {
+      "attack_power": 85
+    }
+  },
+  "181": {
+    "max_stack": 10,
+    "name": "Crystal Pick Head",
+    "part_stats": {
+      "base_dur": 280,
+      "base_mining": 12,
+      "mining_tier": "pickaxe_steel",
+      "slot": "pick_head",
+      "trait": "magical"
+    },
+    "sell_price": 40,
+    "stackable": true
+  },
+  "182": {
+    "max_stack": 10,
+    "name": "Copper Plate",
+    "part_stats": {
+      "base_def": 6,
+      "base_dur": 110,
+      "base_hp": 30,
+      "slot": "plate",
+      "trait": null
+    },
+    "sell_price": 8,
+    "stackable": true
+  },
+  "183": {
+    "max_stack": 10,
+    "name": "Tin Plate",
+    "part_stats": {
+      "base_def": 5,
+      "base_dur": 85,
+      "base_hp": 25,
+      "slot": "plate",
+      "trait": null
+    },
+    "sell_price": 7,
+    "stackable": true
+  },
+  "184": {
+    "max_stack": 10,
+    "name": "Iron Plate",
+    "part_stats": {
+      "base_def": 8,
+      "base_dur": 120,
+      "base_hp": 40,
+      "slot": "plate",
+      "trait": null
+    },
+    "sell_price": 12,
+    "stackable": true
+  },
+  "185": {
+    "max_stack": 10,
+    "name": "Bronze Plate",
+    "part_stats": {
+      "base_def": 10,
+      "base_dur": 160,
+      "base_hp": 50,
+      "slot": "plate",
+      "trait": "dense"
+    },
+    "sell_price": 18,
+    "stackable": true
+  },
+  "1850": {
+    "durability": 115,
+    "max_stack": 1,
+    "name": "Iron Katana",
+    "sell_price": 55,
+    "slot_type": "weapon",
+    "stackable": false,
+    "stats": {
+      "attack_power": 35
+    }
+  },
+  "1851": {
+    "durability": 145,
+    "max_stack": 1,
+    "name": "Copper Katana",
+    "sell_price": 72,
+    "slot_type": "weapon",
+    "stackable": false,
+    "stats": {
+      "attack_power": 48
+    }
+  },
+  "1852": {
+    "durability": 195,
+    "max_stack": 1,
+    "name": "Bronze Katana",
+    "sell_price": 92,
+    "slot_type": "weapon",
+    "stackable": false,
+    "stats": {
+      "attack_power": 60
+    }
+  },
+  "1853": {
+    "durability": 255,
+    "max_stack": 1,
+    "name": "Steel Katana",
+    "sell_price": 132,
+    "slot_type": "weapon",
+    "stackable": false,
+    "stats": {
+      "attack_power": 76
+    }
+  },
+  "1854": {
+    "durability": 295,
+    "max_stack": 1,
+    "name": "Gold Katana",
+    "sell_price": 165,
+    "slot_type": "weapon",
+    "stackable": false,
+    "stats": {
+      "attack_power": 92
+    }
+  },
+  "1855": {
+    "durability": 345,
+    "max_stack": 1,
+    "name": "Crystal Katana",
+    "sell_price": 205,
+    "slot_type": "weapon",
+    "stackable": false,
+    "stats": {
+      "attack_power": 110
+    }
+  },
+  "186": {
+    "max_stack": 10,
+    "name": "Silver Plate",
+    "part_stats": {
+      "base_def": 9,
+      "base_dur": 140,
+      "base_hp": 35,
+      "slot": "plate",
+      "trait": "magical"
+    },
+    "sell_price": 22,
+    "stackable": true
+  },
+  "1860": {
+    "durability": 118,
+    "max_stack": 1,
+    "name": "Iron Saber",
+    "sell_price": 57,
+    "slot_type": "weapon",
+    "stackable": false,
+    "stats": {
+      "attack_power": 36
+    }
+  },
+  "1861": {
+    "durability": 148,
+    "max_stack": 1,
+    "name": "Copper Saber",
+    "sell_price": 74,
+    "slot_type": "weapon",
+    "stackable": false,
+    "stats": {
+      "attack_power": 49
+    }
+  },
+  "1862": {
+    "durability": 198,
+    "max_stack": 1,
+    "name": "Bronze Saber",
+    "sell_price": 94,
+    "slot_type": "weapon",
+    "stackable": false,
+    "stats": {
+      "attack_power": 62
+    }
+  },
+  "1863": {
+    "durability": 258,
+    "max_stack": 1,
+    "name": "Steel Saber",
+    "sell_price": 136,
+    "slot_type": "weapon",
+    "stackable": false,
+    "stats": {
+      "attack_power": 78
+    }
+  },
+  "1864": {
+    "durability": 298,
+    "max_stack": 1,
+    "name": "Gold Saber",
+    "sell_price": 168,
+    "slot_type": "weapon",
+    "stackable": false,
+    "stats": {
+      "attack_power": 94
+    }
+  },
+  "1865": {
+    "durability": 348,
+    "max_stack": 1,
+    "name": "Crystal Saber",
+    "sell_price": 208,
+    "slot_type": "weapon",
+    "stackable": false,
+    "stats": {
+      "attack_power": 112
+    }
+  },
+  "187": {
+    "max_stack": 10,
+    "name": "Gold Plate",
+    "part_stats": {
+      "base_def": 9,
+      "base_dur": 140,
+      "base_hp": 35,
+      "slot": "plate",
+      "trait": "shiny"
+    },
+    "sell_price": 25,
+    "stackable": true
+  },
+  "1870": {
+    "durability": 112,
+    "max_stack": 1,
+    "name": "Iron Scimitar",
+    "sell_price": 53,
+    "slot_type": "weapon",
+    "stackable": false,
+    "stats": {
+      "attack_power": 34
+    }
+  },
+  "1871": {
+    "durability": 142,
+    "max_stack": 1,
+    "name": "Copper Scimitar",
+    "sell_price": 70,
+    "slot_type": "weapon",
+    "stackable": false,
+    "stats": {
+      "attack_power": 46
+    }
+  },
+  "1872": {
+    "durability": 192,
+    "max_stack": 1,
+    "name": "Bronze Scimitar",
+    "sell_price": 90,
+    "slot_type": "weapon",
+    "stackable": false,
+    "stats": {
+      "attack_power": 58
+    }
+  },
+  "1873": {
+    "durability": 252,
+    "max_stack": 1,
+    "name": "Steel Scimitar",
+    "sell_price": 128,
+    "slot_type": "weapon",
+    "stackable": false,
+    "stats": {
+      "attack_power": 74
+    }
+  },
+  "1874": {
+    "durability": 292,
+    "max_stack": 1,
+    "name": "Gold Scimitar",
+    "sell_price": 162,
+    "slot_type": "weapon",
+    "stackable": false,
+    "stats": {
+      "attack_power": 89
+    }
+  },
+  "188": {
+    "max_stack": 10,
+    "name": "Steel Plate",
+    "part_stats": {
+      "base_def": 14,
+      "base_dur": 220,
+      "base_hp": 60,
+      "slot": "plate",
+      "trait": "sturdy"
+    },
+    "sell_price": 30,
+    "stackable": true
+  },
+  "189": {
+    "max_stack": 10,
+    "name": "Obsidian Plate",
+    "part_stats": {
+      "base_def": 28,
+      "base_dur": 260,
+      "base_hp": 50,
+      "slot": "plate",
+      "trait": "heavy"
+    },
+    "sell_price": 45,
+    "stackable": true
+  },
+  "19": {
+    "max_stack": 64,
+    "name": "Bone",
+    "sell_price": 5,
+    "stackable": true
+  },
+  "190": {
+    "max_stack": 10,
+    "name": "Sword Mold",
+    "sell_price": 2,
+    "stackable": true
+  },
+  "191": {
+    "max_stack": 10,
+    "name": "Dagger Mold",
+    "sell_price": 2,
+    "stackable": true
+  },
+  "192": {
+    "max_stack": 10,
+    "name": "Axe Mold",
+    "sell_price": 2,
+    "stackable": true
+  },
+  "193": {
+    "max_stack": 10,
+    "name": "Pickaxe Mold",
+    "sell_price": 2,
+    "stackable": true
+  },
+  "194": {
+    "max_stack": 10,
+    "name": "Helm Mold",
+    "sell_price": 2,
+    "stackable": true
+  },
+  "195": {
+    "max_stack": 10,
+    "name": "Chest Mold",
+    "sell_price": 2,
+    "stackable": true
+  },
+  "196": {
+    "max_stack": 10,
+    "name": "Arms Mold",
+    "sell_price": 2,
+    "stackable": true
+  },
+  "197": {
+    "max_stack": 10,
+    "name": "Leg Mold",
+    "sell_price": 2,
+    "stackable": true
+  },
+  "198": {
+    "max_stack": 10,
+    "name": "Feet Mold",
+    "sell_price": 2,
+    "stackable": true
+  },
+  "199": {
+    "max_stack": 10,
+    "name": "Katana Mold",
+    "sell_price": 2,
+    "stackable": true
+  },
+  "20": {
+    "max_stack": 64,
+    "name": "Coal",
+    "sell_price": 4,
+    "stackable": true
+  },
+  "200": {
+    "max_stack": 64,
+    "name": "Crafting Table",
+    "placeable": "crafting_table",
+    "sell_price": 10,
+    "stackable": true
+  },
+  "2000": {
+    "durability": 40,
+    "max_stack": 1,
+    "name": "Scrap Axe",
+    "sell_price": 5,
+    "slot_type": "tool",
+    "stackable": false,
+    "stats": {}
+  },
+  "2001": {
+    "durability": 40,
+    "max_stack": 1,
+    "name": "Scrap Pickaxe",
+    "sell_price": 5,
+    "slot_type": "tool",
+    "stackable": false,
+    "stats": {}
+  },
+  "201": {
+    "max_stack": 64,
+    "name": "Furnace",
+    "placeable": "furnace",
+    "sell_price": 15,
+    "stackable": true
+  },
+  "202": {
+    "max_stack": 64,
+    "name": "Alloy Forge",
+    "placeable": "alloy_forge",
+    "sell_price": 30,
+    "stackable": true
+  },
+  "203": {
+    "max_stack": 1,
+    "name": "Chest",
+    "placeable": "chest",
+    "sell_price": 10,
+    "stackable": false
+  },
+  "204": {
+    "description": "Crafts weapon parts, tool heads, and armor plates.",
+    "max_stack": 1,
+    "name": "Part Maker",
+    "placeable": "part_maker",
+    "sell_price": 15,
+    "stackable": false
+  },
+  "205": {
+    "description": "Combines parts into custom weapons, tools, and armor.",
+    "max_stack": 1,
+    "name": "Part Combiner",
+    "placeable": "part_combiner",
+    "sell_price": 20,
+    "stackable": false
+  },
+  "2050": {
+    "durability": 65,
+    "max_stack": 1,
+    "name": "Wooden Axe",
+    "sell_price": 15,
+    "slot_type": "tool",
+    "stackable": false,
+    "stats": {}
+  },
+  "2051": {
+    "durability": 90,
+    "max_stack": 1,
+    "name": "Stone Axe",
+    "sell_price": 25,
+    "slot_type": "tool",
+    "stackable": false,
+    "stats": {}
+  },
+  "2052": {
+    "durability": 65,
+    "max_stack": 1,
+    "name": "Wooden Pickaxe",
+    "sell_price": 15,
+    "slot_type": "tool",
+    "stackable": false,
+    "stats": {}
+  },
+  "2053": {
+    "durability": 90,
+    "max_stack": 1,
+    "name": "Stone Pickaxe",
+    "sell_price": 25,
+    "slot_type": "tool",
+    "stackable": false,
+    "stats": {}
+  },
+  "206": {
+    "max_stack": 1,
+    "name": "Embedder",
+    "placeable": "embedder",
+    "sell_price": 25,
+    "stackable": false
+  },
+  "207": {
+    "max_stack": 64,
+    "name": "Campfire",
+    "placeable": "campfire",
+    "sell_price": 5,
+    "stackable": true
+  },
+  "208": {
+    "max_stack": 10,
+    "name": "Saber Mold",
+    "sell_price": 2,
+    "stackable": true
+  },
+  "209": {
+    "max_stack": 10,
+    "name": "Scimitar Mold",
+    "sell_price": 2,
+    "stackable": true
+  },
+  "21": {
+    "max_stack": 64,
+    "name": "Iron Ore",
+    "sell_price": 6,
+    "stackable": true
+  },
+  "210": {
+    "max_stack": 10,
+    "name": "Rapier Mold",
+    "sell_price": 2,
+    "stackable": true
+  },
+  "2100": {
+    "durability": 120,
+    "max_stack": 1,
+    "name": "Iron Axe",
+    "sell_price": 35,
+    "slot_type": "tool",
+    "stackable": false,
+    "stats": {}
+  },
+  "2101": {
+    "durability": 120,
+    "max_stack": 1,
+    "name": "Iron Pickaxe",
+    "sell_price": 35,
+    "slot_type": "tool",
+    "stackable": false,
+    "stats": {}
+  },
+  "211": {
+    "max_stack": 10,
+    "name": "Hammer Mold",
+    "sell_price": 2,
+    "stackable": true
+  },
+  "212": {
+    "max_stack": 10,
+    "name": "Wand Mold",
+    "sell_price": 2,
+    "stackable": true
+  },
+  "213": {
+    "durability": null,
+    "max_stack": 10,
+    "name": "Back Mold",
+    "sell_price": 2,
+    "slot_type": null,
+    "stackable": true,
+    "stats": {}
+  },
+  "214": {
+    "max_stack": 64,
+    "name": "Torch",
+    "placeable": "torch",
+    "sell_price": 2,
+    "stackable": true
+  },
+  "215": {
+    "max_stack": 16,
+    "name": "Lantern",
+    "placeable": "lantern",
+    "sell_price": 12,
+    "stackable": true
+  },
+  "2150": {
+    "durability": 150,
+    "max_stack": 1,
+    "name": "Copper Axe",
+    "sell_price": 55,
+    "slot_type": "tool",
+    "stackable": false,
+    "stats": {}
+  },
+  "2151": {
+    "durability": 150,
+    "max_stack": 1,
+    "name": "Copper Pickaxe",
+    "sell_price": 55,
+    "slot_type": "tool",
+    "stackable": false,
+    "stats": {}
+  },
+  "22": {
+    "max_stack": 64,
+    "name": "Copper Ore",
+    "sell_price": 8,
+    "stackable": true
+  },
+  "220": {
+    "max_stack": 64,
+    "name": "Bed",
+    "placeable": "bed",
+    "sell_price": 10,
+    "stackable": true
+  },
+  "2200": {
+    "durability": 200,
+    "max_stack": 1,
+    "name": "Bronze Axe",
+    "sell_price": 80,
+    "slot_type": "tool",
+    "stackable": false,
+    "stats": {}
+  },
+  "2201": {
+    "durability": 200,
+    "max_stack": 1,
+    "name": "Bronze Pickaxe",
+    "sell_price": 80,
+    "slot_type": "tool",
+    "stackable": false,
+    "stats": {}
+  },
+  "2250": {
+    "durability": 260,
+    "max_stack": 1,
+    "name": "Steel Axe",
+    "sell_price": 95,
+    "slot_type": "tool",
+    "stackable": false,
+    "stats": {}
+  },
+  "2251": {
+    "durability": 260,
+    "max_stack": 1,
+    "name": "Steel Pickaxe",
+    "sell_price": 95,
+    "slot_type": "tool",
+    "stackable": false,
+    "stats": {}
+  },
+  "23": {
+    "max_stack": 64,
+    "name": "Tin Ore",
+    "sell_price": 8,
+    "stackable": true
+  },
+  "2300": {
+    "durability": 300,
+    "max_stack": 1,
+    "name": "Gold Axe",
+    "sell_price": 125,
+    "slot_type": "tool",
+    "stackable": false,
+    "stats": {}
+  },
+  "2301": {
+    "durability": 300,
+    "max_stack": 1,
+    "name": "Gold Pickaxe",
+    "sell_price": 125,
+    "slot_type": "tool",
+    "stackable": false,
+    "stats": {}
+  },
+  "2350": {
+    "durability": 350,
+    "max_stack": 1,
+    "name": "Crystal Axe",
+    "sell_price": 155,
+    "slot_type": "tool",
+    "stackable": false,
+    "stats": {}
+  },
+  "2351": {
+    "durability": 350,
+    "max_stack": 1,
+    "name": "Crystal Pickaxe",
+    "sell_price": 155,
+    "slot_type": "tool",
+    "stackable": false,
+    "stats": {}
+  },
+  "24": {
+    "max_stack": 64,
+    "name": "Silver Ore",
+    "sell_price": 12,
+    "stackable": true
+  },
+  "2400": {
+    "durability": 400,
+    "max_stack": 1,
+    "name": "Obsidian Axe",
+    "sell_price": 190,
+    "slot_type": "tool",
+    "stackable": false,
+    "stats": {}
+  },
+  "2401": {
+    "durability": 400,
+    "max_stack": 1,
+    "name": "Obsidian Pickaxe",
+    "sell_price": 190,
+    "slot_type": "tool",
+    "stackable": false,
+    "stats": {}
+  },
+  "25": {
+    "max_stack": 64,
+    "name": "Gold Ore",
+    "sell_price": 18,
+    "stackable": true
+  },
+  "250": {
+    "max_stack": 64,
+    "name": "Wood Wall",
+    "placeable": "wood_wall",
+    "sell_price": 2,
+    "stackable": true
+  },
+  "2500": {
+    "durability": 120,
+    "max_stack": 1,
+    "name": "Iron Hammer",
+    "sell_price": 50,
+    "slot_type": "weapon",
+    "stackable": false,
+    "stats": {
+      "attack_power": 28
+    }
+  },
+  "251": {
+    "max_stack": 64,
+    "name": "Stone Wall",
+    "placeable": "stone_wall",
+    "sell_price": 3,
+    "stackable": true
+  },
+  "252": {
+    "max_stack": 64,
+    "name": "Wooden Door",
+    "placeable": "door",
+    "sell_price": 6,
+    "stackable": true
+  },
+  "253": {
+    "max_stack": 64,
+    "name": "Stone Brick Wall",
+    "placeable": "stone_brick_wall",
+    "sell_price": 6,
+    "stackable": true
+  },
+  "254": {
+    "max_stack": 64,
+    "name": "Stone Brick Floor",
+    "placeable": "stone_brick_floor",
+    "sell_price": 4,
+    "stackable": true
+  },
+  "2550": {
+    "durability": 150,
+    "max_stack": 1,
+    "name": "Copper Hammer",
+    "sell_price": 68,
+    "slot_type": "weapon",
+    "stackable": false,
+    "stats": {
+      "attack_power": 38
+    }
+  },
+  "26": {
+    "max_stack": 64,
+    "name": "Crystal Shard",
+    "sell_price": 30,
+    "stackable": true
+  },
+  "260": {
+    "max_stack": 10,
+    "name": "Wood Handle",
+    "part_stats": {
+      "atk_bonus": 0,
+      "dur_bonus": 20,
+      "slot": "handle",
+      "speed_mult": 1.15,
+      "trait": "light"
+    },
+    "sell_price": 3,
+    "stackable": true
+  },
+  "2600": {
+    "durability": 200,
+    "max_stack": 1,
+    "name": "Bronze Hammer",
+    "sell_price": 88,
+    "slot_type": "weapon",
+    "stackable": false,
+    "stats": {
+      "attack_power": 48
+    }
+  },
+  "261": {
+    "max_stack": 10,
+    "name": "Bone Handle",
+    "part_stats": {
+      "atk_bonus": 2,
+      "dur_bonus": 25,
+      "slot": "handle",
+      "speed_mult": 1.1,
+      "trait": null
+    },
+    "sell_price": 5,
+    "stackable": true
+  },
+  "262": {
+    "max_stack": 10,
+    "name": "Paper Handle",
+    "part_stats": {
+      "atk_bonus": 0,
+      "dur_bonus": -5,
+      "gem_slots": 1,
+      "slot": "handle",
+      "speed_mult": 1.2,
+      "trait": "papery"
+    },
+    "sell_price": 2,
+    "stackable": true
+  },
+  "263": {
+    "max_stack": 10,
+    "name": "Copper Handle",
+    "part_stats": {
+      "atk_bonus": 3,
+      "dur_bonus": 45,
+      "slot": "handle",
+      "speed_mult": 1.05,
+      "trait": null
+    },
+    "sell_price": 8,
+    "stackable": true
+  },
+  "264": {
+    "max_stack": 10,
+    "name": "Iron Handle",
+    "part_stats": {
+      "atk_bonus": 5,
+      "dur_bonus": 55,
+      "slot": "handle",
+      "speed_mult": 0.9,
+      "trait": "sturdy"
+    },
+    "sell_price": 12,
+    "stackable": true
+  },
+  "265": {
+    "max_stack": 10,
+    "name": "Bronze Handle",
+    "part_stats": {
+      "atk_bonus": 6,
+      "dur_bonus": 65,
+      "slot": "handle",
+      "speed_mult": 0.95,
+      "trait": "dense"
+    },
+    "sell_price": 18,
+    "stackable": true
+  },
+  "2650": {
+    "durability": 260,
+    "max_stack": 1,
+    "name": "Steel Hammer",
+    "sell_price": 128,
+    "slot_type": "weapon",
+    "stackable": false,
+    "stats": {
+      "attack_power": 60
+    }
+  },
+  "266": {
+    "max_stack": 10,
+    "name": "Silver Handle",
+    "part_stats": {
+      "atk_bonus": 8,
+      "dur_bonus": 60,
+      "slot": "handle",
+      "speed_mult": 1.0,
+      "trait": "magical"
+    },
+    "sell_price": 22,
+    "stackable": true
+  },
+  "267": {
+    "max_stack": 10,
+    "name": "Gold Handle",
+    "part_stats": {
+      "atk_bonus": 5,
+      "dur_bonus": 35,
+      "slot": "handle",
+      "speed_mult": 1.12,
+      "trait": "shiny"
+    },
+    "sell_price": 25,
+    "stackable": true
+  },
+  "268": {
+    "max_stack": 10,
+    "name": "Steel Handle",
+    "part_stats": {
+      "atk_bonus": 8,
+      "dur_bonus": 80,
+      "slot": "handle",
+      "speed_mult": 0.85,
+      "trait": "sturdy"
+    },
+    "sell_price": 30,
+    "stackable": true
+  },
+  "269": {
+    "max_stack": 10,
+    "name": "Rough Crystal Core",
+    "part_stats": {
+      "atk_bonus": 10,
+      "dur_bonus": 60,
+      "slot": "core",
+      "speed_mult": 1.05,
+      "trait": "magical"
+    },
+    "sell_price": 15,
+    "stackable": true
+  },
+  "27": {
+    "max_stack": 64,
+    "name": "Obsidian Shard",
+    "sell_price": 40,
+    "stackable": true
+  },
+  "270": {
+    "max_stack": 10,
+    "name": "Refined Crystal Core",
+    "part_stats": {
+      "atk_bonus": 20,
+      "dur_bonus": 80,
+      "slot": "core",
+      "speed_mult": 1.1,
+      "trait": "magical"
+    },
+    "sell_price": 28,
+    "stackable": true
+  },
+  "2700": {
+    "durability": 300,
+    "max_stack": 1,
+    "name": "Gold Hammer",
+    "sell_price": 162,
+    "slot_type": "weapon",
+    "stackable": false,
+    "stats": {
+      "attack_power": 72
+    }
+  },
+  "271": {
+    "max_stack": 10,
+    "name": "Crystal Core",
+    "part_stats": {
+      "atk_bonus": 30,
+      "dur_bonus": 100,
+      "slot": "core",
+      "speed_mult": 1.15,
+      "trait": "magical"
+    },
+    "sell_price": 45,
+    "stackable": true
+  },
+  "272": {
+    "max_stack": 10,
+    "name": "Paper Binding",
+    "part_stats": {
+      "dur_bonus": 10,
+      "gem_slots": 1,
+      "slot": "binding",
+      "trait": "papery"
+    },
+    "sell_price": 2,
+    "stackable": true
+  },
+  "273": {
+    "max_stack": 10,
+    "name": "Reed Binding",
+    "part_stats": {
+      "dur_bonus": 20,
+      "slot": "binding",
+      "trait": "light"
+    },
+    "sell_price": 3,
+    "stackable": true
+  },
+  "274": {
+    "max_stack": 10,
+    "name": "Copper Binding",
+    "part_stats": {
+      "dur_bonus": 35,
+      "slot": "binding",
+      "trait": null
+    },
+    "sell_price": 6,
+    "stackable": true
+  },
+  "275": {
+    "max_stack": 10,
+    "name": "Iron Binding",
+    "part_stats": {
+      "dur_bonus": 50,
+      "slot": "binding",
+      "trait": null
+    },
+    "sell_price": 10,
+    "stackable": true
+  },
+  "2750": {
+    "durability": 350,
+    "max_stack": 1,
+    "name": "Crystal Hammer",
+    "sell_price": 200,
+    "slot_type": "weapon",
+    "stackable": false,
+    "stats": {
+      "attack_power": 88
+    }
+  },
+  "276": {
+    "max_stack": 10,
+    "name": "Bronze Binding",
+    "part_stats": {
+      "dur_bonus": 60,
+      "slot": "binding",
+      "trait": "dense"
+    },
+    "sell_price": 15,
+    "stackable": true
+  },
+  "277": {
+    "max_stack": 10,
+    "name": "Silver Binding",
+    "part_stats": {
+      "dur_bonus": 65,
+      "slot": "binding",
+      "trait": "magical"
+    },
+    "sell_price": 20,
+    "stackable": true
+  },
+  "278": {
+    "max_stack": 10,
+    "name": "Slime Blade",
+    "part_stats": {
+      "base_atk": 20,
+      "base_dur": 200,
+      "slot": "blade",
+      "trait": "slimy"
+    },
+    "sell_price": 20,
+    "stackable": true
+  },
+  "279": {
+    "max_stack": 10,
+    "name": "Slime Handle",
+    "part_stats": {
+      "atk_bonus": 2,
+      "dur_bonus": 70,
+      "slot": "handle",
+      "speed_mult": 1.2,
+      "trait": "slimy"
+    },
+    "sell_price": 18,
+    "stackable": true
+  },
+  "28": {
+    "max_stack": 64,
+    "name": "Slime Ball",
+    "sell_price": 2,
+    "stackable": true
+  },
+  "280": {
+    "max_stack": 10,
+    "name": "Slime Binding",
+    "part_stats": {
+      "dur_bonus": 80,
+      "slot": "binding",
+      "trait": "slimy"
+    },
+    "sell_price": 15,
+    "stackable": true
+  },
+  "281": {
+    "max_stack": 10,
+    "name": "Silver Axe Head",
+    "part_stats": {
+      "base_atk": 50,
+      "base_dur": 140,
+      "slot": "axe_head",
+      "trait": "magical"
+    },
+    "sell_price": 22,
+    "stackable": true
+  },
+  "282": {
+    "max_stack": 10,
+    "name": "Crystal Axe Head",
+    "part_stats": {
+      "base_atk": 80,
+      "base_dur": 280,
+      "slot": "axe_head",
+      "trait": "magical"
+    },
+    "sell_price": 40,
+    "stackable": true
+  },
+  "283": {
+    "max_stack": 10,
+    "name": "Bone Pick Head",
+    "part_stats": {
+      "base_dur": 70,
+      "base_mining": 1,
+      "mining_tier": "pickaxe",
+      "slot": "pick_head",
+      "trait": null
+    },
+    "sell_price": 5,
+    "stackable": true
+  },
+  "284": {
+    "max_stack": 10,
+    "name": "Silver Pick Head",
+    "part_stats": {
+      "base_dur": 140,
+      "base_mining": 7,
+      "mining_tier": "pickaxe_iron",
+      "slot": "pick_head",
+      "trait": "magical"
+    },
+    "sell_price": 22,
+    "stackable": true
+  },
+  "285": {
+    "max_stack": 10,
+    "name": "Stone Plate",
+    "part_stats": {
+      "base_def": 3,
+      "base_dur": 60,
+      "base_hp": 15,
+      "slot": "plate",
+      "trait": "stonebound"
+    },
+    "sell_price": 4,
+    "stackable": true
+  },
+  "286": {
+    "max_stack": 10,
+    "name": "Bone Plate",
+    "part_stats": {
+      "base_def": 5,
+      "base_dur": 70,
+      "base_hp": 20,
+      "slot": "plate",
+      "trait": null
+    },
+    "sell_price": 6,
+    "stackable": true
+  },
+  "287": {
+    "max_stack": 10,
+    "name": "Paper Plate",
+    "part_stats": {
+      "base_def": 1,
+      "base_dur": 20,
+      "base_hp": 5,
+      "gem_slots": 2,
+      "slot": "plate",
+      "trait": "papery"
+    },
+    "sell_price": 2,
+    "stackable": true
+  },
+  "288": {
+    "max_stack": 10,
+    "name": "Slime Plate",
+    "part_stats": {
+      "base_def": 7,
+      "base_dur": 200,
+      "base_hp": 30,
+      "slot": "plate",
+      "trait": "slimy"
+    },
+    "sell_price": 18,
+    "stackable": true
+  },
+  "289": {
+    "max_stack": 10,
+    "name": "Tin Handle",
+    "part_stats": {
+      "atk_bonus": 2,
+      "dur_bonus": 40,
+      "slot": "handle",
+      "speed_mult": 1.08,
+      "trait": null
+    },
+    "sell_price": 6,
+    "stackable": true
+  },
+  "290": {
+    "max_stack": 10,
+    "name": "Obsidian Handle",
+    "part_stats": {
+      "atk_bonus": 12,
+      "dur_bonus": 90,
+      "slot": "handle",
+      "speed_mult": 0.8,
+      "trait": "heavy"
+    },
+    "sell_price": 35,
+    "stackable": true
+  },
+  "291": {
+    "max_stack": 10,
+    "name": "Crystal Handle",
+    "part_stats": {
+      "atk_bonus": 12,
+      "dur_bonus": 80,
+      "slot": "handle",
+      "speed_mult": 1.05,
+      "trait": "magical"
+    },
+    "sell_price": 30,
+    "stackable": true
+  },
+  "292": {
+    "max_stack": 10,
+    "name": "Tin Binding",
+    "part_stats": {
+      "dur_bonus": 40,
+      "slot": "binding",
+      "trait": null
+    },
+    "sell_price": 7,
+    "stackable": true
+  },
+  "293": {
+    "max_stack": 10,
+    "name": "Gold Binding",
+    "part_stats": {
+      "dur_bonus": 55,
+      "slot": "binding",
+      "trait": "shiny"
+    },
+    "sell_price": 18,
+    "stackable": true
+  },
+  "294": {
+    "max_stack": 10,
+    "name": "Steel Binding",
+    "part_stats": {
+      "dur_bonus": 75,
+      "slot": "binding",
+      "trait": "sturdy"
+    },
+    "sell_price": 25,
+    "stackable": true
+  },
+  "295": {
+    "max_stack": 10,
+    "name": "Obsidian Binding",
+    "part_stats": {
+      "dur_bonus": 90,
+      "slot": "binding",
+      "trait": "heavy"
+    },
+    "sell_price": 35,
+    "stackable": true
+  },
+  "296": {
+    "durability": null,
+    "max_stack": 10,
+    "name": "Crystal Binding",
+    "part_stats": {
+      "dur_bonus": 70,
+      "gem_slots": 1,
+      "slot": "binding",
+      "trait": "magical"
+    },
+    "sell_price": 8,
+    "slot_type": null,
+    "stackable": true,
+    "stats": {}
+  },
+  "297": {
+    "max_stack": 10,
+    "name": "Paper Lining",
+    "part_stats": {
+      "dur_bonus": 5,
+      "gem_slots": 1,
+      "slot": "lining",
+      "speed_mult": 1.15,
+      "trait": "padded"
+    },
+    "sell_price": 2,
+    "stackable": true
+  },
+  "298": {
+    "max_stack": 10,
+    "name": "Reed Lining",
+    "part_stats": {
+      "dur_bonus": 15,
+      "slot": "lining",
+      "speed_mult": 1.1,
+      "trait": "padded"
+    },
+    "sell_price": 3,
+    "stackable": true
+  },
+  "299": {
+    "max_stack": 10,
+    "name": "Bone Lining",
+    "part_stats": {
+      "dur_bonus": 25,
+      "slot": "lining",
+      "speed_mult": 1.05,
+      "trait": null
+    },
+    "sell_price": 5,
+    "stackable": true
+  },
+  "30": {
+    "max_stack": 64,
+    "name": "Clay",
+    "sell_price": 2,
+    "stackable": true
+  },
+  "300": {
+    "max_stack": 10,
+    "name": "Copper Lining",
+    "part_stats": {
+      "dur_bonus": 35,
+      "slot": "lining",
+      "speed_mult": 1.0,
+      "trait": null
+    },
+    "sell_price": 7,
+    "stackable": true
+  },
+  "3000": {
+    "durability": 40,
+    "max_stack": 1,
+    "name": "Scrap Cap",
+    "sell_price": 4,
+    "slot_type": "head",
+    "stackable": false,
+    "stats": {
+      "defense": 1,
+      "health_max": 5
+    }
+  },
+  "3001": {
+    "durability": 90,
+    "max_stack": 1,
+    "name": "Stone Helm",
+    "sell_price": 20,
+    "slot_type": "head",
+    "stackable": false,
+    "stats": {
+      "defense": 3,
+      "health_max": 15
+    }
+  },
+  "3002": {
+    "durability": 120,
+    "max_stack": 1,
+    "name": "Iron Helm",
+    "sell_price": 55,
+    "slot_type": "head",
+    "stackable": false,
+    "stats": {
+      "defense": 5,
+      "health_max": 35
+    }
+  },
+  "3003": {
+    "durability": 150,
+    "max_stack": 1,
+    "name": "Copper Helm",
+    "sell_price": 65,
+    "slot_type": "head",
+    "stackable": false,
+    "stats": {
+      "defense": 6,
+      "health_max": 45
+    }
+  },
+  "3004": {
+    "durability": 200,
+    "max_stack": 1,
+    "name": "Bronze Helm",
+    "sell_price": 90,
+    "slot_type": "head",
+    "stackable": false,
+    "stats": {
+      "defense": 8,
+      "health_max": 58
+    }
+  },
+  "3005": {
+    "durability": 260,
+    "max_stack": 1,
+    "name": "Steel Helm",
+    "sell_price": 125,
+    "slot_type": "head",
+    "stackable": false,
+    "stats": {
+      "defense": 10,
+      "health_max": 70
+    }
+  },
+  "3006": {
+    "durability": 300,
+    "max_stack": 1,
+    "name": "Gold Crown",
+    "sell_price": 155,
+    "slot_type": "head",
+    "stackable": false,
+    "stats": {
+      "defense": 12,
+      "health_max": 80
+    }
+  },
+  "3007": {
+    "durability": 350,
+    "max_stack": 1,
+    "name": "Crystal Helm",
+    "sell_price": 195,
+    "slot_type": "head",
+    "stackable": false,
+    "stats": {
+      "defense": 15,
+      "health_max": 95
+    }
+  },
+  "3008": {
+    "durability": 400,
+    "max_stack": 1,
+    "name": "Obsidian Helm",
+    "sell_price": 240,
+    "slot_type": "head",
+    "stackable": false,
+    "stats": {
+      "defense": 18,
+      "health_max": 110
+    }
+  },
+  "301": {
+    "max_stack": 10,
+    "name": "Tin Lining",
+    "part_stats": {
+      "dur_bonus": 40,
+      "slot": "lining",
+      "speed_mult": 0.98,
+      "trait": null
+    },
+    "sell_price": 9,
+    "stackable": true
+  },
+  "302": {
+    "max_stack": 10,
+    "name": "Iron Lining",
+    "part_stats": {
+      "dur_bonus": 50,
+      "slot": "lining",
+      "speed_mult": 0.95,
+      "trait": "reinforced"
+    },
+    "sell_price": 12,
+    "stackable": true
+  },
+  "303": {
+    "max_stack": 10,
+    "name": "Bronze Lining",
+    "part_stats": {
+      "dur_bonus": 60,
+      "slot": "lining",
+      "speed_mult": 0.92,
+      "trait": "reinforced"
+    },
+    "sell_price": 17,
+    "stackable": true
+  },
+  "304": {
+    "max_stack": 10,
+    "name": "Silver Lining",
+    "part_stats": {
+      "dur_bonus": 65,
+      "slot": "lining",
+      "speed_mult": 0.95,
+      "trait": "magical"
+    },
+    "sell_price": 22,
+    "stackable": true
+  },
+  "305": {
+    "max_stack": 10,
+    "name": "Gold Lining",
+    "part_stats": {
+      "dur_bonus": 55,
+      "slot": "lining",
+      "speed_mult": 0.97,
+      "trait": "shiny"
+    },
+    "sell_price": 20,
+    "stackable": true
+  },
+  "306": {
+    "max_stack": 10,
+    "name": "Steel Lining",
+    "part_stats": {
+      "dur_bonus": 80,
+      "slot": "lining",
+      "speed_mult": 0.88,
+      "trait": "reinforced"
+    },
+    "sell_price": 32,
+    "stackable": true
+  },
+  "307": {
+    "max_stack": 10,
+    "name": "Obsidian Lining",
+    "part_stats": {
+      "dur_bonus": 95,
+      "slot": "lining",
+      "speed_mult": 0.82,
+      "trait": "heavy"
+    },
+    "sell_price": 40,
+    "stackable": true
+  },
+  "308": {
+    "max_stack": 10,
+    "name": "Crystal Lining",
+    "part_stats": {
+      "dur_bonus": 70,
+      "gem_slots": 1,
+      "slot": "lining",
+      "speed_mult": 1.0,
+      "trait": "magical"
+    },
+    "sell_price": 25,
+    "stackable": true
+  },
+  "309": {
+    "max_stack": 10,
+    "name": "Slime Lining",
+    "part_stats": {
+      "dur_bonus": 85,
+      "slot": "lining",
+      "speed_mult": 1.05,
+      "trait": "slimy"
+    },
+    "sell_price": 18,
+    "stackable": true
+  },
+  "31": {
+    "max_stack": 64,
+    "name": "Flint",
+    "sell_price": 2,
+    "stackable": true
+  },
+  "3100": {
+    "durability": 40,
+    "max_stack": 1,
+    "name": "Scrap Vest",
+    "sell_price": 5,
+    "slot_type": "chest",
+    "stackable": false,
+    "stats": {
+      "defense": 1,
+      "health_max": 8
+    }
+  },
+  "3101": {
+    "durability": 60,
+    "max_stack": 1,
+    "name": "Reed Tunic",
+    "sell_price": 15,
+    "slot_type": "chest",
+    "stackable": false,
+    "stats": {
+      "defense": 2,
+      "health_max": 20
+    }
+  },
+  "3102": {
+    "durability": 90,
+    "max_stack": 1,
+    "name": "Bone Vest",
+    "sell_price": 30,
+    "slot_type": "chest",
+    "stackable": false,
+    "stats": {
+      "defense": 3,
+      "health_max": 40
+    }
+  },
+  "3103": {
+    "durability": 120,
+    "max_stack": 1,
+    "name": "Iron Chestplate",
+    "sell_price": 80,
+    "slot_type": "chest",
+    "stackable": false,
+    "stats": {
+      "defense": 8,
+      "health_max": 65
+    }
+  },
+  "3104": {
+    "durability": 150,
+    "max_stack": 1,
+    "name": "Copper Vest",
+    "sell_price": 90,
+    "slot_type": "chest",
+    "stackable": false,
+    "stats": {
+      "defense": 10,
+      "health_max": 80
+    }
+  },
+  "3105": {
+    "durability": 200,
+    "max_stack": 1,
+    "name": "Bronze Vest",
+    "sell_price": 130,
+    "slot_type": "chest",
+    "stackable": false,
+    "stats": {
+      "defense": 14,
+      "health_max": 105
+    }
+  },
+  "3106": {
+    "durability": 260,
+    "max_stack": 1,
+    "name": "Steel Chestplate",
+    "sell_price": 195,
+    "slot_type": "chest",
+    "stackable": false,
+    "stats": {
+      "defense": 20,
+      "health_max": 140
+    }
+  },
+  "3107": {
+    "durability": 300,
+    "max_stack": 1,
+    "name": "Gold Chestplate",
+    "sell_price": 245,
+    "slot_type": "chest",
+    "stackable": false,
+    "stats": {
+      "defense": 24,
+      "health_max": 160
+    }
+  },
+  "3108": {
+    "durability": 350,
+    "max_stack": 1,
+    "name": "Crystal Chestplate",
+    "sell_price": 300,
+    "slot_type": "chest",
+    "stackable": false,
+    "stats": {
+      "defense": 30,
+      "health_max": 185
+    }
+  },
+  "3109": {
+    "durability": 400,
+    "max_stack": 1,
+    "name": "Obsidian Chestplate",
+    "sell_price": 365,
+    "slot_type": "chest",
+    "stackable": false,
+    "stats": {
+      "defense": 36,
+      "health_max": 210
+    }
+  },
+  "32": {
+    "max_stack": 64,
+    "name": "Paper",
+    "sell_price": 1,
+    "stackable": true
+  },
+  "3200": {
+    "durability": 90,
+    "max_stack": 1,
+    "name": "Bone Bracers",
+    "sell_price": 30,
+    "slot_type": "arms",
+    "stackable": false,
+    "stats": {
+      "attack_power": 5,
+      "defense": 2,
+      "health_max": 5
+    }
+  },
+  "3201": {
+    "durability": 120,
+    "max_stack": 1,
+    "name": "Iron Bracers",
+    "sell_price": 45,
+    "slot_type": "arms",
+    "stackable": false,
+    "stats": {
+      "attack_power": 8,
+      "defense": 3,
+      "health_max": 10
+    }
+  },
+  "3202": {
+    "durability": 150,
+    "max_stack": 1,
+    "name": "Copper Bracers",
+    "sell_price": 55,
+    "slot_type": "arms",
+    "stackable": false,
+    "stats": {
+      "attack_power": 10,
+      "defense": 4,
+      "health_max": 15
+    }
+  },
+  "3203": {
+    "durability": 200,
+    "max_stack": 1,
+    "name": "Bronze Bracers",
+    "sell_price": 80,
+    "slot_type": "arms",
+    "stackable": false,
+    "stats": {
+      "attack_power": 14,
+      "defense": 6,
+      "health_max": 22
+    }
+  },
+  "3204": {
+    "durability": 260,
+    "max_stack": 1,
+    "name": "Steel Bracers",
+    "sell_price": 105,
+    "slot_type": "arms",
+    "stackable": false,
+    "stats": {
+      "attack_power": 18,
+      "defense": 8,
+      "health_max": 35
+    }
+  },
+  "3205": {
+    "durability": 300,
+    "max_stack": 1,
+    "name": "Gold Bracers",
+    "sell_price": 135,
+    "slot_type": "arms",
+    "stackable": false,
+    "stats": {
+      "attack_power": 22,
+      "defense": 10,
+      "health_max": 42
+    }
+  },
+  "3206": {
+    "durability": 350,
+    "max_stack": 1,
+    "name": "Crystal Bracers",
+    "sell_price": 165,
+    "slot_type": "arms",
+    "stackable": false,
+    "stats": {
+      "attack_power": 28,
+      "defense": 12,
+      "health_max": 50
+    }
+  },
+  "3207": {
+    "durability": 400,
+    "max_stack": 1,
+    "name": "Obsidian Bracers",
+    "sell_price": 200,
+    "slot_type": "arms",
+    "stackable": false,
+    "stats": {
+      "attack_power": 34,
+      "defense": 14,
+      "health_max": 58
+    }
+  },
+  "33": {
+    "max_stack": 64,
+    "name": "Slime",
+    "sell_price": 4,
+    "stackable": true
+  },
+  "3300": {
+    "durability": 40,
+    "max_stack": 1,
+    "name": "Scrap Leggings",
+    "sell_price": 4,
+    "slot_type": "pants",
+    "stackable": false,
+    "stats": {
+      "defense": 1,
+      "health_max": 5
+    }
+  },
+  "3301": {
+    "durability": 60,
+    "max_stack": 1,
+    "name": "Reed Leggings",
+    "sell_price": 18,
+    "slot_type": "pants",
+    "stackable": false,
+    "stats": {
+      "defense": 2,
+      "health_max": 15
+    }
+  },
+  "3302": {
+    "durability": 90,
+    "max_stack": 1,
+    "name": "Bone Leggings",
+    "sell_price": 32,
+    "slot_type": "pants",
+    "stackable": false,
+    "stats": {
+      "defense": 3,
+      "health_max": 28
+    }
+  },
+  "3303": {
+    "durability": 150,
+    "max_stack": 1,
+    "name": "Copper Leggings",
+    "sell_price": 65,
+    "slot_type": "pants",
+    "stackable": false,
+    "stats": {
+      "defense": 6,
+      "health_max": 45
+    }
+  },
+  "3304": {
+    "durability": 200,
+    "max_stack": 1,
+    "name": "Bronze Leggings",
+    "sell_price": 90,
+    "slot_type": "pants",
+    "stackable": false,
+    "stats": {
+      "defense": 8,
+      "health_max": 58
+    }
+  },
+  "3305": {
+    "durability": 260,
+    "max_stack": 1,
+    "name": "Steel Leggings",
+    "sell_price": 165,
+    "slot_type": "pants",
+    "stackable": false,
+    "stats": {
+      "defense": 14,
+      "health_max": 95
+    }
+  },
+  "3306": {
+    "durability": 120,
+    "max_stack": 1,
+    "name": "Iron Leggings",
+    "sell_price": 50,
+    "slot_type": "pants",
+    "stackable": false,
+    "stats": {
+      "defense": 5,
+      "health_max": 38
+    }
+  },
+  "3307": {
+    "durability": 300,
+    "max_stack": 1,
+    "name": "Gold Leggings",
+    "sell_price": 205,
+    "slot_type": "pants",
+    "stackable": false,
+    "stats": {
+      "defense": 17,
+      "health_max": 112
+    }
+  },
+  "3308": {
+    "durability": 350,
+    "max_stack": 1,
+    "name": "Crystal Leggings",
+    "sell_price": 250,
+    "slot_type": "pants",
+    "stackable": false,
+    "stats": {
+      "defense": 21,
+      "health_max": 130
+    }
+  },
+  "3309": {
+    "durability": 400,
+    "max_stack": 1,
+    "name": "Obsidian Leggings",
+    "sell_price": 298,
+    "slot_type": "pants",
+    "stackable": false,
+    "stats": {
+      "defense": 25,
+      "health_max": 148
+    }
+  },
+  "34": {
+    "max_stack": 20,
+    "name": "Tree Sapling",
+    "sell_price": 2,
+    "stackable": true
+  },
+  "3400": {
+    "durability": 50,
+    "max_stack": 1,
+    "name": "Leaf Sandals",
+    "sell_price": 20,
+    "slot_type": "shoes",
+    "stackable": false,
+    "stats": {
+      "defense": 1,
+      "speed_bonus": 0.15
+    }
+  },
+  "3401": {
+    "durability": 120,
+    "max_stack": 1,
+    "name": "Iron Boots",
+    "sell_price": 45,
+    "slot_type": "shoes",
+    "stackable": false,
+    "stats": {
+      "defense": 3,
+      "health_max": 15,
+      "speed_bonus": 0.1
+    }
+  },
+  "3402": {
+    "durability": 200,
+    "max_stack": 1,
+    "name": "Bronze Boots",
+    "sell_price": 70,
+    "slot_type": "shoes",
+    "stackable": false,
+    "stats": {
+      "defense": 4,
+      "health_max": 18,
+      "speed_bonus": 0.05
+    }
+  },
+  "3403": {
+    "durability": 260,
+    "max_stack": 1,
+    "name": "Steel Boots",
+    "sell_price": 115,
+    "slot_type": "shoes",
+    "stackable": false,
+    "stats": {
+      "defense": 8,
+      "health_max": 38,
+      "speed_bonus": 0.08
+    }
+  },
+  "3404": {
+    "durability": 150,
+    "max_stack": 1,
+    "name": "Copper Boots",
+    "sell_price": 55,
+    "slot_type": "shoes",
+    "stackable": false,
+    "stats": {
+      "defense": 3,
+      "health_max": 16,
+      "speed_bonus": 0.08
+    }
+  },
+  "3405": {
+    "durability": 300,
+    "max_stack": 1,
+    "name": "Gold Boots",
+    "sell_price": 145,
+    "slot_type": "shoes",
+    "stackable": false,
+    "stats": {
+      "defense": 10,
+      "health_max": 44,
+      "speed_bonus": 0.06
+    }
+  },
+  "3406": {
+    "durability": 350,
+    "max_stack": 1,
+    "name": "Crystal Boots",
+    "sell_price": 180,
+    "slot_type": "shoes",
+    "stackable": false,
+    "stats": {
+      "defense": 13,
+      "health_max": 52,
+      "speed_bonus": 0.04
+    }
+  },
+  "3407": {
+    "durability": 400,
+    "max_stack": 1,
+    "name": "Obsidian Boots",
+    "sell_price": 220,
+    "slot_type": "shoes",
+    "stackable": false,
+    "stats": {
+      "defense": 16,
+      "health_max": 60,
+      "speed_bonus": 0.02
+    }
+  },
+  "35": {
+    "max_stack": 10,
+    "name": "Iron Seed",
+    "sell_price": 15,
+    "stackable": true
+  },
+  "3500": {
+    "durability": 50,
+    "max_stack": 1,
+    "name": "Leaf Cloak",
+    "sell_price": 25,
+    "slot_type": "back",
+    "stackable": false,
+    "stats": {
+      "defense": 1,
+      "speed_bonus": 0.3
+    }
+  },
+  "3501": {
+    "durability": 120,
+    "max_stack": 1,
+    "name": "Herb Pouch",
+    "sell_price": 35,
+    "slot_type": "back",
+    "stackable": false,
+    "stats": {
+      "hp_regen": 4.0
+    }
+  },
+  "3502": {
+    "durability": 100,
+    "max_stack": 1,
+    "name": "Iron Cape",
+    "sell_price": 40,
+    "slot_type": "back",
+    "stackable": false,
+    "stats": {
+      "defense": 2,
+      "speed_bonus": 0.1
+    }
+  },
+  "3503": {
+    "durability": 150,
+    "max_stack": 1,
+    "name": "Bronze Cloak",
+    "sell_price": 65,
+    "slot_type": "back",
+    "stackable": false,
+    "stats": {
+      "defense": 3,
+      "speed_bonus": 0.12
+    }
+  },
+  "3504": {
+    "durability": 250,
+    "max_stack": 1,
+    "name": "Steel Cape",
+    "sell_price": 105,
+    "slot_type": "back",
+    "stackable": false,
+    "stats": {
+      "defense": 5,
+      "speed_bonus": 0.1
+    }
+  },
+  "3505": {
+    "durability": 290,
+    "max_stack": 1,
+    "name": "Gold Cloak",
+    "sell_price": 135,
+    "slot_type": "back",
+    "stackable": false,
+    "stats": {
+      "defense": 6,
+      "speed_bonus": 0.08
+    }
+  },
+  "3506": {
+    "durability": 180,
+    "max_stack": 1,
+    "name": "Crimson Cloak",
+    "sell_price": 85,
+    "slot_type": "back",
+    "stackable": false,
+    "stats": {
+      "defense": 4,
+      "speed_bonus": 0.15
+    }
+  },
+  "3507": {
+    "durability": 250,
+    "max_stack": 1,
+    "name": "Shadow Cloak",
+    "sell_price": 125,
+    "slot_type": "back",
+    "stackable": false,
+    "stats": {
+      "defense": 8,
+      "speed_bonus": 0.05
+    }
+  },
+  "3508": {
+    "durability": 340,
+    "max_stack": 1,
+    "name": "Crystal Cloak",
+    "sell_price": 175,
+    "slot_type": "back",
+    "stackable": false,
+    "stats": {
+      "defense": 10,
+      "speed_bonus": 0.05
+    }
+  },
+  "3510": {
+    "description": "A bejeweled crown worn by the Slime King. Increases movement speed by 15%.",
+    "durability": 200,
+    "max_stack": 1,
+    "name": "Slime Crown",
+    "sell_price": 250,
+    "slot_type": "back",
+    "stackable": false,
+    "stats": {
+      "defense": 2,
+      "speed_bonus": 0.15
+    }
+  },
+  "3520": {
+    "durability": 500,
+    "max_stack": 1,
+    "name": "Bat Wings",
+    "sell_price": 500,
+    "slot_type": "back",
+    "stackable": false,
+    "stats": {
+      "speed_bonus": 0.1
+    }
+  },
+  "3521": {
+    "durability": 500,
+    "max_stack": 1,
+    "name": "Angel Wings",
+    "sell_price": 500,
+    "slot_type": "back",
+    "stackable": false,
+    "stats": {
+      "defense": 5,
+      "speed_bonus": 0.1
+    }
+  },
+  "3522": {
+    "durability": 500,
+    "max_stack": 1,
+    "name": "Dark Angel Wings",
+    "sell_price": 500,
+    "slot_type": "back",
+    "stackable": false,
+    "stats": {
+      "defense": 5,
+      "speed_bonus": 0.1
+    }
+  },
+  "3523": {
+    "durability": 500,
+    "max_stack": 1,
+    "name": "Sky Wings",
+    "sell_price": 500,
+    "slot_type": "back",
+    "stackable": false,
+    "stats": {
+      "speed_bonus": 0.12
+    }
+  },
+  "3524": {
+    "durability": 500,
+    "max_stack": 1,
+    "name": "Monarch Wings",
+    "sell_price": 500,
+    "slot_type": "back",
+    "stackable": false,
+    "stats": {
+      "speed_bonus": 0.1
+    }
+  },
+  "3525": {
+    "durability": 500,
+    "max_stack": 1,
+    "name": "Dragonfly Wings",
+    "sell_price": 500,
+    "slot_type": "back",
+    "stackable": false,
+    "stats": {
+      "speed_bonus": 0.15
+    }
+  },
+  "3526": {
+    "durability": 500,
+    "max_stack": 1,
+    "name": "Pixie Wings",
+    "sell_price": 500,
+    "slot_type": "back",
+    "stackable": false,
+    "stats": {
+      "speed_bonus": 0.1
+    }
+  },
+  "3550": {
+    "durability": 80,
+    "max_stack": 1,
+    "name": "Wooden Shield",
+    "sell_price": 25,
+    "slot_type": "shield",
+    "stackable": false,
+    "stats": {
+      "defense": 5,
+      "health_max": 20
+    }
+  },
+  "3551": {
+    "durability": 100,
+    "max_stack": 1,
+    "name": "Bone Shield",
+    "sell_price": 35,
+    "slot_type": "shield",
+    "stackable": false,
+    "stats": {
+      "defense": 7,
+      "health_max": 25
+    }
+  },
+  "3552": {
+    "durability": 140,
+    "max_stack": 1,
+    "name": "Iron Shield",
+    "sell_price": 55,
+    "slot_type": "shield",
+    "stackable": false,
+    "stats": {
+      "defense": 10,
+      "health_max": 35
+    }
+  },
+  "3553": {
+    "durability": 170,
+    "max_stack": 1,
+    "name": "Copper Shield",
+    "sell_price": 70,
+    "slot_type": "shield",
+    "stackable": false,
+    "stats": {
+      "defense": 13,
+      "health_max": 45
+    }
+  },
+  "3554": {
+    "durability": 220,
+    "max_stack": 1,
+    "name": "Bronze Shield",
+    "sell_price": 95,
+    "slot_type": "shield",
+    "stackable": false,
+    "stats": {
+      "defense": 16,
+      "health_max": 55
+    }
+  },
+  "3555": {
+    "durability": 280,
+    "max_stack": 1,
+    "name": "Steel Shield",
+    "sell_price": 125,
+    "slot_type": "shield",
+    "stackable": false,
+    "stats": {
+      "defense": 20,
+      "health_max": 70
+    }
+  },
+  "3556": {
+    "durability": 320,
+    "max_stack": 1,
+    "name": "Gold Shield",
+    "sell_price": 160,
+    "slot_type": "shield",
+    "stackable": false,
+    "stats": {
+      "defense": 25,
+      "health_max": 85
+    }
+  },
+  "3557": {
+    "durability": 380,
+    "max_stack": 1,
+    "name": "Crystal Shield",
+    "sell_price": 195,
+    "slot_type": "shield",
+    "stackable": false,
+    "stats": {
+      "defense": 30,
+      "health_max": 100
+    }
+  },
+  "3558": {
+    "durability": 440,
+    "max_stack": 1,
+    "name": "Obsidian Shield",
+    "sell_price": 240,
+    "slot_type": "shield",
+    "stackable": false,
+    "stats": {
+      "defense": 36,
+      "health_max": 120
+    }
+  },
+  "3560": {
+    "durability": 80,
+    "max_stack": 1,
+    "name": "Bone Pauldrons",
+    "sell_price": 20,
+    "slot_type": "shoulders",
+    "stackable": false,
+    "stats": {
+      "defense": 2,
+      "health_max": 8
+    }
+  },
+  "3561": {
+    "durability": 110,
+    "max_stack": 1,
+    "name": "Iron Pauldrons",
+    "sell_price": 35,
+    "slot_type": "shoulders",
+    "stackable": false,
+    "stats": {
+      "defense": 4,
+      "health_max": 12
+    }
+  },
+  "3562": {
+    "durability": 140,
+    "max_stack": 1,
+    "name": "Copper Pauldrons",
+    "sell_price": 50,
+    "slot_type": "shoulders",
+    "stackable": false,
+    "stats": {
+      "defense": 5,
+      "health_max": 15
+    }
+  },
+  "3563": {
+    "durability": 180,
+    "max_stack": 1,
+    "name": "Bronze Pauldrons",
+    "sell_price": 75,
+    "slot_type": "shoulders",
+    "stackable": false,
+    "stats": {
+      "defense": 7,
+      "health_max": 22
+    }
+  },
+  "3564": {
+    "durability": 240,
+    "max_stack": 1,
+    "name": "Steel Pauldrons",
+    "sell_price": 100,
+    "slot_type": "shoulders",
+    "stackable": false,
+    "stats": {
+      "defense": 9,
+      "health_max": 30
+    }
+  },
+  "3565": {
+    "durability": 280,
+    "max_stack": 1,
+    "name": "Gold Pauldrons",
+    "sell_price": 130,
+    "slot_type": "shoulders",
+    "stackable": false,
+    "stats": {
+      "defense": 11,
+      "health_max": 38
+    }
+  },
+  "3566": {
+    "durability": 330,
+    "max_stack": 1,
+    "name": "Crystal Pauldrons",
+    "sell_price": 160,
+    "slot_type": "shoulders",
+    "stackable": false,
+    "stats": {
+      "defense": 14,
+      "health_max": 48
+    }
+  },
+  "3567": {
+    "durability": 380,
+    "max_stack": 1,
+    "name": "Obsidian Pauldrons",
+    "sell_price": 195,
+    "slot_type": "shoulders",
+    "stackable": false,
+    "stats": {
+      "defense": 17,
+      "health_max": 58
+    }
+  },
+  "3570": {
+    "durability": 50,
+    "max_stack": 1,
+    "name": "Cloth Gloves",
+    "sell_price": 12,
+    "slot_type": "hands",
+    "stackable": false,
+    "stats": {
+      "attack_power": 3,
+      "speed_bonus": 0.3
+    }
+  },
+  "3571": {
+    "durability": 70,
+    "max_stack": 1,
+    "name": "Bone Gloves",
+    "sell_price": 22,
+    "slot_type": "hands",
+    "stackable": false,
+    "stats": {
+      "attack_power": 5,
+      "defense": 1
+    }
+  },
+  "3572": {
+    "durability": 100,
+    "max_stack": 1,
+    "name": "Iron Gloves",
+    "sell_price": 38,
+    "slot_type": "hands",
+    "stackable": false,
+    "stats": {
+      "attack_power": 7,
+      "defense": 2,
+      "speed_bonus": 0.3
+    }
+  },
+  "3573": {
+    "durability": 120,
+    "max_stack": 1,
+    "name": "Copper Gloves",
+    "sell_price": 48,
+    "slot_type": "hands",
+    "stackable": false,
+    "stats": {
+      "attack_power": 9,
+      "defense": 2,
+      "speed_bonus": 0.4
+    }
+  },
+  "3574": {
+    "durability": 160,
+    "max_stack": 1,
+    "name": "Bronze Gloves",
+    "sell_price": 65,
+    "slot_type": "hands",
+    "stackable": false,
+    "stats": {
+      "attack_power": 12,
+      "defense": 3,
+      "speed_bonus": 0.5
+    }
+  },
+  "3575": {
+    "durability": 210,
+    "max_stack": 1,
+    "name": "Steel Gloves",
+    "sell_price": 90,
+    "slot_type": "hands",
+    "stackable": false,
+    "stats": {
+      "attack_power": 15,
+      "defense": 5,
+      "speed_bonus": 0.6
+    }
+  },
+  "3576": {
+    "durability": 250,
+    "max_stack": 1,
+    "name": "Gold Gloves",
+    "sell_price": 120,
+    "slot_type": "hands",
+    "stackable": false,
+    "stats": {
+      "attack_power": 19,
+      "defense": 7,
+      "speed_bonus": 0.7
+    }
+  },
+  "3577": {
+    "durability": 300,
+    "max_stack": 1,
+    "name": "Crystal Gloves",
+    "sell_price": 150,
+    "slot_type": "hands",
+    "stackable": false,
+    "stats": {
+      "attack_power": 24,
+      "defense": 9,
+      "speed_bonus": 0.8
+    }
+  },
+  "3578": {
+    "durability": 350,
+    "max_stack": 1,
+    "name": "Obsidian Gloves",
+    "sell_price": 185,
+    "slot_type": "hands",
+    "stackable": false,
+    "stats": {
+      "attack_power": 30,
+      "defense": 12,
+      "speed_bonus": 1.0
+    }
+  },
+  "36": {
+    "max_stack": 10,
+    "name": "Coal Seed",
+    "sell_price": 10,
+    "stackable": true
+  },
+  "3600": {
+    "durability": 100,
+    "max_stack": 1,
+    "name": "Crystal Ring",
+    "sell_price": 45,
+    "slot_type": "ring",
+    "stackable": false,
+    "stats": {
+      "stamina_max": 25
+    }
+  },
+  "3601": {
+    "durability": 100,
+    "max_stack": 1,
+    "name": "Mushroom Ring",
+    "sell_price": 38,
+    "slot_type": "ring",
+    "stackable": false,
+    "stats": {
+      "hp_regen": 3.0
+    }
+  },
+  "3650": {
+    "durability": 100,
+    "max_stack": 1,
+    "name": "Shell Necklace",
+    "sell_price": 40,
+    "slot_type": "necklace",
+    "stackable": false,
+    "stats": {
+      "hp_regen": 2.0
+    }
+  },
+  "3651": {
+    "durability": 100,
+    "max_stack": 1,
+    "name": "Snow Pendant",
+    "sell_price": 50,
+    "slot_type": "necklace",
+    "stackable": false,
+    "stats": {
+      "stamina_max": 35
+    }
+  },
+  "3652": {
+    "durability": 100,
+    "max_stack": 1,
+    "name": "Gold Chain",
+    "sell_price": 60,
+    "slot_type": "necklace",
+    "stackable": false,
+    "stats": {
+      "hp_regen": 3.0
+    }
+  },
+  "3653": {
+    "durability": 100,
+    "max_stack": 1,
+    "name": "Iron Cross",
+    "sell_price": 45,
+    "slot_type": "necklace",
+    "stackable": false,
+    "stats": {
+      "defense": 2,
+      "health_max": 20
+    }
+  },
+  "3654": {
+    "durability": 100,
+    "max_stack": 1,
+    "name": "Sun Amulet",
+    "sell_price": 80,
+    "slot_type": "necklace",
+    "stackable": false,
+    "stats": {
+      "hp_regen": 4.5
+    }
+  },
+  "3655": {
+    "durability": 100,
+    "max_stack": 1,
+    "name": "Holy Pendant",
+    "sell_price": 105,
+    "slot_type": "necklace",
+    "stackable": false,
+    "stats": {
+      "hp_regen": 5.0,
+      "stamina_max": 40
+    }
+  },
+  "3656": {
+    "durability": 100,
+    "max_stack": 1,
+    "name": "Silver Chain",
+    "sell_price": 55,
+    "slot_type": "necklace",
+    "stackable": false,
+    "stats": {
+      "stamina_max": 30
+    }
+  },
+  "3657": {
+    "durability": 100,
+    "max_stack": 1,
+    "name": "Shadow Star",
+    "sell_price": 90,
+    "slot_type": "necklace",
+    "stackable": false,
+    "stats": {
+      "attack_power": 8,
+      "defense": 3
+    }
+  },
+  "37": {
+    "max_stack": 10,
+    "name": "Copper Seed",
+    "sell_price": 25,
+    "stackable": true
+  },
+  "38": {
+    "max_stack": 10,
+    "name": "Tin Seed",
+    "sell_price": 20,
+    "stackable": true
+  },
+  "39": {
+    "max_stack": 10,
+    "name": "Silver Seed",
+    "sell_price": 40,
+    "stackable": true
+  },
+  "40": {
+    "max_stack": 10,
+    "name": "Gold Seed",
+    "sell_price": 60,
+    "stackable": true
+  },
+  "4000": {
+    "consumable": true,
+    "description": "Restores 25 HP when consumed.",
+    "heal": 25,
+    "max_stack": 64,
+    "name": "Herb Tea",
+    "sell_price": 12,
+    "stackable": true
+  },
+  "4001": {
+    "consumable": true,
+    "description": "Restores 40 HP when consumed.",
+    "heal": 40,
+    "max_stack": 64,
+    "name": "Mushroom Stew",
+    "sell_price": 20,
+    "stackable": true
+  },
+  "4002": {
+    "consumable": true,
+    "description": "Restores 60 HP when consumed.",
+    "heal": 60,
+    "max_stack": 64,
+    "name": "Healing Potion",
+    "sell_price": 35,
+    "stackable": true
+  },
+  "4003": {
+    "consumable": true,
+    "description": "Restores 60 stamina when consumed.",
+    "max_stack": 32,
+    "name": "Stamina Brew",
+    "sell_price": 28,
+    "stackable": true,
+    "stamina_restore": 60
+  },
+  "41": {
+    "max_stack": 5,
+    "name": "Crystal Seed",
+    "sell_price": 80,
+    "stackable": true
+  },
+  "42": {
+    "max_stack": 5,
+    "name": "Obsidian Seed",
+    "sell_price": 100,
+    "stackable": true
+  },
+  "43": {
+    "max_stack": 64,
+    "name": "Pine Wood",
+    "sell_price": 4,
+    "stackable": true
+  },
+  "44": {
+    "max_stack": 64,
+    "name": "Jungle Wood",
+    "sell_price": 5,
+    "stackable": true
+  },
+  "45": {
+    "max_stack": 64,
+    "name": "Palm Wood",
+    "sell_price": 4,
+    "stackable": true
+  },
+  "46": {
+    "max_stack": 20,
+    "name": "Pine Sapling",
+    "sell_price": 2,
+    "stackable": true
+  },
+  "47": {
+    "max_stack": 20,
+    "name": "Jungle Sapling",
+    "sell_price": 3,
+    "stackable": true
+  },
+  "48": {
+    "max_stack": 20,
+    "name": "Palm Sapling",
+    "sell_price": 2,
+    "stackable": true
+  },
+  "50": {
+    "gem_trait": "Fire",
+    "max_stack": 10,
+    "name": "Fire Ruby",
+    "sell_price": 200,
+    "stackable": true
+  },
+  "51": {
+    "gem_trait": "Ice",
+    "max_stack": 10,
+    "name": "Ice Sapphire",
+    "sell_price": 200,
+    "stackable": true
+  },
+  "52": {
+    "gem_trait": "Storm",
+    "max_stack": 10,
+    "name": "Storm Topaz",
+    "sell_price": 200,
+    "stackable": true
+  },
+  "53": {
+    "gem_trait": "Poison",
+    "max_stack": 10,
+    "name": "Poison Emerald",
+    "sell_price": 200,
+    "stackable": true
+  },
+  "54": {
+    "gem_trait": "Shadow",
+    "max_stack": 10,
+    "name": "Shadow Onyx",
+    "sell_price": 200,
+    "stackable": true
+  },
+  "55": {
+    "gem_trait": "Light",
+    "max_stack": 10,
+    "name": "Light Pearl",
+    "sell_price": 200,
+    "stackable": true
+  },
+  "56": {
+    "gem_trait": "Earth",
+    "max_stack": 10,
+    "name": "Earth Garnet",
+    "sell_price": 200,
+    "stackable": true
+  },
+  "57": {
+    "max_stack": 64,
+    "name": "Spider Silk",
+    "sell_price": 8,
+    "stackable": true
+  },
+  "58": {
+    "max_stack": 16,
+    "name": "Scorpion Venom",
+    "sell_price": 15,
+    "stackable": true
+  },
+  "59": {
+    "description": "Uncooked meat from an animal. Cook it over a campfire first.",
+    "max_stack": 32,
+    "name": "Raw Meat",
+    "sell_price": 3,
+    "stackable": true
+  },
+  "60": {
+    "consumable": true,
+    "description": "Cooked meat. Restores 30 HP when eaten.",
+    "heal": 30,
+    "max_stack": 32,
+    "name": "Cooked Meat",
+    "sell_price": 8,
+    "stackable": true
+  },
+  "61": {
+    "description": "Thick fur from a Snow Yeti. Used in crafting cold-weather gear.",
+    "max_stack": 32,
+    "name": "Yeti Fur",
+    "sell_price": 20,
+    "stackable": true
+  }
+}

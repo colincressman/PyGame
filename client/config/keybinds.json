@@ -1,0 +1,13 @@
+{
+  "move_up": 119,
+  "move_down": 115,
+  "move_left": 97,
+  "move_right": 100,
+  "sprint": 1073742049,
+  "crouch": 1073742048,
+  "roll": 32,
+  "inventory": 101,
+  "interact": 102,
+  "map": 109,
+  "stats": 112
+}
