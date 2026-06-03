@@ -12,7 +12,7 @@ venv/
 # Runtime data / temp files
 client_log.txt
 world_chunks/
-world_chunks_v*/
+world_chunks_v3/
 server/player_saves/
 client/config/visited_chunks.json
 *.tmp
