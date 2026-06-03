@@ -40,8 +40,8 @@ _SMASH_CELL = 128   # smash tool sheets use 128×128 px cells (6 frames × 4 dir
 
 # Permanent base layers — computed dynamically from player_appearance at draw time.
 # These constants are kept as fallbacks.
-_BODY_FOLDER = "body/bodies/male"
-_HEAD_FOLDER = "head/heads/human/male"
+_BODY_FOLDER = "humanoid/body/bodies/male"
+_HEAD_FOLDER = "humanoid/head/heads/human/male"
 
 # Wing colour options that map to LPC colour variant filenames
 _WING_COLOURS = (
@@ -111,7 +111,7 @@ def _get_smash_frames(colour: str, layer: str = "foreground") -> list | None:
     cached = _frame_cache.get(key)
     if cached is not None:
         return cached or None
-    path = os.path.join(LPC_DIR, "tools", "smash", layer, colour + ".png")
+    path = os.path.join(LPC_DIR, "equipment", "tools", "smash", layer, colour + ".png")
     if not os.path.exists(path):
         _frame_cache[key] = False
         return None
@@ -289,10 +289,10 @@ def draw_player(screen: pygame.Surface, window_width: int, window_height: int) -
     # Appearance-based folders (dynamic)
     _app        = config.player_appearance
     _sex        = _app.get("body", "male")
-    _body_fld   = f"body/bodies/{_sex}"
-    _head_fld   = f"head/heads/human/{_sex}"
+    _body_fld   = f"humanoid/body/bodies/{_sex}"
+    _head_fld   = f"humanoid/head/heads/human/{_sex}"
     _hair_style = _app.get("hair_style", "plain")
-    _hair_fld   = f"hair/{_hair_style}/adult"
+    _hair_fld   = f"humanoid/hair/{_hair_style}/adult"
     _wing_type  = _app.get("back_ext")            # None or e.g. "feathered"
     _wing_col   = _app.get("back_ext_color", "white")
     _wing_bg_fld: str | None = None
@@ -303,8 +303,8 @@ def draw_player(screen: pygame.Surface, window_width: int, window_height: int) -
         _wing_bg_fld, _wing_fg_fld, _wing_col = _wing_item
         _wing_type = None  # suppress appearance-based wing path
     elif _wing_type is not None:
-        _wing_bg_fld = f"body/wings/{_wing_type}/adult/bg"
-        _wing_fg_fld = f"body/wings/{_wing_type}/adult/fg"
+        _wing_bg_fld = f"humanoid/body/wings/{_wing_type}/adult/bg"
+        _wing_fg_fld = f"humanoid/body/wings/{_wing_type}/adult/fg"
     _skin_tint  = _app.get("skin_tint")           # None or (r,g,b,a) tuple
 
     # Effect tint (overrides per-item tints while active)
@@ -319,7 +319,7 @@ def draw_player(screen: pygame.Surface, window_width: int, window_height: int) -
     _is_smash = (
         anim == "slash"
         and weapon_spec is not None
-        and weapon_spec.folder == "tools/smash/universal/male"
+        and weapon_spec.folder == "equipment/tools/smash/universal/male"
         and weapon_spec.colour is not None
     )
     _smash_tint = (effect_tint if effect_tint is not None else
@@ -516,9 +516,9 @@ def draw_remote_player(
     # Resolve appearance
     _app       = appearance or {}
     _sex       = _app.get("body", "male")
-    _body_fld  = f"body/bodies/{_sex}"
-    _head_fld  = f"head/heads/human/{_sex}"
-    _hair_fld  = f"hair/{_app.get('hair_style', 'plain')}/adult"
+    _body_fld  = f"humanoid/body/bodies/{_sex}"
+    _head_fld  = f"humanoid/head/heads/human/{_sex}"
+    _hair_fld  = f"humanoid/hair/{_app.get('hair_style', 'plain')}/adult"
     _wing_type = _app.get("back_ext")
     _wing_col  = _app.get("back_ext_color", "white")
     _wing_bg_fld_r: str | None = None
@@ -530,8 +530,8 @@ def draw_remote_player(
             _wing_bg_fld_r, _wing_fg_fld_r, _wing_col = _wing_item_r
             _wing_type = None
     if _wing_type is not None:
-        _wing_bg_fld_r = f"body/wings/{_wing_type}/adult/bg"
-        _wing_fg_fld_r = f"body/wings/{_wing_type}/adult/fg"
+        _wing_bg_fld_r = f"humanoid/body/wings/{_wing_type}/adult/bg"
+        _wing_fg_fld_r = f"humanoid/body/wings/{_wing_type}/adult/fg"
     _skin_tint = _app.get("skin_tint")
 
     # Cape layer (rendered BEFORE body so it drapes behind the character)

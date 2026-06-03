@@ -1,0 +1,29 @@
+{
+  "poison": {
+    "timer_key": "poison_timer",
+    "potency_key": "poison_dps",
+    "default_duration": 5.0,
+    "default_dps": 2.0,
+    "deals_damage": true,
+    "overlay_color": [30, 185, 50],
+    "overlay_alpha_min": 25,
+    "overlay_alpha_max": 50,
+    "pulse_hz": 4.0
+  },
+  "burn": {
+    "timer_key": "burn_timer",
+    "potency_key": "burn_dps",
+    "default_duration": 3.0,
+    "default_dps": 5.0,
+    "deals_damage": true,
+    "hit_flash": 0.08,
+    "death_credit": "_burn"
+  },
+  "slow": {
+    "timer_key": "slow_timer",
+    "default_duration": 1.5,
+    "deals_damage": false,
+    "player_move_mult": 0.5,
+    "mob_move_mult": 0.4
+  }
+}

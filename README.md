@@ -1,98 +1,88 @@
-# 🧙 PyGame Multiplayer RPG
+# PyGame Multiplayer RPG
 
-A modular, tile-based multiplayer RPG built with Python, Pygame, and socket networking. This project includes both a real-time game client and a threaded, chunk-based server.
+A Python/Pygame multiplayer action RPG with a custom server/client stack, chunked world generation, crafting, durability, NPC shops, equipment rolling, dungeons, and a growing set of data-driven registries.
 
----
+## Current State
 
-## 📦 Project Structure
+This project is no longer a small prototype. The active game already includes:
 
-```
+- real-time multiplayer with TCP + UDP
+- procedural world generation with chunk persistence
+- combat, block/parry, dodge roll, stamina, durability, and status effects
+- equipment, crafting, repair, gem embedding, and part combining
+- NPC towns, shops, beds, weather, minimap, chat, and character appearance
+- data-driven registries for mobs, tools, gems, progression, projectiles, status effects, repair costs, shops, and molds
+
+## Project Layout
+
+```text
 PyGame_M/
-├── client/                 # Modular game client logic
-├── server/                 # Threaded game server (TCP/UDP)
-├── world_chunks/           # Auto-generated chunk save data
-├── tiles/                  # Tile images used for rendering the map
-├── requirements.txt        # Python dependencies
-├── LICENSE                 # MIT License
-├── README.md               # You're reading it
+├── client/                  # Pygame client, rendering, input, networking, local state
+├── server/                  # Game server, world systems, combat, persistence
+├── data/                    # Shared JSON registries and game data
+├── tests/                   # Focused regression tests
+├── todo_06022026.md         # Main active roadmap / audit todo list
+├── codex_working_notes_06032026.md
+└── README.md
 ```
 
----
+High-signal areas:
 
-## 🚀 Features
+- `client/client.py`: launcher, session lifecycle, main render/update loop
+- `client/config.py`: client constants plus mutable session state
+- `client/input/controls.py`: large mixed UI/input handler
+- `server/game_state/game_sync.py`: authoritative state packet assembly
+- `server/mobs/mob_manager.py`: mob lifecycle and AI
+- `server/world/dyn_chunk_gen.py`: chunk generation, load/save, cliff assignment
+- `server/world/resource_nodes.py`: node generation, depletion, respawn, planting
 
-- 🌍 **Real-time multiplayer** (TCP for world updates, UDP for movement)
-- 🧱 **Chunked world loading** with async rendering
-- 🎮 **Tkinter-based game menu**
-- 🗺️ **Tile-based map** with biomes, elevation, and minimap
-- 💡 **Modular codebase**: Networking, rendering, controls, and state separated
-- 💬 **Logging and debugging support**
+## Running
 
----
-
-## 🛠️ Getting Started
-
-### 1. Clone the Repo
-
-```bash
-git clone https://github.com/colincressman/PyGame.git
-cd PyGame
-```
-
-### 2. Set Up a Virtual Environment (optional but recommended)
-
-```bash
-python -m venv .venv
-source .venv/Scripts/activate   # On Windows
-```
-
-### 3. Install Dependencies
-
-```bash
-pip install -r requirements.txt
-```
-
-### 4. Run the Server
+### Server
 
 ```bash
 cd server
 python -m server.server
 ```
 
-### 5. Run the Client
+### Client
 
 ```bash
 cd ..
 python client/client.py
 ```
 
-> Make sure the server is running first!
+The in-game launcher handles player name, host, FPS cap, and resolution.
 
----
+## Data-Driven Systems
 
-## 📸 Screenshots
+Recent modularization work moved several formerly hardcoded systems into JSON:
 
-> *(Add some gameplay screenshots here for more appeal)*
+- `data/mobs/`
+- `data/tools.json`
+- `data/gems.json`
+- `data/progression.json`
+- `data/projectiles.json`
+- `data/status_effects.json`
+- `data/repair.json`
+- `data/molds.json`
+- `data/shops/`
 
----
+The next big extraction targets are resource nodes, placeables/farming, and shared biome/cliff constants.
 
-## 📜 License
+## Known Architectural Pressure Points
 
-This project is licensed under the MIT License — see the [LICENSE](LICENSE) file for details.
+The most important current cleanup opportunities are:
 
----
+- `client/input/controls.py` is still too large and cross-cutting
+- `client/config.py` still mixes constants with mutable session state
+- some client-side world interactions still scan `world_nodes` / `placed_objects` linearly
+- `server/world/visible.py` and `server/game_state/game_sync.py` still have avoidable repeated payload-building work
 
-## 🧠 Future Ideas
+See [todo_06022026.md](C:/Users/colin/OneDrive/Desktop/Projects/PyGame_Working/PyGame_M/todo_06022026.md:1) for the active roadmap and [codex_working_notes_06032026.md](C:/Users/colin/OneDrive/Desktop/Projects/PyGame_Working/PyGame_M/codex_working_notes_06032026.md:1) for the rolling architecture reference.
 
-- Character classes / leveling
-- Inventory and items
-- Chat system
-- Dynamic world generation
-- Combat and health tracking
+## Notes
 
----
-
-## 👤 Author
-
-Colin Cressman  
-[GitHub](https://github.com/colincressman)
+- World/chunk persistence currently uses the active chunk directory from server config.
+- Some tests are dependency-sensitive because the runtime must have `pygame` available.
+- Old planning docs exist, but `todo_06022026.md` should be treated as the main source of truth.

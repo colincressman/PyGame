@@ -4,6 +4,7 @@ import time
 import pygame
 
 import config
+from status_effect_data import STATUS_EFFECTS
 from config import PLAYER_SPEED, SPRINT_SPEED, STEALTH_SPEED, WORLD_MAX_TILES
 
 # Stamina drain / regen rates per second
@@ -19,6 +20,7 @@ _ROLL_SPEED       = PLAYER_SPEED * 3   # 18 tiles/sec
 _ROLL_COST        = 20.0    # stamina spent instantly on roll start
 _ROLL_COOLDOWN    = 1.0     # seconds before next roll
 _GHOST_INTERVAL   = 0.05   # seconds between ghost particle emissions
+_PLAYER_SLOW_MULT = float(STATUS_EFFECTS.get("slow", {}).get("player_move_mult", 0.5))
 
 # Roll runtime state
 _rolling          = False
@@ -236,7 +238,7 @@ def handle_movement(state, keys, dt):
         config.player_stamina = min(sp_max, sp + (_REGEN_RATE + config.player_sp_regen_bonus) * dt)
 
     if config.player_slow_timer > 0:
-        speed *= 0.5
+        speed *= _PLAYER_SLOW_MULT
 
     dx = keys[_kb["move_right"]] - keys[_kb["move_left"]]
     dy = keys[_kb["move_down"]]  - keys[_kb["move_up"]]

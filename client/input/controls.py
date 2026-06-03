@@ -3,6 +3,7 @@ import time
 import config
 from input.controls_actions_v2 import handle_smart_action as _handle_smart_action_v2
 from input.controls_movement_v2 import handle_movement
+from input.tool_data import TOOL_ITEMS, TOOL_DAMAGE, PICK_TIER_RANK
 from rendering.display import toggle_fullscreen
 from rendering.inventory import _is_consumable
 from config import TILE_SIZE, PLAYER_SPEED, SPRINT_SPEED, STEALTH_SPEED, WORLD_MAX_TILES
@@ -26,47 +27,6 @@ _NODE_TOOL = {
     "crystal":       "pickaxe_steel",
     "obsidian":      "pickaxe_steel",
 }
-# Item IDs that satisfy each tool tier
-_TOOL_ITEMS = {
-    "axe":            {2000, 2050, 2051, 2100, 2150, 2200, 2250, 2300, 2350, 2400},
-    "pickaxe":        {2001, 2052, 2053, 2101, 2151, 2201, 2251, 2301, 2351, 2401},
-    "pickaxe_stone":  {2053, 2101, 2151, 2201, 2251, 2301, 2351, 2401},
-    "pickaxe_iron":   {2101, 2151, 2201, 2251, 2301, 2351, 2401},
-    "pickaxe_steel":  {2251, 2301, 2351, 2401},
-}
-# Tier rank for combined picks (meta-based), mirrors server _PICK_TIER_RANK
-_PICK_TIER_RANK: dict[str, int] = {
-    "pickaxe":       0,
-    "pickaxe_stone": 1,
-    "pickaxe_iron":  2,
-    "pickaxe_steel": 3,
-}
-
-# Damage per hit for optimistic progress bar (mirrors server TOOL_DAMAGE)
-_TOOL_DAMAGE = {
-    2000: 1,   # Scrap Axe
-    2050: 2,   # Wooden Axe
-    2051: 3,   # Stone Axe
-    2100: 5,   # Iron Axe
-    2150: 6,   # Copper Axe
-    2200: 8,   # Bronze Axe
-    2250: 10,  # Steel Axe
-    2300: 12,  # Gold Axe
-    2350: 14,  # Crystal Axe
-    2400: 16,  # Obsidian Axe
-    2001: 1,   # Scrap Pickaxe
-    2052: 1,   # Wooden Pickaxe
-    2053: 2,   # Stone Pickaxe
-    2101: 4,   # Iron Pickaxe
-    2151: 5,   # Copper Pickaxe
-    2201: 7,   # Bronze Pickaxe
-    2251: 8,   # Steel Pickaxe
-    2301: 9,   # Gold Pickaxe
-    2351: 12,  # Crystal Pick
-    2401: 18,  # Obsidian Pickaxe
-}
-
-
 _HOTBAR_OFFSET = 27  # hotbar row starts at inventory slot 27
 
 # Placeable item IDs → object type string (mirrors server/game_state/placed_objects.py)
@@ -96,12 +56,12 @@ def _has_tool(tool_type: str) -> bool:
     item = _hotbar_item()
     if item is None:
         return False
-    if item[0] in _TOOL_ITEMS.get(tool_type, set()):
+    if item[0] in TOOL_ITEMS.get(tool_type, set()):
         return True
     # Combined tool: check meta mining_tier
     if len(item) > 2 and isinstance(item[2], dict):
-        req_rank  = _PICK_TIER_RANK.get(tool_type, -1)
-        item_rank = _PICK_TIER_RANK.get(item[2].get("mining_tier", ""), -1)
+        req_rank  = PICK_TIER_RANK.get(tool_type, -1)
+        item_rank = PICK_TIER_RANK.get(item[2].get("mining_tier", ""), -1)
         if req_rank >= 0 and item_rank >= req_rank:
             return True
     return False
@@ -117,8 +77,8 @@ def _best_tool_damage(tool_type: str) -> int:
         md = item[2].get("mining_damage")
         if md is not None:
             return int(md)
-    if item[0] in _TOOL_ITEMS.get(tool_type, set()):
-        return _TOOL_DAMAGE.get(item[0], 1)
+    if item[0] in TOOL_ITEMS.get(tool_type, set()):
+        return TOOL_DAMAGE.get(item[0], 1)
     return 1
 
 

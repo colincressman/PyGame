@@ -28,7 +28,7 @@ import os
 import sys
 
 from server.shared_lock import players_lock
-from server.item_data import get_item
+from server.item_data import get_effective_health_max, get_item
 from server.ops import (
     is_op, add_op, remove_op,
     ban_player, unban_player,
@@ -163,7 +163,7 @@ def process_command(
             if target not in players:
                 return [_reply(f"Player '{target}' is not online.")]
             p = players[target]
-            p["health"] = p.get("health_max", 100)
+            p["health"] = get_effective_health_max(p)
         if target == player_id:
             return [_reply("You have been healed.")]
         stp = _server_refs.get("send_to_player")

@@ -1,6 +1,6 @@
 from server.network.net_utils import send_json
 from server.shared_lock import players_lock
-from server.item_data import get_equip_bonuses, get_hotbar_bonus
+from server.item_data import get_effective_health_max, get_equip_bonuses, get_hotbar_bonus
 from server.game_state.world_items import world_items, world_items_lock
 from server.game_state.placed_objects import get_nearby as _get_nearby_placed
 from server.mobs.mob_manager import mobs, mobs_lock
@@ -142,7 +142,7 @@ def tick_player_deaths(players: dict) -> None:
             if "dead_since" in p and now - p["dead_since"] >= _RESPAWN_DELAY:
                 spawn = list(p.get("bed_spawn", [0.0, 0.0]))
                 p["pos"]        = spawn
-                p["health"]     = max(_RESPAWN_HP_MIN, p.get("health_max", 100) * _RESPAWN_HP_FRACTION)
+                p["health"]     = max(_RESPAWN_HP_MIN, get_effective_health_max(p) * _RESPAWN_HP_FRACTION)
                 p.pop("dead_since", None)
                 print(f"[RESPAWN] player respawned at {spawn}")
 

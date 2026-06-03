@@ -6,6 +6,7 @@ import config as _config
 from config import BIOME_ID_TO_NAME, CHUNK_SIZE, CLIFF_ID_TO_NAME, FONT_NAME, FONT_SIZE, TILE_SIZE
 from shared_lock import data_lock
 from rendering.light_sources import apply_light_holes as _apply_light_holes
+from rendering.projectile_data import PROJECTILE_COLORS, PROJECTILE_GLOBALS
 
 _MISSING_TILE_SURFACE = None
 
@@ -519,17 +520,8 @@ def draw_sleep_overlay(screen: pygame.Surface, w: int, h: int) -> None:
 # Projectile rendering
 # ---------------------------------------------------------------------------
 # Element → (core_colour, glow_colour)
-_PROJ_COLOURS: dict[str, tuple[tuple, tuple]] = {
-    "arcane":    ((200, 140, 255), (140,  80, 220)),
-    "ice":       (( 80, 215, 250), ( 40, 160, 210)),
-    "fire":      ((255, 150,  30), (220,  70,  10)),
-    "lightning": ((255, 245,  55), (200, 190,  20)),
-    "nature":    (( 80, 225,  90), ( 40, 160,  50)),
-    "shadow":    (( 90,  50, 150), ( 50,  20, 100)),
-}
-
-_PROJ_RADIUS     = 6   # inner circle radius (px)
-_PROJ_GLOW_RADIUS = 11  # outer glow radius (px)
+_PROJ_RADIUS = int(PROJECTILE_GLOBALS.get("render_core_radius", 6))
+_PROJ_GLOW_RADIUS = int(PROJECTILE_GLOBALS.get("render_glow_radius", 11))
 
 
 def draw_projectiles(screen: pygame.Surface) -> None:
@@ -540,7 +532,7 @@ def draw_projectiles(screen: pygame.Surface) -> None:
         try:
             wx, wy = proj["pos"]
             elem   = proj.get("element", "arcane")
-            core_col, glow_col = _PROJ_COLOURS.get(elem, ((200, 200, 200), (140, 140, 140)))
+            core_col, glow_col = PROJECTILE_COLORS.get(elem, ((200, 200, 200), (140, 140, 140)))
             sx = int(wx * TILE_SIZE + offset_x + TILE_SIZE // 2)
             sy = int(wy * TILE_SIZE + offset_y + TILE_SIZE // 2)
             # Glow (alpha circle on a temp surface)

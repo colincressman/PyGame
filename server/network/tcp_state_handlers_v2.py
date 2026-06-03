@@ -1,4 +1,5 @@
 from server.shared_lock import players_lock, world_items_lock, clients_lock
+from server.game_state.progression_data import STAT_UPGRADES
 from server.game_state.placed_objects import (
     place_object as _place_object,
     remove_object as _remove_object,
@@ -7,18 +8,8 @@ from server.game_state.placed_objects import (
     chest_swap as _chest_swap,
 )
 from server.game_state.game_sync import mark_inventory_dirty, set_player_sleeping as _set_player_sleeping
-from server.item_data import drain_durability, get_item, get_sell_price, is_valid_equip_placement, get_equip_bonuses
+from server.item_data import drain_durability, get_effective_health_max, get_item, get_sell_price, is_valid_equip_placement
 from server.game_state.crafting import handle_craft
-
-# Per-stat upgrade amounts applied when a player spends a stat point.
-_UPGRADES = {
-    "health_max":     ("health_max",     20.0),
-    "stamina_max":    ("stamina_max",    20.0),
-    "speed_bonus":    ("speed_bonus",     0.5),
-    "attack_power":   ("attack_power",    2.0),
-    "hp_regen":       ("hp_regen",        0.5),
-    "sp_regen_bonus": ("sp_regen_bonus",  2.0),
-}
 
 # Injected clients reference for chat broadcast
 _clients: dict | None = None
@@ -135,13 +126,15 @@ def _handle_sell(data, player_id: str, players: dict, _give_item, _world_items: 
 
 def _handle_spend_stat(data, player_id: str, players: dict, _give_item, _world_items: dict) -> None:
     stat = data.get("stat")
-    if stat not in _UPGRADES:
+    upgrade = STAT_UPGRADES.get(stat)
+    if upgrade is None:
         return
     with players_lock:
         if player_id in players:
             player = players[player_id]
             if player.get("stat_points", 0) > 0:
-                key, amount = _UPGRADES[stat]
+                key = upgrade["player_key"]
+                amount = float(upgrade["amount"])
                 player[key] = round(player.get(key, 0.0) + amount, 4)
                 player["stat_points"] -= 1
                 if stat == "health_max":
@@ -300,9 +293,7 @@ def _handle_use_item(data, player_id: str, players: dict, _give_item, _world_ite
                 if heal <= 0 and stamina_restore <= 0:
                     return
                 if heal > 0:
-                    equip_hp_bonus = int(get_equip_bonuses(player["inventory"]).get("health_max", 0))
-                    effective_hp_max = player.get("health_max", 100) + equip_hp_bonus
-                    player["health"] = min(player.get("health", 100) + heal, effective_hp_max)
+                    player["health"] = min(player.get("health", 100) + heal, get_effective_health_max(player))
                 if stamina_restore > 0:
                     player["stamina"] = min(player.get("stamina", 0) + stamina_restore, player.get("stamina_max", 100.0))
                 if slot[1] > 1:

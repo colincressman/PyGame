@@ -19,6 +19,7 @@ import json
 import os as _os
 import pygame
 from rendering.cache import get_item_surface
+from rendering.gem_data import GEM_COLORS, GEM_IDS, get_gem_entry
 from rendering import ui_theme as _T
 
 # ─── Lazy data ───────────────────────────────────────────────────────────────
@@ -81,16 +82,6 @@ _INV_COLS = 9
 _INV_ROWS = 4
 
 
-_GEM_COLORS: dict[str, tuple[int, int, int]] = {
-    "Fire":   (255,  80,  40),
-    "Ice":    ( 80, 180, 255),
-    "Storm":  (220, 220,  50),
-    "Poison": ( 80, 220,  80),
-    "Shadow": (140,  60, 200),
-    "Light":  (255, 245, 180),
-    "Earth":  (160, 110,  60),
-}
-
 # ─── Item art cache ───────────────────────────────────────────────────────────
 def _get_art(item_id: int, size: int) -> pygame.Surface:
     return get_item_surface(item_id, size)
@@ -137,13 +128,10 @@ def _embed_btn_rect(px: int, py: int) -> pygame.Rect:
 
 # ─── Validation helpers ───────────────────────────────────────────────────────
 
-_GEM_IDS = frozenset(range(50, 57))
-
-
 def valid_for_embedder_slot(item_id: int, cs: int, inv_slot) -> bool:
     """Return True if item_id is valid for embedder slot cs."""
     if cs == 1:
-        return item_id in _GEM_IDS
+        return item_id in GEM_IDS
     if cs == 0:
         # Must have meta with gem_slots >= 1 and no gem yet
         if inv_slot is None:
@@ -164,7 +152,7 @@ def _can_embed(inv, embedder_slots) -> bool:
     g_slot = inv[g_idx] if 0 <= g_idx < 36 else None
     if i_slot is None or g_slot is None:
         return False
-    if g_slot[0] not in _GEM_IDS:
+    if g_slot[0] not in GEM_IDS:
         return False
     meta = i_slot[2] if len(i_slot) >= 3 and isinstance(i_slot[2], dict) else None
     return meta is not None and meta.get("gem_slots", 0) >= 1 and not meta.get("gem")
@@ -259,10 +247,10 @@ def draw_embedder_popup(screen: pygame.Surface, ww: int, wh: int) -> None:
     if can_embed_now and i_slot and g_slot:
         gem_id    = g_slot[0]
         gem_name  = _get_item(gem_id).get("name", "Gem")
-        trait     = _get_item(gem_id).get("gem_trait", "")
+        trait     = (get_gem_entry(gem_id) or {}).get("trait", "")
         item_name = (i_slot[2].get("name") if len(i_slot) >= 3
                      and isinstance(i_slot[2], dict) else None) or _get_item(i_slot[0]).get("name", "Item")
-        gem_col   = _GEM_COLORS.get(trait, (200, 200, 200))
+        gem_col   = GEM_COLORS.get(trait, (200, 200, 200))
 
         preview_txt = fm.render(f"{item_name}  +  {gem_name}", True, (240, 235, 200))
         screen.blit(preview_txt, (lx, ly))

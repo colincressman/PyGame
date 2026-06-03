@@ -1,7 +1,7 @@
 {
   "pos": [
-    -530.7581551238113,
-    946.4274784031318
+    918.7383895100668,
+    435.0985235844667
   ],
   "health": 874,
   "health_max": 100,
@@ -9,90 +9,50 @@
   "stamina_max": 140.0,
   "attack_power": 20.005000000000006,
   "speed_bonus": 0.5,
-  "hp_regen": 0.5,
-  "sp_regen_bonus": 20.0,
-  "level": 14,
-  "exp": 7639,
-  "exp_next": 10500,
+  "hp_regen": 1.0,
+  "sp_regen_bonus": 26.0,
+  "level": 16,
+  "exp": 2660,
+  "exp_next": 13600,
   "stat_points": 0,
-  "coins": 5880,
+  "coins": 7858,
   "inventory": [
     [
-      57,
-      18
-    ],
-    [
-      28,
-      7
-    ],
-    [
-      59,
+      53,
       1
     ],
     [
-      14,
+      54,
       1
     ],
     [
-      12,
-      3
+      56,
+      1
     ],
-    null,
-    null,
-    null,
-    null,
-    null,
-    null,
-    null,
-    null,
-    null,
-    null,
-    null,
-    null,
-    null,
     [
-      2101,
-      1,
-      {
-        "stats": {
-          "speed_bonus": -0.15
-        },
-        "dur": 321,
-        "dur_max": 375,
-        "traits": [
-          "sturdy"
-        ],
-        "parts": [
-          193,
-          179,
-          268,
-          294
-        ],
-        "mining_damage": 66,
-        "mining_tier": "pickaxe_steel",
-        "name": "Steel Pickaxe",
-        "material": "Steel"
-      }
+      26,
+      4
     ],
-    null,
-    null,
-    null,
-    null,
-    null,
-    null,
     [
-      1865,
-      1,
-      {
-        "quality": "Uncommon",
-        "stats": {
-          "attack_power": 124.1
-        },
-        "dur": 348,
-        "dur_max": 348
-      }
+      21,
+      5
     ],
-    null,
+    [
+      25,
+      2
+    ],
+    [
+      22,
+      2
+    ],
+    [
+      23,
+      17
+    ],
+    [
+      24,
+      2
+    ],
     [
       1855,
       1,
@@ -101,22 +61,29 @@
         "stats": {
           "attack_power": 118.1
         },
-        "dur": 166,
+        "dur": 119,
         "dur_max": 345
       }
     ],
+    [
+      28,
+      4
+    ],
+    [
+      58,
+      2
+    ],
+    null,
+    null,
+    null,
     null,
     [
-      1874,
-      1,
-      {
-        "quality": "Common",
-        "stats": {
-          "attack_power": 86.2
-        },
-        "dur": 275,
-        "dur_max": 292
-      }
+      38,
+      1
+    ],
+    [
+      20,
+      7
     ],
     [
       1350,
@@ -126,32 +93,76 @@
         "stats": {
           "attack_power": 100.8
         },
-        "dur": 292,
-        "dur_max": 350
-      }
-    ],
-    [
-      1352,
-      1,
-      {
-        "quality": "Uncommon",
-        "stats": {
-          "attack_power": 158.4
-        },
         "dur": 350,
         "dur_max": 350
       }
     ],
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
     [
-      1750,
+      1850,
       1,
       {
-        "quality": "Common",
         "stats": {
-          "attack_power": 99.7
+          "attack_power": 80,
+          "speed_bonus": -0.2
         },
-        "dur": 344,
-        "dur_max": 350
+        "dur": 174,
+        "dur_max": 321,
+        "traits": [
+          "magical",
+          "heavy",
+          "papery",
+          "Light"
+        ],
+        "parts": [
+          199,
+          161,
+          290,
+          272
+        ],
+        "quality": "Common",
+        "gem_slots": 1,
+        "name": "Crystal Katana",
+        "material": "Crystal",
+        "gem": "Light Pearl",
+        "gem_trait": "Light"
+      }
+    ],
+    [
+      2101,
+      1,
+      {
+        "stats": {
+          "speed_bonus": 0.05
+        },
+        "dur": 252,
+        "dur_max": 315,
+        "traits": [
+          "magical",
+          "papery",
+          "Fire"
+        ],
+        "parts": [
+          193,
+          181,
+          291,
+          272
+        ],
+        "quality": "Common",
+        "gem_slots": 1,
+        "mining_damage": 10,
+        "mining_tier": "pickaxe_steel",
+        "name": "Crystal Pickaxe",
+        "material": "Crystal",
+        "gem": "Fire Ruby",
+        "gem_trait": "Fire"
       }
     ],
     [
@@ -167,29 +178,66 @@
       }
     ],
     [
-      1351,
+      1800,
       1,
       {
         "quality": "Common",
         "stats": {
-          "attack_power": 84.0
+          "attack_power": 11.0
         },
-        "dur": 350,
-        "dur_max": 350
+        "dur": 50,
+        "dur_max": 50
       }
     ],
     [
-      2750,
+      1802,
       1,
       {
         "quality": "Common",
         "stats": {
-          "attack_power": 76.3
+          "attack_power": 49.1
         },
-        "dur": 350,
-        "dur_max": 350
+        "dur": 150,
+        "dur_max": 150
       }
     ],
+    [
+      1803,
+      1,
+      {
+        "quality": "Common",
+        "stats": {
+          "attack_power": 64.1
+        },
+        "dur": 200,
+        "dur_max": 200
+      }
+    ],
+    [
+      1804,
+      1,
+      {
+        "quality": "Common",
+        "stats": {
+          "attack_power": 43.1
+        },
+        "dur": 180,
+        "dur_max": 180
+      }
+    ],
+    [
+      1805,
+      1,
+      {
+        "quality": "Uncommon",
+        "stats": {
+          "attack_power": 100.1
+        },
+        "dur": 220,
+        "dur_max": 220
+      }
+    ],
+    null,
     [
       3008,
       1,
@@ -199,7 +247,7 @@
           "defense": 16.3,
           "health_max": 99.4
         },
-        "dur": 333,
+        "dur": 309,
         "dur_max": 400
       }
     ],
@@ -212,7 +260,7 @@
           "defense": 42.6,
           "health_max": 248.3
         },
-        "dur": 333,
+        "dur": 309,
         "dur_max": 400
       }
     ],
@@ -224,7 +272,7 @@
         "stats": {
           "hp_regen": 5.4
         },
-        "dur": 33,
+        "dur": 9,
         "dur_max": 100
       }
     ],
@@ -236,7 +284,7 @@
         "stats": {
           "stamina_max": 35.9
         },
-        "dur": 33,
+        "dur": 9,
         "dur_max": 100
       }
     ],
@@ -249,7 +297,7 @@
           "defense": 24.9,
           "health_max": 147.7
         },
-        "dur": 333,
+        "dur": 309,
         "dur_max": 400
       }
     ],
@@ -263,7 +311,7 @@
           "health_max": 55.1,
           "speed_bonus": 0.0
         },
-        "dur": 333,
+        "dur": 309,
         "dur_max": 400
       }
     ],
@@ -277,7 +325,7 @@
           "defense": 13.7,
           "health_max": 56.7
         },
-        "dur": 333,
+        "dur": 309,
         "dur_max": 400
       }
     ],
@@ -289,7 +337,7 @@
         "stats": {
           "stamina_max": 46.4
         },
-        "dur": 37,
+        "dur": 13,
         "dur_max": 100
       }
     ],
@@ -301,7 +349,7 @@
         "stats": {
           "speed_bonus": 0.2
         },
-        "dur": 433,
+        "dur": 409,
         "dur_max": 500
       }
     ],

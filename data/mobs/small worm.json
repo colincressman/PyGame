@@ -1,0 +1,43 @@
+{
+  "behavior":             "melee",
+  "max_count":            4,
+  "spawn_interval_mult":  3.0,
+  "spawn_biomes":         ["desert", "alt_desert"],
+  "spawn_night_only":     true,
+  "hp":                   120.0,
+  "hp_scale_per_level":   0.4,
+  "damage":               12.0,
+  "damage_scale":         0.35,
+  "speed":                1.8,
+  "speed_scale":          0.0,
+  "windup":               0.40,
+  "lunge_speed":          12.0,
+  "lunge_overshoot":      1.0,
+  "lunge_hit_radius":     0.7,
+  "landing_pause":        0.2,
+  "attack_range":         2.0,
+  "attack_cooldown":      2.5,
+  "aggro_range":          3.0,
+  "deaggro_range":        7.0,
+  "despawn_radius":       50,
+  "exp":                  40,
+  "drop_id":              58,
+  "wander_radius":        6.25,
+  "wander_idle_min":      2.0,
+  "wander_idle_max":      5.0,
+  "special": {
+    "poison_duration":    5.0,
+    "poison_dps":         2.0
+  },
+  "sprite": {
+    "type":           "walk_strip",
+    "path":           "Universal-LPC-Spritesheet-Character-Generator/spritesheets/mobs/lpc-monsters/small_worm.png",
+    "walk_row":        0,
+    "walk_start_col":  0,
+    "walk_frames":     6,
+    "fps":             6.0,
+    "frame_w":         64,
+    "frame_h":         64,
+    "row_order":       {"down": 2, "left": 1, "right": 3, "up": 0}
+  }
+}

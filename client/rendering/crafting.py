@@ -18,6 +18,7 @@ import pygame
 import config
 from rendering import ui_theme as _T
 from rendering.inventory import _get_font, _get_item_image, _get_tooltip_font, _get_item_name
+from rendering.progression_data import CRAFT_QUALITY_TIERS, QUALITY_ABBR, STAT_ABBR
 
 # -- Recipe / item data (loaded once) -----------------------------------------
 _recipes: dict = {}
@@ -112,21 +113,6 @@ def _has_station(recipe: dict) -> bool:
     return False
 
 
-# -- Quality display constants -------------------------------------------------
-
-_QUALITY_TIERS = [
-    ("Common",    0.80, 1.00, (185, 185, 185)),
-    ("Uncommon",  1.00, 1.30, ( 75, 200,  75)),
-    ("Rare",      1.30, 1.70, ( 90, 130, 245)),
-    ("Exquisite", 1.70, 2.20, (190,  75, 240)),
-]
-_QUALITY_ABBR = {"Common": "Com", "Uncommon": "Unc", "Rare": "Rare", "Exquisite": "Exq"}
-_STAT_ABBR = {
-    "attack_power":   "ATK", "health_max":     "HP",
-    "stamina_max":    "SP",  "speed_bonus":    "SPD",
-    "hp_regen":       "Regen", "sp_regen_bonus": "SpRgn",
-}
-
 _BTN_H = 28
 _BTN_W = 88
 _PAD   = 8
@@ -208,9 +194,13 @@ def _draw_detail(screen, sel, detail_x, detail_y, detail_w, detail_h, btn_y):
         hdr2 = font.render("Quality:", True, (110, 110, 110))
         screen.blit(hdr2, (dx, dy))
         dy += hdr2.get_height() + 2
-        for qname, lo, hi, qcol in _QUALITY_TIERS:
+        for tier in CRAFT_QUALITY_TIERS:
             if dy + font.size("A")[1] > btn_y - 4:
                 break
+            qname = tier["name"]
+            lo = float(tier["min_mult"])
+            hi = float(tier["max_mult"])
+            qcol = tuple(tier.get("color", [200, 200, 200]))
             abbr  = _QUALITY_ABBR.get(qname, qname[0])
             parts = []
             for sk, sv in base_stats.items():

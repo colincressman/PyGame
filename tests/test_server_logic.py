@@ -5,8 +5,17 @@ from tests.test_support import find_item
 
 from server.game_state import world_items
 from server.game_state import game_sync
+from server.game_state import gem_data
+from server.game_state import mold_data
+from server.game_state import progression_data
+from server.game_state import placed_objects
+from server.game_state import repair
+from server import item_data
 from server.network import combat, tcp_routes, tcp_state_handlers_v2
+from server.network import commands
 from server import session_auth
+from server.world import npc_shops
+from server.world import tool_data
 
 
 class GiveItemTests(unittest.TestCase):
@@ -165,6 +174,31 @@ class CombatValidationTests(unittest.TestCase):
         self.assertEqual(after_second, after_first)
         self.assertLess(players["p2"]["health"], after_second)
 
+    def test_light_gem_uses_lifesteal_effect(self):
+        players = {
+            "p1": {
+                "pos": [0.0, 0.0],
+                "inventory": [None] * 48,
+                "hotbar_slot": 0,
+                "attack_power": 10.0,
+                "health": 50.0,
+                "health_max": 100.0,
+                "stamina": 100.0,
+            },
+            "p2": {
+                "pos": [0.0, 1.0],
+                "inventory": [None] * 48,
+                "health": 100.0,
+            },
+        }
+        players["p1"]["inventory"][27] = [1100, 1, {"gem_trait": "Light"}]
+
+        with mock.patch("server.network.combat.time.monotonic", return_value=10.0):
+            combat.handle_attack("p1", "down", [0.0, 0.0], players)
+
+        self.assertGreater(players["p1"]["health"], 50.0)
+        self.assertLess(players["p2"]["health"], 100.0)
+
 
 class DeathRespawnTests(unittest.TestCase):
     def test_tick_player_deaths_marks_dead_and_respawns_after_delay(self):
@@ -201,6 +235,100 @@ class DeathRespawnTests(unittest.TestCase):
 
         self.assertEqual(players["p1"]["pos"], [0.0, 0.0])
         self.assertGreaterEqual(players["p1"]["health"], game_sync._RESPAWN_HP_MIN)
+
+
+class DataRegistryTests(unittest.TestCase):
+    def test_shop_catalogue_loads_from_json(self):
+        shop = npc_shops.get_shop("merchant")
+
+        self.assertTrue(shop)
+        self.assertEqual(shop[0]["id"], 4000)
+        self.assertIn("price", shop[0])
+
+    def test_repair_cost_comes_from_json_rules(self):
+        self.assertEqual(repair._get_repair_cost([1100, 1, {"dur": 1, "dur_max": 10}]), (100, 2))
+        self.assertIsNone(repair._get_repair_cost([999999, 1]))
+
+    def test_mold_catalogue_loads_from_json(self):
+        katana = mold_data.get_mold_entry(199)
+
+        self.assertIsNotNone(katana)
+        self.assertEqual(katana["base_item_id"], 1850)
+        self.assertEqual(katana["output_name"], "Katana")
+        self.assertEqual(katana["primary_slot"], "blade")
+
+    def test_tool_registry_loads_from_json(self):
+        self.assertIn(2401, tool_data.TOOL_ITEMS["pickaxe_steel"])
+        self.assertEqual(tool_data.TOOL_DAMAGE[2401], 18)
+        self.assertEqual(tool_data.PICK_TIER_RANK["pickaxe_iron"], 2)
+
+    def test_gem_registry_loads_light_lifesteal_mapping(self):
+        self.assertEqual(gem_data.get_gem_entry(55)["trait"], "Light")
+        self.assertEqual(gem_data.get_gem_effect("Light"), "lifesteal")
+
+    def test_progression_registry_loads_quality_and_stat_upgrade_data(self):
+        self.assertEqual(progression_data.QUALITY_SELL_MULT["Rare"], 4)
+        self.assertEqual(progression_data.STAT_UPGRADES["health_max"]["amount"], 20.0)
+        self.assertEqual(progression_data.CRAFT_QUALITY_TIERS[0]["name"], "Common")
+
+
+class ShopBuybackTests(unittest.TestCase):
+    def tearDown(self):
+        npc_shops._dynamic_inv.clear()
+
+    def test_buyback_preserves_meta_for_rolled_item(self):
+        player = {
+            "coins": 0,
+            "inventory": [None] * 48,
+        }
+        rolled = [1100, 1, {"quality": "Rare", "stats": {"attack_power": 42}, "dur": 88, "dur_max": 120}]
+        player["inventory"][0] = rolled.copy()
+        players = {"p1": player}
+
+        ok, _ = npc_shops.handle_shop_sell("p1", 0, "merchant", players)
+        self.assertTrue(ok)
+        self.assertIsNone(player["inventory"][0])
+        self.assertEqual(len(npc_shops._dynamic_inv["merchant"]), 1)
+        self.assertIn("slot", npc_shops._dynamic_inv["merchant"][0])
+
+        player["coins"] = npc_shops._dynamic_inv["merchant"][0]["price"]
+        ok, _ = npc_shops.handle_shop_buy("p1", "merchant", npc_shops._static_shop_len("merchant"), players, tcp_routes._give_item)
+        self.assertTrue(ok)
+
+        restored = next(slot for slot in player["inventory"][:36] if slot is not None)
+        self.assertEqual(restored[0], 1100)
+        self.assertEqual(restored[2]["quality"], "Rare")
+        self.assertEqual(restored[2]["stats"]["attack_power"], 42)
+        self.assertEqual(restored[2]["dur"], 88)
+
+
+class EffectiveHealthTests(unittest.TestCase):
+    def test_effective_health_max_includes_equipment_and_hotbar(self):
+        player = {
+            "health_max": 100.0,
+            "hotbar_slot": 0,
+            "inventory": [None] * 48,
+        }
+        player["inventory"][27] = [9001, 1, {"stats": {"health_max": 24.0}}]
+        player["inventory"][36] = [9002, 1, {"stats": {"health_max": 750.0}}]
+
+        self.assertEqual(item_data.get_effective_health_max(player), 874.0)
+
+    def test_heal_command_uses_effective_health_max(self):
+        players = {
+            "p1": {
+                "health": 10.0,
+                "health_max": 100.0,
+                "hotbar_slot": 0,
+                "inventory": [None] * 48,
+            }
+        }
+        players["p1"]["inventory"][36] = [9002, 1, {"stats": {"health_max": 774.0}}]
+
+        result = commands.process_command("/heal", "p1", players, mock.Mock())
+
+        self.assertEqual(players["p1"]["health"], 874.0)
+        self.assertEqual(result[0]["text"], "You have been healed.")
 
 
 if __name__ == "__main__":

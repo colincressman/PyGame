@@ -1,0 +1,37 @@
+{
+  "50": {
+    "trait": "Fire",
+    "effect": "burn",
+    "color": [255, 80, 40]
+  },
+  "51": {
+    "trait": "Ice",
+    "effect": "slow",
+    "color": [80, 180, 255]
+  },
+  "52": {
+    "trait": "Storm",
+    "effect": "storm",
+    "color": [220, 220, 50]
+  },
+  "53": {
+    "trait": "Poison",
+    "effect": "poison",
+    "color": [80, 220, 80]
+  },
+  "54": {
+    "trait": "Shadow",
+    "effect": "crit",
+    "color": [140, 60, 200]
+  },
+  "55": {
+    "trait": "Light",
+    "effect": "lifesteal",
+    "color": [255, 245, 180]
+  },
+  "56": {
+    "trait": "Earth",
+    "effect": "earth",
+    "color": [160, 110, 60]
+  }
+}

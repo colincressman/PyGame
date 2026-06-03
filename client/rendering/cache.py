@@ -8,10 +8,7 @@ from rendering.item_art import draw_item
 
 
 _ITEM_SURFACE_CACHE: dict[tuple[int, int], pygame.Surface] = {}
-_ITEMS_DIR = os.path.join(
-    os.path.dirname(os.path.abspath(__file__)), "..", "assets", "items"
-)
-
+_ITEMS_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "data", "texturepack", "items")
 
 def get_item_surface(item_id: int, size: int) -> pygame.Surface:
     key = (item_id, size)

@@ -31,9 +31,12 @@
     "slow_on_hit":        3.0
   },
   "sprite": {
-    "type":   "frames",
-    "path":   "assets/mobs/slime/slime{dir}{frame}.png",
-    "frames": 3,
-    "fps":    6.0
+    "type":   "walk_strip",
+    "path":   "Universal-LPC-Spritesheet-Character-Generator/spritesheets/mobs/slime/slime.png",
+    "frames": 4,
+    "fps":    6.0,
+    "frame_w":         64,
+    "frame_h":         64,
+    "row_order":       {"down": 2, "left": 3, "right": 1, "up": 0}
   }
 }
