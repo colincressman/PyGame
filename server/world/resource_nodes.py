@@ -17,6 +17,7 @@ import uuid
 import time
 import threading
 import atexit
+from server.world.tool_data import TOOL_ITEMS, TOOL_DAMAGE, PICK_TIER_RANK
 
 # ---- Biome ID constants (match dyn_chunk_gen.py) ----
 OCEAN, BEACH, SWAMP, RIVER, PLAINS, FOREST = 0, 1, 2, 3, 4, 5
@@ -54,49 +55,6 @@ NODE_TYPES: dict[str, dict] = {
     "gold_ore":     {"hp": 35, "yields": [(25, 1, 2)], "tool": "pickaxe_iron",  "respawn": 420, "density": 0.002, "biomes": {MOUNTAIN, DESERT},         "min_dist": 75, "permanent": True, "seed_drop": (40, 0.010)},
     "crystal":      {"hp": 40, "yields": [(26, 1, 1)], "tool": "pickaxe_steel", "respawn": 600, "density": 0.001, "biomes": {MOUNTAIN},                 "min_dist": 100, "permanent": True, "seed_drop": (41, 0.008)},
     "obsidian":     {"hp": 50, "yields": [(27, 1, 1)], "tool": "pickaxe_steel", "respawn": 720, "density": 0.001, "biomes": {MOUNTAIN},                 "min_dist": 130, "permanent": True, "seed_drop": (42, 0.005)},
-}
-
-# Item IDs satisfying each tool tier (higher tiers also satisfy lower ones)
-TOOL_ITEMS: dict[str, set[int]] = {
-    "axe":            {2000, 2050, 2051, 2100, 2150, 2200, 2250, 2300, 2350, 2400},
-    "pickaxe":        {2001, 2052, 2053, 2101, 2151, 2201, 2251, 2301, 2351, 2401},
-    "pickaxe_stone":  {2053, 2101, 2151, 2201, 2251, 2301, 2351, 2401},  # stone+ (incl. copper/bronze — better than iron)
-    "pickaxe_iron":   {2101, 2151, 2201, 2251, 2301, 2351, 2401},       # iron+ (incl. copper/bronze/steel/gold/crystal)
-    "pickaxe_steel":  {2251, 2301, 2351, 2401},                          # steel/gold/crystal/obsidian only
-}
-
-# Damage per hit for each tool item (higher tier = more damage per F press)
-TOOL_DAMAGE: dict[int, int] = {
-    # Axes — tree HP = 6
-    2000: 1,  # Scrap Axe    (6 hits)
-    2050: 2,  # Wooden Axe   (3 hits)
-    2051: 3,  # Stone Axe    (2 hits)
-    2100: 5,  # Iron Axe     (2 hits)
-    2150: 6,  # Copper Axe   (1 hit)
-    2200: 8,  # Bronze Axe
-    2250: 10, # Steel Axe
-    2300: 12, # Gold Axe
-    2350: 14, # Crystal Axe
-    2400: 16, # Obsidian Axe
-    # Pickaxes
-    2001: 1,  # Scrap Pickaxe
-    2052: 1,  # Wooden Pickaxe
-    2053: 2,  # Stone Pickaxe  (stone/coal hp=20 → 10 hits)
-    2101: 4,  # Iron Pickaxe   (iron hp=20 → 5 hits)
-    2151: 5,  # Copper Pickaxe (copper/tin hp=25 → 5 hits)
-    2201: 7,  # Bronze Pickaxe (silver hp=30 → 5 hits)
-    2251: 8,  # Steel Pickaxe  (crystal hp=40 → 5 hits; obsidian hp=50 → 7 hits)
-    2301: 9,  # Gold Pickaxe   (crystal hp=40 → 5 hits; obsidian hp=50 → 6 hits)
-    2351: 12, # Crystal Pick   (crystal hp=40 → 4 hits; obsidian hp=50 → 5 hits)
-    2401: 18, # Obsidian Pickaxe (crystal hp=40 → 3 hits; obsidian hp=50 → 3 hits)
-}
-
-# Tier rank for combined-tool (meta-based) tier checks. Higher = better.
-_PICK_TIER_RANK: dict[str, int] = {
-    "pickaxe":       0,
-    "pickaxe_stone": 1,
-    "pickaxe_iron":  2,
-    "pickaxe_steel": 3,
 }
 
 # ---- Runtime node state (in-memory; resets on server restart) ----
@@ -476,7 +434,7 @@ def has_required_tool(inventory: list, tool_type: str | None) -> bool:
     if tool_type is None:
         return True
     required = TOOL_ITEMS.get(tool_type, set())
-    req_rank = _PICK_TIER_RANK.get(tool_type, -1)
+    req_rank = PICK_TIER_RANK.get(tool_type, -1)
     for slot in inventory:
         if slot is None:
             continue
@@ -485,7 +443,7 @@ def has_required_tool(inventory: list, tool_type: str | None) -> bool:
         # Check combined tool via meta mining_tier
         if len(slot) > 2 and isinstance(slot[2], dict):
             tier = slot[2].get("mining_tier", "")
-            if req_rank >= 0 and _PICK_TIER_RANK.get(tier, -1) >= req_rank:
+            if req_rank >= 0 and PICK_TIER_RANK.get(tier, -1) >= req_rank:
                 return True
     return False
 
@@ -499,8 +457,8 @@ def tool_satisfies(hotbar_item: list | None, tool_type: str | None) -> bool:
     if hotbar_item[0] in TOOL_ITEMS.get(tool_type, set()):
         return True
     if len(hotbar_item) > 2 and isinstance(hotbar_item[2], dict):
-        req_rank  = _PICK_TIER_RANK.get(tool_type, -1)
-        item_rank = _PICK_TIER_RANK.get(hotbar_item[2].get("mining_tier", ""), -1)
+        req_rank  = PICK_TIER_RANK.get(tool_type, -1)
+        item_rank = PICK_TIER_RANK.get(hotbar_item[2].get("mining_tier", ""), -1)
         if req_rank >= 0 and item_rank >= req_rank:
             return True
     return False

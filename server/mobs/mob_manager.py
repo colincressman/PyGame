@@ -34,11 +34,12 @@ from server.config import (
     BASE_SP_REGEN      as _BASE_SP_REGEN,
     COIN_DROP_MIN_MULT as _COIN_DROP_MIN_MULT,
     COIN_DROP_MAX_MULT as _COIN_DROP_MAX_MULT,
-    DEFAULT_BURN_DPS   as _DEFAULT_BURN_DPS,
     DAY_START_HOUR     as _DAY_START_HOUR,
     DAY_END_HOUR       as _DAY_END_HOUR,
 )
 from server.item_data import get_equip_bonuses as _get_equip_bonuses, drain_durability as _drain_durability
+from server.game_state.status_effect_data import STATUS_EFFECTS as _STATUS_EFFECTS
+from server.game_state.status_effects import apply_status_effect as _apply_status_effect, tick_effects_on_entity as _tick_effects_on_entity
 from server.mobs.mob_data import MOB_TYPES
 # NOTE: get_world_time is imported lazily inside update_mobs() to avoid
 # the circular import that would arise from mob_manager ↔ game_sync at module level.
@@ -71,6 +72,7 @@ AGGRO_RANGE          = DEFAULT_MOB.get("aggro_range", 3.0)
 AGGRO_RANGE_SQ       = AGGRO_RANGE ** 2
 DEAGGRO_RANGE        = DEFAULT_MOB.get("deaggro_range", 7.0)
 ANIMAL_DEAGGRO_RANGE = DEFAULT_MOB.get("deaggro_range", 7.0)
+_MOB_SLOW_MULT = float(_STATUS_EFFECTS.get("slow", {}).get("mob_move_mult", 0.4))
 
 _next_spawn_times: dict[str, float] = {
     mob_type: 0.0
@@ -490,17 +492,8 @@ def update_mobs(dt: float):
             if mob.get("hit_flash", 0.0) > 0:
                 mob["hit_flash"] = max(0.0, mob["hit_flash"] - dt)
 
-            # --- Decay slow timer ---
-            if mob.get("slow_timer", 0.0) > 0:
-                mob["slow_timer"] = max(0.0, mob["slow_timer"] - dt)
-
-            # --- Tick burn DoT ---
-            if mob.get("burn_timer", 0.0) > 0:
-                mob["burn_timer"] = max(0.0, mob["burn_timer"] - dt)
-                mob["health"]     = max(0.0, mob.get("health", 0.0) - mob.get("burn_dps", _DEFAULT_BURN_DPS) * dt)
-                mob["hit_flash"]  = max(mob.get("hit_flash", 0.0), 0.08)
-                if mob["health"] <= 0 and not mob.get("killed_by"):
-                    mob["killed_by"] = "_burn"
+            # --- Tick configured status effects ---
+            _tick_effects_on_entity(mob, dt, death_credit="_burn", flash_on_tick=True)
 
             # Snapshot position before state-based movement for water-tile blocking
             prev_x, prev_y = pos[0], pos[1]
@@ -693,7 +686,7 @@ def update_mobs(dt: float):
                 dx, dy = tppos[0] - pos[0], tppos[1] - pos[1]
                 d = math.sqrt(dx * dx + dy * dy) or 1.0
                 nx, ny = dx / d, dy / d
-                spd = mob.get("speed", _mob_cfg(mob).get("speed", 1.0)) * (0.4 if mob.get("slow_timer", 0.0) > 0 else 1.0)
+                spd = mob.get("speed", _mob_cfg(mob).get("speed", 1.0)) * (_MOB_SLOW_MULT if mob.get("slow_timer", 0.0) > 0 else 1.0)
                 pos[0] += nx * spd * dt
                 pos[1] += ny * spd * dt
                 if _is_water(pos) or _is_obj_blocked(pos[0], pos[1], _solid_tile_set):
@@ -725,7 +718,7 @@ def update_mobs(dt: float):
                     mob["state"]      = "idle"
                     mob["idle_timer"] = random.uniform(_mob_cfg(mob).get("wander_idle_min", WANDER_IDLE_MIN), _mob_cfg(mob).get("wander_idle_max", WANDER_IDLE_MAX))
                 else:
-                    spd = mob.get("speed", _mob_cfg(mob).get("speed", 1.0)) * (0.4 if mob.get("slow_timer", 0.0) > 0 else 1.0)
+                    spd = mob.get("speed", _mob_cfg(mob).get("speed", 1.0)) * (_MOB_SLOW_MULT if mob.get("slow_timer", 0.0) > 0 else 1.0)
                     nx, ny = ddx / d, ddy / d
                     pos[0] += nx * spd * dt
                     pos[1] += ny * spd * dt
@@ -849,10 +842,10 @@ def update_mobs(dt: float):
             _spawn_world_item(COIN_ITEM_ID, drop_pos, qty=random.randint(mob_level * _COIN_DROP_MIN_MULT, mob_level * _COIN_DROP_MAX_MULT))
             print(f"[MOB] {mob_type.title()} {mob_id} (Lv{mob_level}) died — dropped items at {drop_pos}")
 
-    # Apply all per-tick player updates: regen, slow decay, combat events
+    # Apply all per-tick player updates: regen and combat events
     from server.shared_lock import players_lock
     with players_lock:
-        # Per-player regen and slow decay
+        # Per-player regen
         for pdata in _players.values():
             sp_max  = pdata.get("stamina_max", 100.0)
             sp_rate = _BASE_SP_REGEN + pdata.get("sp_regen_bonus", 0.0)
@@ -862,15 +855,10 @@ def update_mobs(dt: float):
                 equip_hp_bonus = int(_get_equip_bonuses(pdata.get("inventory", [])).get("health_max", 0))
                 hp_max = pdata.get("health_max", 100) + equip_hp_bonus
                 pdata["health"] = min(hp_max, pdata.get("health", 0.0) + hp_regen * dt)
-            st = pdata.get("slow_timer", 0.0)
-            if st > 0:
-                pdata["slow_timer"] = max(0.0, st - dt)
         # Contact slow from proximity to mobs
         for pid, slow_dur in pending_slow.items():
             if pid in _players:
-                _players[pid]["slow_timer"] = max(
-                    _players[pid].get("slow_timer", 0.0), slow_dur
-                )
+                _apply_status_effect(_players[pid], "slow", duration=slow_dur)
         for pid, dmg, mob_pos, attacker_mid in pending_melee:
             if pid not in _players:
                 continue
@@ -919,12 +907,11 @@ def update_mobs(dt: float):
             if attacker_mid is not None and attacker_mid in mobs:
                 _slow_hit = _mob_special(mobs[attacker_mid]).get("slow_on_hit")
                 if _slow_hit:
-                    _players[pid]["slow_timer"] = max(_players[pid].get("slow_timer", 0.0), _slow_hit)
-        # Apply configured poison effects (inline to avoid double-acquiring players_lock)
+                    _apply_status_effect(_players[pid], "slow", duration=_slow_hit)
+        # Apply configured poison effects
         for pid, (dur, dps) in pending_poison.items():
             if pid in _players and not _players[pid].get("creative", False):
-                _players[pid]["poison_timer"] = max(_players[pid].get("poison_timer", 0.0), dur)
-                _players[pid]["poison_dps"]   = dps
+                _apply_status_effect(_players[pid], "poison", duration=dur, potency=dps)
                 print(f"[MOB] Poisoned {pid} for {dur}s at {dps} dps")
         for pid, exp_amount in pending_exp:
             _apply_exp(pid, exp_amount)

@@ -1,0 +1,53 @@
+{
+  "globals": {
+    "speed": 10.0,
+    "max_range": 14.0,
+    "hit_radius": 0.75,
+    "cooldown": 0.55,
+    "render_core_radius": 6,
+    "render_glow_radius": 11
+  },
+  "elements": {
+    "arcane": {
+      "damage_mult": 1.0,
+      "core_color": [200, 140, 255],
+      "glow_color": [140, 80, 220]
+    },
+    "ice": {
+      "damage_mult": 0.8,
+      "status_effect": "slow",
+      "status_duration": 2.0,
+      "core_color": [80, 215, 250],
+      "glow_color": [40, 160, 210]
+    },
+    "fire": {
+      "damage_mult": 0.9,
+      "status_effect": "burn",
+      "status_duration": 5.0,
+      "status_dps": 8.0,
+      "core_color": [255, 150, 30],
+      "glow_color": [220, 70, 10]
+    },
+    "lightning": {
+      "damage_mult": 1.2,
+      "chain_radius": 3.5,
+      "chain_count": 2,
+      "chain_damage_mult": 0.6,
+      "core_color": [255, 245, 55],
+      "glow_color": [200, 190, 20]
+    },
+    "nature": {
+      "damage_mult": 0.7,
+      "lifesteal": 0.5,
+      "core_color": [80, 225, 90],
+      "glow_color": [40, 160, 50]
+    },
+    "shadow": {
+      "damage_mult": 1.1,
+      "crit_chance": 0.35,
+      "crit_mult": 2.5,
+      "core_color": [90, 50, 150],
+      "glow_color": [50, 20, 100]
+    }
+  }
+}

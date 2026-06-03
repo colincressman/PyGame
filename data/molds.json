@@ -1,0 +1,18 @@
+{
+  "190": {"base_item_id": 1101, "is_armor": false, "output_name": "Sword", "primary_slot": "blade"},
+  "191": {"base_item_id": 1100, "is_armor": false, "output_name": "Dagger", "primary_slot": "blade"},
+  "192": {"base_item_id": 2100, "is_armor": false, "output_name": "Axe", "primary_slot": "axe_head"},
+  "193": {"base_item_id": 2101, "is_armor": false, "output_name": "Pickaxe", "primary_slot": "pick_head"},
+  "194": {"base_item_id": 3002, "is_armor": true, "output_name": "Helm", "primary_slot": "plate"},
+  "195": {"base_item_id": 3103, "is_armor": true, "output_name": "Chestplate", "primary_slot": "plate"},
+  "196": {"base_item_id": 3201, "is_armor": true, "output_name": "Bracers", "primary_slot": "plate"},
+  "197": {"base_item_id": 3306, "is_armor": true, "output_name": "Leggings", "primary_slot": "plate"},
+  "198": {"base_item_id": 3401, "is_armor": true, "output_name": "Boots", "primary_slot": "plate"},
+  "199": {"base_item_id": 1850, "is_armor": false, "output_name": "Katana", "primary_slot": "blade"},
+  "208": {"base_item_id": 1860, "is_armor": false, "output_name": "Saber", "primary_slot": "blade"},
+  "209": {"base_item_id": 1870, "is_armor": false, "output_name": "Scimitar", "primary_slot": "blade"},
+  "210": {"base_item_id": 1500, "is_armor": false, "output_name": "Rapier", "primary_slot": "blade"},
+  "211": {"base_item_id": 2500, "is_armor": false, "output_name": "Hammer", "primary_slot": "axe_head"},
+  "212": {"base_item_id": 1800, "is_armor": false, "output_name": "Wand", "primary_slot": "blade"},
+  "213": {"base_item_id": 3504, "is_armor": true, "output_name": "Cloak", "primary_slot": "plate"}
+}

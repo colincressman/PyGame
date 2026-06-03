@@ -1,6 +1,8 @@
 import os
 import json
 import pygame
+from rendering.gem_data import GEM_COLORS
+from rendering.progression_data import QUALITY_BORDERS, QUALITY_COLORS, QUALITY_SELL_MULT, STAT_LABELS
 from rendering import ui_theme as _T
 import config
 
@@ -13,7 +15,7 @@ GRID_COLS    = 9
 _item_images = {}
 _font = None
 _tooltip_font = None
-_items_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "assets", "items")
+_items_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "data", "texturepack", "items")
 
 # ── Item name lookup (mirrors server/items.json) ────────────────────────────
 _ITEM_NAMES = {}
@@ -108,8 +110,8 @@ def _draw_slot(screen, x, y, item, selected=False, hover=False):
     if item is not None and not selected:
         _meta = item[2] if len(item) >= 3 and isinstance(item[2], dict) else None
         _q    = _meta.get("quality") if _meta else None
-        if _q and _q in _QUALITY_BORDER:
-            border = _QUALITY_BORDER[_q]
+        if _q and _q in QUALITY_BORDERS:
+            border = QUALITY_BORDERS[_q]
     pygame.draw.rect(screen, bg,     (x, y, SLOT_SIZE, SLOT_SIZE), border_radius=3)
     pygame.draw.rect(screen, border, (x, y, SLOT_SIZE, SLOT_SIZE), 2, border_radius=3)
 
@@ -144,45 +146,12 @@ def _draw_slot(screen, x, y, item, selected=False, hover=False):
                 pygame.draw.rect(screen, bar_color, (bar_x, bar_y, fill_w, 3))
             # Gem dot overlay — small filled circle at bottom-right of art area
             if meta.get("gem_trait"):
-                _GEM_DOT_COLS = {
-                    "Fire":   (255,  70,  30),
-                    "Ice":    ( 80, 170, 255),
-                    "Storm":  (220, 220,  50),
-                    "Poison": ( 60, 210,  60),
-                    "Shadow": (130,  50, 190),
-                    "Light":  (255, 245, 160),
-                    "Earth":  (150, 100,  50),
-                }
-                dot_col = _GEM_DOT_COLS.get(meta["gem_trait"], (200, 200, 200))
+                dot_col = GEM_COLORS.get(meta["gem_trait"], (200, 200, 200))
                 dot_r   = max(3, SLOT_SIZE // 10)
                 dot_x   = x + SLOT_SIZE - dot_r - 4
                 dot_y   = y + 4 + dot_r
                 pygame.draw.circle(screen, (20, 20, 20), (dot_x, dot_y), dot_r + 1)
                 pygame.draw.circle(screen, dot_col,      (dot_x, dot_y), dot_r)
-
-
-_QUALITY_COLORS = {
-    "Common":    (185, 185, 185),
-    "Uncommon":  ( 75, 200,  75),
-    "Rare":      ( 90, 130, 245),
-    "Exquisite": (190,  75, 240),
-}
-_QUALITY_BORDER = {
-    "Common":    (120, 120, 120),
-    "Uncommon":  ( 40, 170,  40),
-    "Rare":      ( 50,  90, 200),
-    "Exquisite": (150,  40, 200),
-}
-_STAT_LABELS = {
-    "attack_power":   "ATK",
-    "defense":        "DEF",
-    "health_max":     "HP",
-    "stamina_max":    "STA",
-    "speed_bonus":    "SPD",
-    "hp_regen":       "Regen/s",
-    "sp_regen_bonus": "SP Regen",
-}
-_Q_MULT = {"Common": 1, "Uncommon": 2, "Rare": 4, "Exquisite": 8}
 
 # Tooltip cache — rebuilt only when the hovered slot content changes.
 _tooltip_cache: dict = {"key": None, "surface": None, "size": (0, 0)}
@@ -215,14 +184,14 @@ def _build_tooltip_surface(slot):
     pad     = 6
 
     base_price = _ITEM_SELL_PRICES.get(item_id, 0)
-    q_mult     = _Q_MULT.get(quality, 1) if quality else 1
+    q_mult     = QUALITY_SELL_MULT.get(quality, 1) if quality else 1
     sell_value = base_price * qty * q_mult
 
-    name_col = _QUALITY_COLORS.get(quality, (240, 240, 220))
+    name_col = QUALITY_COLORS.get(quality, (240, 240, 220))
     label    = f"{quality} {name}" if quality else name
     lines    = [font.render(label, True, name_col)]
     for stat_key, stat_val in stats.items():
-        lbl = _STAT_LABELS.get(stat_key, stat_key)
+        lbl = STAT_LABELS.get(stat_key, stat_key)
         txt = f"+{stat_val:.1f} {lbl}" if isinstance(stat_val, float) else f"+{stat_val} {lbl}"
         lines.append(font.render(txt, True, (160, 210, 255)))
     if meta and meta.get("mining_damage"):
@@ -344,9 +313,6 @@ def can_drop_in_slot(item_id: int, target_slot: int) -> bool:
     required = _EQUIP_SLOT_TYPES.get(target_slot)
     item_type = _ITEM_SLOT_TYPES.get(item_id)
     return required is not None and item_type == required
-
-_ASSETS_DIR      = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "assets", "player")
-
 
 def _get_preview():
     """Render a live LPC character preview (idle, facing down, frame 0).

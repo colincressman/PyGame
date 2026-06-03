@@ -13,7 +13,7 @@ import time
 import uuid
 
 from server.shared_lock import placed_objects_lock
-from server.item_data import get_item as _get_item
+from server.item_data import get_effective_health_max, get_item as _get_item
 from server.config import CHUNK_DIR as _CHUNK_DIR, RENDER_DIST_TILES as _RENDER_DIST_TILES
 
 # {uid: {"type": str, "pos": [tx, ty], "placed_by": pid}}
@@ -443,6 +443,6 @@ def use_bed(uid: str, pid: str, players: dict) -> bool:
     # Update player outside placed_objects_lock to avoid lock inversion
     if pid in players:
         players[pid]["bed_spawn"] = pos
-        players[pid]["health"] = players[pid].get("health_max", 100)
+        players[pid]["health"] = get_effective_health_max(players[pid])
         return True
     return False

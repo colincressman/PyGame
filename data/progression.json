@@ -1,0 +1,130 @@
+{
+  "craft_quality_tiers": [
+    {
+      "name": "Common",
+      "cum_prob": 0.6,
+      "min_mult": 0.8,
+      "max_mult": 1.0,
+      "abbr": "Com",
+      "color": [185, 185, 185],
+      "border": [120, 120, 120]
+    },
+    {
+      "name": "Uncommon",
+      "cum_prob": 0.85,
+      "min_mult": 1.0,
+      "max_mult": 1.3,
+      "abbr": "Unc",
+      "color": [75, 200, 75],
+      "border": [40, 170, 40]
+    },
+    {
+      "name": "Rare",
+      "cum_prob": 0.97,
+      "min_mult": 1.3,
+      "max_mult": 1.7,
+      "abbr": "Rare",
+      "color": [90, 130, 245],
+      "border": [50, 90, 200]
+    },
+    {
+      "name": "Exquisite",
+      "cum_prob": 1.0,
+      "min_mult": 1.7,
+      "max_mult": 2.2,
+      "abbr": "Exq",
+      "color": [190, 75, 240],
+      "border": [150, 40, 200]
+    }
+  ],
+  "loot_quality_tiers": [
+    {
+      "name": "Exquisite",
+      "threshold": 0.97,
+      "min_mult": 1.65,
+      "max_mult": 2.2
+    },
+    {
+      "name": "Rare",
+      "threshold": 0.85,
+      "min_mult": 1.25,
+      "max_mult": 1.65
+    },
+    {
+      "name": "Uncommon",
+      "threshold": 0.6,
+      "min_mult": 1.0,
+      "max_mult": 1.25
+    },
+    {
+      "name": "Common",
+      "threshold": 0.0,
+      "min_mult": 0.85,
+      "max_mult": 1.0
+    }
+  ],
+  "quality_sell_mult": {
+    "Common": 1,
+    "Uncommon": 2,
+    "Rare": 4,
+    "Exquisite": 8
+  },
+  "stat_labels": {
+    "attack_power": "ATK",
+    "defense": "DEF",
+    "health_max": "HP",
+    "stamina_max": "STA",
+    "speed_bonus": "SPD",
+    "hp_regen": "Regen/s",
+    "sp_regen_bonus": "SP Regen"
+  },
+  "stat_abbr": {
+    "attack_power": "ATK",
+    "health_max": "HP",
+    "stamina_max": "SP",
+    "speed_bonus": "SPD",
+    "hp_regen": "Regen",
+    "sp_regen_bonus": "SpRgn"
+  },
+  "stat_names": {
+    "health_max": "Max Health",
+    "stamina_max": "Max Stamina",
+    "speed_bonus": "Speed",
+    "attack_power": "Attack",
+    "hp_regen": "HP Regen",
+    "sp_regen_bonus": "SP Regen",
+    "defense": "Defense"
+  },
+  "stat_upgrades": {
+    "health_max": {
+      "player_key": "health_max",
+      "amount": 20.0,
+      "bonus_label": "+20 HP"
+    },
+    "stamina_max": {
+      "player_key": "stamina_max",
+      "amount": 20.0,
+      "bonus_label": "+20 SP"
+    },
+    "speed_bonus": {
+      "player_key": "speed_bonus",
+      "amount": 0.5,
+      "bonus_label": "+0.5 spd"
+    },
+    "attack_power": {
+      "player_key": "attack_power",
+      "amount": 2.0,
+      "bonus_label": "+2 atk"
+    },
+    "hp_regen": {
+      "player_key": "hp_regen",
+      "amount": 0.5,
+      "bonus_label": "+0.5/s"
+    },
+    "sp_regen_bonus": {
+      "player_key": "sp_regen_bonus",
+      "amount": 2.0,
+      "bonus_label": "+2/s"
+    }
+  }
+}

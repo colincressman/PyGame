@@ -26,6 +26,8 @@
   "wander_idle_min":      2.0,
   "wander_idle_max":      5.0,
   "special": {
+    "poison_duration":    5.0,
+    "poison_dps":         2.0,
     "web_slow_on_hit":    3.5
   },
   "sprite": {

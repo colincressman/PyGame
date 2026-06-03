@@ -2,8 +2,10 @@
 import math
 import random
 import time
+from server.game_state.gem_data import get_gem_effect
+from server.game_state.status_effects import apply_status_effect
 from server.shared_lock import players_lock
-from server.item_data import get_equip_bonuses, get_hotbar_bonus, drain_durability
+from server.item_data import get_equip_bonuses, get_hotbar_bonus, get_effective_health_max, drain_durability
 from server.config import KNOCKBACK_DECAY as _KB_DECAY
 
 
@@ -117,8 +119,9 @@ def handle_attack(attacker_id: str, direction: str, pos: list, players: dict, mo
         _gem_trait  = (_weapon[2].get("gem_trait")
                        if (_weapon and len(_weapon) >= 3 and isinstance(_weapon[2], dict))
                        else None)
+        _gem_effect = get_gem_effect(_gem_trait)
         # Shadow gem: 15% crit chance (double damage)
-        if _gem_trait == "Shadow" and random.random() < 0.15:
+        if _gem_effect == "crit" and random.random() < 0.15:
             atk_power *= 2.0
         # Drain stamina on every swing (skip if already depleted)
         _ATK_SP_COST = 12.0
@@ -166,18 +169,16 @@ def handle_attack(attacker_id: str, direction: str, pos: list, players: dict, mo
                 pdata["pos"][0] += (tx / dist) * KNOCKBACK
                 pdata["pos"][1] += (ty / dist) * KNOCKBACK
             # Gem on-hit effects (player targets)
-            if _gem_trait == "Fire" and random.random() < 0.20:
-                pdata["burn_timer"] = max(pdata.get("burn_timer", 0.0), 3.0)
-                pdata["burn_dps"]   = 5.0
-            elif _gem_trait == "Ice":
-                pdata["slow_timer"] = max(pdata.get("slow_timer", 0.0), 1.5)
-            elif _gem_trait == "Life":
+            if _gem_effect == "burn" and random.random() < 0.20:
+                apply_status_effect(pdata, "burn", duration=3.0, potency=5.0)
+            elif _gem_effect == "slow":
+                apply_status_effect(pdata, "slow", duration=1.5)
+            elif _gem_effect == "lifesteal":
                 attacker["health"] = min(
                     attacker.get("health", 0.0) + damage_taken * 0.05,
-                    attacker.get("health_max", 100.0))
-            elif _gem_trait == "Poison" and random.random() < 0.25:
-                pdata["poison_timer"] = max(pdata.get("poison_timer", 0.0), 4.0)
-                pdata["poison_dps"]   = 3.0
+                    get_effective_health_max(attacker))
+            elif _gem_effect == "poison" and random.random() < 0.25:
+                apply_status_effect(pdata, "poison", duration=4.0, potency=3.0)
             hit_any = True
             print(f"[COMBAT] {attacker_id} hit {pid} for {atk_power:.1f} dmg "
                   f"(hp now {pdata['health']:.1f})")
@@ -201,11 +202,12 @@ def handle_attack(attacker_id: str, direction: str, pos: list, players: dict, mo
                 _mob_gem = (_awpn[2].get("gem_trait")
                             if (_awpn and len(_awpn) >= 3 and isinstance(_awpn[2], dict))
                             else None)
+                _mob_gem_effect = get_gem_effect(_mob_gem)
                 _mob_atk = (float(_atk_data.get("attack_power", 10.0))
                             + get_equip_bonuses(_atk_data.get("inventory", []))["attack_power"]
                             + get_hotbar_bonus(_atk_data.get("inventory", []),
                                                _atk_data.get("hotbar_slot", 0))["attack_power"])
-                if _mob_gem == "Shadow" and random.random() < 0.15:
+                if _mob_gem_effect == "crit" and random.random() < 0.15:
                     _mob_atk *= 2.0
             _mob_hit_any = False
             for mid, mob in list(mobs.items()):
@@ -234,21 +236,19 @@ def handle_attack(attacker_id: str, direction: str, pos: list, players: dict, mo
                         if not mob.get("origin_pos"):
                             mob["origin_pos"] = list(mob["pos"])
                 # Gem on-hit effects (mob targets)
-                if _mob_gem == "Fire" and random.random() < 0.20:
-                    mob["burn_timer"] = max(mob.get("burn_timer", 0.0), 3.0)
-                    mob["burn_dps"]   = 5.0
-                elif _mob_gem == "Ice":
-                    mob["slow_timer"] = max(mob.get("slow_timer", 0.0), 1.5)
-                elif _mob_gem == "Life":
+                if _mob_gem_effect == "burn" and random.random() < 0.20:
+                    apply_status_effect(mob, "burn", duration=3.0, potency=5.0)
+                elif _mob_gem_effect == "slow":
+                    apply_status_effect(mob, "slow", duration=1.5)
+                elif _mob_gem_effect == "lifesteal":
                     with players_lock:
                         _lp = players.get(attacker_id)
                         if _lp:
                             _lp["health"] = min(
                                 _lp.get("health", 0.0) + _mob_atk * 0.05,
-                                _lp.get("health_max", 100.0))
-                elif _mob_gem == "Poison" and random.random() < 0.25:
-                    mob["poison_timer"] = max(mob.get("poison_timer", 0.0), 4.0)
-                    mob["poison_dps"]   = 3.0
+                                get_effective_health_max(_lp))
+                elif _mob_gem_effect == "poison" and random.random() < 0.25:
+                    apply_status_effect(mob, "poison", duration=4.0, potency=3.0)
                 print(f"[COMBAT] {attacker_id} hit mob {mid} for {_mob_atk:.1f} dmg "
                       f"(hp now {mob['health']:.1f})"
                       + (f" [{_mob_gem}]" if _mob_gem else ""))

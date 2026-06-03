@@ -22,9 +22,9 @@ import pygame
 # ---------------------------------------------------------------------------
 LPC_DIR = os.path.join(
     os.path.dirname(os.path.abspath(__file__)),
-    "..",
-    "Universal-LPC-Spritesheet-Character-Generator",
-    "spritesheets",
+    "..", "..",
+    "data",
+    "texturepack",
 )
 
 # ---------------------------------------------------------------------------

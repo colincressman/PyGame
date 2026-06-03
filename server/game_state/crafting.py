@@ -9,6 +9,7 @@ import json
 import os
 import random
 
+from server.game_state.progression_data import CRAFT_QUALITY_TIERS
 from server.item_data import get_item
 from server.shared_lock import players_lock
 
@@ -34,21 +35,14 @@ _load()
 # Tiers: (name, cumulative_probability, stat_min_multiplier, stat_max_multiplier)
 # ---------------------------------------------------------------------------
 
-_QUALITY_TIERS = [
-    ("Common",   0.60, 0.80, 1.00),
-    ("Uncommon", 0.85, 1.00, 1.30),
-    ("Rare",     0.97, 1.30, 1.70),
-    ("Exquisite",1.00, 1.70, 2.20),
-]
-
-
 def _roll_quality():
     """Return (quality_name, lo_mult, hi_mult) for a random quality tier."""
     r = random.random()
-    for name, cum_prob, lo, hi in _QUALITY_TIERS:
-        if r <= cum_prob:
-            return name, lo, hi
-    return _QUALITY_TIERS[-1][0], _QUALITY_TIERS[-1][2], _QUALITY_TIERS[-1][3]
+    for tier in CRAFT_QUALITY_TIERS:
+        if r <= float(tier["cum_prob"]):
+            return tier["name"], float(tier["min_mult"]), float(tier["max_mult"])
+    tail = CRAFT_QUALITY_TIERS[-1]
+    return tail["name"], float(tail["min_mult"]), float(tail["max_mult"])
 
 
 def _roll_stats(base_stats: dict, lo: float, hi: float) -> dict:

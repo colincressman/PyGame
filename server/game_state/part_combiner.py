@@ -14,48 +14,7 @@ import random
 from server.item_data import get_item
 from server.shared_lock import players_lock
 from server.game_state.crafting import _roll_quality
-
-# ---------------------------------------------------------------------------
-# Mold → (base_item_id, is_armor)
-# ---------------------------------------------------------------------------
-_MOLD_MAP: dict[int, tuple[int, bool]] = {
-    190: (1101, False),   # Sword Mold    → Iron Sword
-    191: (1100, False),   # Dagger Mold   → Iron Dagger
-    192: (2100, False),   # Axe Mold      → Iron Axe
-    193: (2101, False),   # Pickaxe Mold  → Iron Pickaxe
-    194: (3002, True),    # Helm Mold     → Iron Helm
-    195: (3103, True),    # Chest Mold    → Iron Chestplate
-    196: (3201, True),    # Arms Mold     → Iron Bracers
-    197: (3306, True),    # Leg Mold      → Iron Leggings
-    198: (3401, True),    # Feet Mold     → Iron Boots
-    199: (1850, False),   # Katana Mold   → Iron Katana
-    208: (1860, False),   # Saber Mold    → Iron Saber
-    209: (1870, False),   # Scimitar Mold → Iron Scimitar
-    210: (1500, False),   # Rapier Mold   → Iron Rapier
-    211: (2500, False),   # Hammer Mold   → Iron Hammer
-    212: (1800, False),   # Wand Mold     → Wooden Wand
-    213: (3504, True),    # Back Mold     → Steel Cape
-}
-
-# Mold ID → weapon type display name (used to construct the output item name)
-_MOLD_WEAPON_NAME: dict[int, str] = {
-    190: "Sword",
-    191: "Dagger",
-    192: "Axe",
-    193: "Pickaxe",
-    194: "Helm",
-    195: "Chestplate",
-    196: "Bracers",
-    197: "Leggings",
-    198: "Boots",
-    199: "Katana",
-    208: "Saber",
-    209: "Scimitar",
-    210: "Rapier",
-    211: "Hammer",
-    212: "Wand",
-    213: "Cloak",
-}
+from server.game_state.mold_data import MOLD_DATA
 
 # Primary slot type → suffix to strip from the item name to get the material
 _SLOT_NAME_SUFFIX: dict[str, str] = {
@@ -63,26 +22,6 @@ _SLOT_NAME_SUFFIX: dict[str, str] = {
     "pick_head": " Pick Head",
     "axe_head":  " Axe Head",
     "plate":    " Plate",
-}
-
-# Mold ID → required part_stats["slot"] for the Primary (slot 2)
-_MOLD_SLOT2_TYPE: dict[int, str] = {
-    190: "blade",
-    191: "blade",
-    192: "axe_head",
-    193: "pick_head",
-    194: "plate",
-    195: "plate",
-    196: "plate",
-    197: "plate",
-    198: "plate",
-    199: "blade",
-    208: "blade",
-    209: "blade",
-    210: "blade",
-    211: "axe_head",
-    212: "blade",
-    213: "plate",
 }
 
 
@@ -141,10 +80,12 @@ def combine_parts(
 
         # ── Validate mold ─────────────────────────────────────────────────
         mold_id = mold_slot[0]
-        if mold_id not in _MOLD_MAP:
+        mold_entry = MOLD_DATA.get(mold_id)
+        if mold_entry is None:
             return False, "not a mold"
-        base_item_id, is_armor = _MOLD_MAP[mold_id]
-        required_p2_slot = _MOLD_SLOT2_TYPE[mold_id]
+        base_item_id = mold_entry["base_item_id"]
+        is_armor = mold_entry["is_armor"]
+        required_p2_slot = mold_entry["primary_slot"]
 
         # ── Validate primary (slot 2) ──────────────────────────────────────
         p2 = _part_stats(inv, primary_idx)
@@ -239,7 +180,7 @@ def combine_parts(
             material = primary_item_name[: -len(suffix)]
         else:
             material = primary_item_name.split()[0] if primary_item_name else ""
-        weapon_type = _MOLD_WEAPON_NAME.get(mold_id, get_item(base_item_id).get("name", ""))
+        weapon_type = mold_entry.get("output_name", get_item(base_item_id).get("name", ""))
         if material:
             meta["name"]     = f"{material} {weapon_type}"
             meta["material"] = material

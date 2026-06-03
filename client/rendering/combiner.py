@@ -19,6 +19,7 @@ import json
 import os as _os
 import pygame
 from rendering.cache import get_item_surface
+from rendering.mold_data import MOLD_DATA
 from rendering import ui_theme as _T
 
 # ─── Lazy data ───────────────────────────────────────────────────────────────
@@ -83,13 +84,6 @@ _INV_ROWS = 4    # bag slots 0-35
 
 _SLOT_LABELS = ("Mold", "Primary", "Handle", "Binding")
 
-_MOLD_HINT: dict[int, str] = {
-    190: "Sword",   191: "Dagger",  192: "Axe",   193: "Pickaxe",
-    194: "Helm",    195: "Chest",   196: "Arms",   197: "Legs",   198: "Feet",
-    199: "Katana",  208: "Saber",   209: "Scimitar",
-    210: "Rapier",  211: "Hammer",  212: "Wand",   213: "Cloak",
-}
-
 # Suffix to strip from a primary part's name to extract the material
 _SLOT_NAME_SUFFIX: dict[str, str] = {
     "blade":     " Blade",
@@ -98,29 +92,9 @@ _SLOT_NAME_SUFFIX: dict[str, str] = {
     "plate":     " Plate",
 }
 
-_MOLD_BASE: dict[int, tuple[int, bool]] = {
-    190: (1101, False), 191: (1100, False),
-    192: (2100, False), 193: (2101, False),
-    194: (3002, True),  195: (3103, True),
-    196: (3201, True),  197: (3306, True),
-    198: (3401, True),
-    199: (1850, False), 208: (1860, False), 209: (1870, False),
-    210: (1500, False), 211: (2500, False), 212: (1800, False),
-    213: (3504, True),
-}
-_MOLD_SLOT2: dict[int, str] = {
-    190: "blade",    191: "blade",
-    192: "axe_head", 193: "pick_head",
-    194: "plate",    195: "plate",
-    196: "plate",    197: "plate",    198: "plate",
-    199: "blade",   208: "blade",    209: "blade",
-    210: "blade",   211: "axe_head", 212: "blade",
-    213: "plate",
-}
-
 # Armor molds where slot 2 = "Lining" (binding), not handle/core
 _ARMOR_MOLD_IDS: frozenset[int] = frozenset(
-    mid for mid, (_, is_a) in _MOLD_BASE.items() if is_a
+    mid for mid, entry in MOLD_DATA.items() if entry.get("is_armor")
 )
 
 
@@ -185,7 +159,7 @@ def valid_for_slot(item_id: int, cs: int, mold_id: int | None = None) -> bool:
     item = _get_item(item_id)
     ps   = item.get("part_stats", {})
     if cs == 0:
-        return item_id in _MOLD_BASE
+        return item_id in MOLD_DATA
     if cs == 1:
         return ps.get("slot") in ("blade", "axe_head", "pick_head", "plate")
     if cs == 2:
@@ -212,7 +186,8 @@ def _derive_material(primary_item_id: int, req_p2_slot: str) -> str:
 def _derive_name(mold_id: int, primary_item_id: int, req_p2_slot: str) -> str:
     """Return a material-qualified name like 'Steel Pickaxe' or 'Obsidian Sword'."""
     material    = _derive_material(primary_item_id, req_p2_slot)
-    weapon_type = _MOLD_HINT.get(mold_id, _get_item(_MOLD_BASE[mold_id][0]).get("name", ""))
+    mold_entry = MOLD_DATA[mold_id]
+    weapon_type = mold_entry.get("output_name", _get_item(mold_entry["base_item_id"]).get("name", ""))
     return f"{material} {weapon_type}" if material else weapon_type
 
 
@@ -233,11 +208,13 @@ def _compute_preview(inv: list, combiner_slots: list) -> dict | None:
         slots.append(s)
 
     mold_id = slots[0][0]
-    if mold_id not in _MOLD_BASE:
+    mold_entry = MOLD_DATA.get(mold_id)
+    if mold_entry is None:
         return None
 
-    base_id, is_armor = _MOLD_BASE[mold_id]
-    req_p2 = _MOLD_SLOT2.get(mold_id, "")
+    base_id = mold_entry["base_item_id"]
+    is_armor = mold_entry["is_armor"]
+    req_p2 = mold_entry["primary_slot"]
 
     p2 = _get_item(slots[1][0]).get("part_stats", {})
     p3 = _get_item(slots[2][0]).get("part_stats", {})
@@ -387,8 +364,9 @@ def draw_combiner_popup(screen: pygame.Surface, ww: int, wh: int) -> None:
         if (mold_idx is not None and 0 <= mold_idx < 36
                 and config.player_inventory[mold_idx] is not None):
             mid      = config.player_inventory[mold_idx][0]
-            s2type   = _MOLD_SLOT2.get(mid, "?").replace("_", " ").title()
-            wname    = _MOLD_HINT.get(mid, "")
+            _mold_entry = MOLD_DATA.get(mid, {})
+            s2type   = _mold_entry.get("primary_slot", "?").replace("_", " ").title()
+            wname    = _mold_entry.get("output_name", "")
             if mid in _ARMOR_MOLD_IDS:
                 lines = [
                     f"{wname} Mold  →  slot 2 needs a {s2type}",

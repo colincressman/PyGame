@@ -6,6 +6,7 @@ in game_sync (broadcast) and combat (player attack power).
 """
 
 import os
+from server.game_state.progression_data import LOOT_QUALITY_TIERS, QUALITY_SELL_MULT
 
 try:
     import orjson as _json   # ~3-5x faster than stdlib json
@@ -115,6 +116,14 @@ def get_hotbar_bonus(inventory: list, hotbar_slot: int) -> dict:
     return bonuses
 
 
+def get_effective_health_max(player: dict) -> float:
+    """Return the player's effective max HP including equipment and hotbar bonuses."""
+    inventory = player.get("inventory", [])
+    equip_hp_bonus = get_equip_bonuses(inventory)["health_max"]
+    hotbar_hp_bonus = get_hotbar_bonus(inventory, player.get("hotbar_slot", 0))["health_max"]
+    return float(player.get("health_max", 100.0)) + equip_hp_bonus + hotbar_hp_bonus
+
+
 def is_valid_equip_placement(item_id: int, slot_idx: int) -> bool:
     """Return True if item_id is allowed in equip slot_idx (36-46).
 
@@ -128,26 +137,11 @@ def is_valid_equip_placement(item_id: int, slot_idx: int) -> bool:
     return item_type == required_type
 
 
-_QUALITY_SELL_MULT = {"Common": 1, "Uncommon": 2, "Rare": 4, "Exquisite": 8}
-
 # ---------------------------------------------------------------------------
 # RNG stat rolling — called when giving equipment items
 # ---------------------------------------------------------------------------
 
 import random as _random
-
-# Sorted highest-first so the first matching threshold wins.
-# Each row: (quality_name, threshold, stat_mult_low, stat_mult_high)
-#   Exquisite  3 %  — threshold 0.97
-#   Rare      12 %  — threshold 0.85
-#   Uncommon  25 %  — threshold 0.60
-#   Common    60 %  — threshold 0.00
-_ROLL_TIERS = [
-    ("Exquisite", 0.97, 1.65, 2.20),
-    ("Rare",      0.85, 1.25, 1.65),
-    ("Uncommon",  0.60, 1.00, 1.25),
-    ("Common",    0.00, 0.85, 1.00),
-]
 
 
 def roll_item_stats(item_id: int) -> dict | None:
@@ -167,9 +161,11 @@ def roll_item_stats(item_id: int) -> dict | None:
     r = _random.random()
     quality = "Common"
     lo, hi  = 0.85, 1.00
-    for q_name, threshold, tlo, thi in _ROLL_TIERS:
-        if r >= threshold:
-            quality, lo, hi = q_name, tlo, thi
+    for tier in LOOT_QUALITY_TIERS:
+        if r >= float(tier["threshold"]):
+            quality = tier["name"]
+            lo = float(tier["min_mult"])
+            hi = float(tier["max_mult"])
             break
 
     mult = _random.uniform(lo, hi)
@@ -240,5 +236,5 @@ def get_sell_price(slot) -> int:
     qty      = slot[1]
     base     = _data.get(item_id, {}).get("sell_price", 0)
     meta     = slot[2] if len(slot) >= 3 and isinstance(slot[2], dict) else None
-    mult     = _QUALITY_SELL_MULT.get(meta.get("quality", "Common"), 1) if meta else 1
+    mult     = QUALITY_SELL_MULT.get(meta.get("quality", "Common"), 1) if meta else 1
     return base * qty * mult
