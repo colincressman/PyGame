@@ -17,7 +17,8 @@ import os as _os
 import pygame
 import config
 from rendering import ui_theme as _T
-from rendering.inventory import _get_font, _get_item_image, _get_tooltip_font, _get_item_name
+from rendering.cache import get_item_surface
+from rendering.inventory import _get_font, _get_tooltip_font, _get_item_name
 from rendering.progression_data import CRAFT_QUALITY_TIERS, QUALITY_ABBR, STAT_ABBR
 
 # -- Recipe / item data (loaded once) -----------------------------------------
@@ -161,7 +162,7 @@ def _draw_detail(screen, sel, detail_x, detail_y, detail_w, detail_h, btn_y):
 
     # Result row
     result_id, _ = sel["result"]
-    screen.blit(pygame.transform.scale(_get_item_image(result_id), (28, 28)), (dx, dy))
+    screen.blit(get_item_surface(result_id, 28), (dx, dy))
     rname = big_font.render(sel.get("name", ""), True, (235, 195, 70))
     screen.blit(rname, (dx + 32, dy + (28 - rname.get_height()) // 2))
     dy += 32
@@ -181,7 +182,7 @@ def _draw_detail(screen, sel, detail_x, detail_y, detail_w, detail_h, btn_y):
     for ing_id, ing_qty in sel.get("ingredients", []):
         have = sum(s[1] for s in inv[:36] if s is not None and s[0] == ing_id)
         ok   = have >= ing_qty
-        screen.blit(pygame.transform.scale(_get_item_image(ing_id), (14, 14)), (dx, dy))
+        screen.blit(get_item_surface(ing_id, 14), (dx, dy))
         col  = (70, 210, 70) if ok else (210, 70, 70)
         ls   = font.render(f"{have}/{ing_qty}  {_get_item_name(ing_id)}", True, col)
         screen.blit(ls, (dx + 18, dy + (14 - ls.get_height()) // 2))
@@ -201,10 +202,10 @@ def _draw_detail(screen, sel, detail_x, detail_y, detail_w, detail_h, btn_y):
             lo = float(tier["min_mult"])
             hi = float(tier["max_mult"])
             qcol = tuple(tier.get("color", [200, 200, 200]))
-            abbr  = _QUALITY_ABBR.get(qname, qname[0])
+            abbr  = QUALITY_ABBR.get(qname, qname[0])
             parts = []
             for sk, sv in base_stats.items():
-                slbl = _STAT_ABBR.get(sk, sk)
+                slbl = STAT_ABBR.get(sk, sk)
                 lo_v, hi_v = sv * lo, sv * hi
                 parts.append(
                     f"{max(1,round(lo_v))}-{max(1,round(hi_v))} {slbl}"

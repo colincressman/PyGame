@@ -1,137 +1,16 @@
 import time, struct
 import socket
 import threading, orjson
-from collections import deque
 import config
+from input.resource_node_data import NODE_MAX_HP
 from .sockets import connect_with_retry
 from .protocols import identify_socket, recv_json, send_json
 from state.player import player_data
+from state.remote_player import RemotePlayer
 
 # Registry of every node's base data, used to re-add nodes when they respawn.
 # Never shrinks; depleted nodes are removed from config.world_nodes but stay here.
 _node_base_cache: dict = {}
-
-# Fallback max-HP values for node types, used only when the server hasn't yet
-# sent max_hp in the node packet (e.g. old cached chunks or race conditions).
-_NODE_MAX_HP_FALLBACK: dict[str, int] = {
-    "tree":          6,
-    "pine_tree":     6,
-    "jungle_tree":   8,
-    "palm_tree":     5,
-    "stone_deposit": 20,
-    "iron_ore":      20,
-    "coal_deposit":  20,
-    "herb_patch":    1,
-    "cactus":        2,
-    "reed_cluster":  1,
-    "seashell_bed":  1,
-    "mushroom":      1,
-    "snow_crystal":  1,
-    "stick_pile":    1,
-    "bone_pile":     1,
-    "clay_deposit":  2,
-    "copper_ore":    25,
-    "tin_ore":       25,
-    "silver_ore":    30,
-    "gold_ore":      35,
-    "crystal":       40,
-    "obsidian":      50,
-}
-
-class RemotePlayer:
-    _WALK_FPS    = 10.0
-    _WALK_FRAMES = 9   # walk animation (9 frames)
-    _ATK_FPS     = 14.0
-    _ATK_FRAMES  = 6   # LPC slash animation has 6 frames
-
-    def __init__(self, pos):
-        self.pos_buffer = deque(maxlen=3)
-        self.pos_buffer.append({'pos': pos, 'vel': [0, 0], 'ts': time.time(), 'seq': 0})
-        self.last_seq       = 0
-        self.health         = 100
-        self.facing         = "down"
-        self.is_moving      = False
-        self.walk_frame     = 0
-        self.walk_timer     = 0.0
-        self.last_move_time = 0.0
-        self.is_attacking   = False
-        self.atk_frame      = 0
-        self.atk_timer      = 0.0
-        self.equip_ids: dict = {}   # {slot_index: item_id} for visual rendering
-        self.appearance: dict = {}  # cosmetic appearance from server
-
-    def start_attack(self, direction: str):
-        self.is_attacking = True
-        self.atk_frame    = 0
-        self.atk_timer    = 0.0
-        if direction:
-            self.facing = direction
-
-    def add_update(self, update):
-        seq = update.get('seq', 0)
-        if seq > self.last_seq:  # Ignore old/out-of-order
-            self.last_seq = seq
-            self.pos_buffer.append({
-                'pos': update['pos'],
-                'vel': update.get('vel', [0, 0]),
-                'ts': update.get('timestamp', time.time()),
-                'seq': seq
-            })
-            vx, vy = update.get('vel', [0, 0])
-            speed_sq = vx * vx + vy * vy
-            if speed_sq > 1e-8:
-                self.last_move_time = time.time()
-                if abs(vy) >= abs(vx):
-                    self.facing = "down" if vy > 0 else "up"
-                else:
-                    self.facing = "right" if vx > 0 else "left"
-
-    _MOVE_DECAY = 0.15   # seconds after last non-zero vel before animation stops
-
-    def update_anim(self, dt):
-        if self.is_attacking:
-            self.atk_timer += dt
-            frame = int(self.atk_timer * self._ATK_FPS)
-            if frame >= self._ATK_FRAMES:
-                self.is_attacking = False
-                self.atk_frame    = 0
-                self.atk_timer    = 0.0
-            else:
-                self.atk_frame = frame
-            return   # don't update walk anim while attacking
-
-        # is_moving stays True for _MOVE_DECAY seconds after the last non-zero vel packet.
-        self.is_moving = (time.time() - self.last_move_time) < self._MOVE_DECAY
-        if self.is_moving:
-            self.walk_timer += dt
-            self.walk_frame = int(self.walk_timer * self._WALK_FPS) % self._WALK_FRAMES
-        else:
-            self.walk_frame = 0
-            self.walk_timer = 0.0
-
-    # Maximum time (seconds) to extrapolate when the server goes silent.
-    # Beyond this the player stays frozen at the last known position.
-    _MAX_EXTRAP_TIME = 0.3
-
-    def get_render_pos(self, current_time, interp_delay=0.1):
-        if len(self.pos_buffer) < 2:
-            return self.pos_buffer[0]['pos']
-        target_time = current_time - interp_delay
-        for i in range(len(self.pos_buffer) - 1):
-            prev, next = self.pos_buffer[i], self.pos_buffer[i+1]
-            if prev['ts'] <= target_time <= next['ts']:
-                alpha = (target_time - prev['ts']) / (next['ts'] - prev['ts'])
-                return [
-                    prev['pos'][0] + alpha * (next['pos'][0] - prev['pos'][0]),
-                    prev['pos'][1] + alpha * (next['pos'][1] - prev['pos'][1])
-                ]
-        # Extrapolate — capped to _MAX_EXTRAP_TIME so a silent server doesn't slide players away
-        last = self.pos_buffer[-1]
-        time_diff = min(current_time - last['ts'], self._MAX_EXTRAP_TIME)
-        return [
-            last['pos'][0] + last['vel'][0] * time_diff,
-            last['pos'][1] + last['vel'][1] * time_diff
-        ]
 
 def handle_world(HOST, PORT_WORLD, chunk_queue, player_id):
     _my_session = config.session_id
@@ -165,7 +44,7 @@ def handle_world(HOST, PORT_WORLD, chunk_queue, player_id):
                             ntype = node["type"]
                             wx = cx * 16 + node["lx"]
                             wy = cy * 16 + node["ly"]
-                            max_hp = node.get("max_hp") or _NODE_MAX_HP_FALLBACK.get(ntype, 1)
+                            max_hp = node.get("max_hp") or NODE_MAX_HP.get(ntype, 1)
                             if nid not in _new_nodes:
                                 _node_base_cache[nid] = {"type": ntype, "wx": wx, "wy": wy, "max_hp": max_hp}
                                 _new_nodes[nid] = {
@@ -297,7 +176,16 @@ def handle_state(HOST, PORT_STATE, player_id):
                         config.dungeons = dungeons_list
                     placed_list = data.get("placed_objects")
                     if placed_list is not None:
-                        config.placed_objects = {obj["uid"]: obj for obj in placed_list}
+                        new_placed = {obj["uid"]: obj for obj in placed_list}
+                        if (config.open_chest_uid is not None
+                                and time.time() < getattr(config, "chest_ui_hold_until", 0.0)):
+                            current_open = config.placed_objects.get(config.open_chest_uid)
+                            if current_open is not None and config.open_chest_uid in new_placed:
+                                merged_open = dict(new_placed[config.open_chest_uid])
+                                if "chest_inv" in current_open:
+                                    merged_open["chest_inv"] = current_open["chest_inv"]
+                                new_placed[config.open_chest_uid] = merged_open
+                        config.placed_objects = new_placed
                     proj_list = data.get("projectiles")
                     if proj_list is not None:
                         config.projectiles = proj_list
@@ -334,7 +222,7 @@ def handle_state(HOST, PORT_STATE, player_id):
                                     "type":    ntype,
                                     "wx":      pn["wx"],
                                     "wy":      pn["wy"],
-                                    "max_hp":  pn.get("max_hp") or _NODE_MAX_HP_FALLBACK.get(ntype, 1),
+                                    "max_hp":  pn.get("max_hp") or NODE_MAX_HP.get(ntype, 1),
                                     "depleted": False,
                                     "hits":    0,
                                 }

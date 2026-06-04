@@ -1,0 +1,15 @@
+{
+  "hotbar_start": 27,
+  "back_slot": 44,
+  "render_order": [
+    {"name": "legs", "slot": 40, "registry": "legs", "default": true},
+    {"name": "neck", "slot": 43, "registry": "neck"},
+    {"name": "torso", "slot": 37, "registry": "torso"},
+    {"name": "arms", "slot": 42, "registry": "arms"},
+    {"name": "feet", "slot": 41, "registry": "feet"},
+    {"name": "shoulders", "slot": 46, "registry": "shoulders"},
+    {"name": "head", "slot": 36, "registry": "head"},
+    {"name": "hands", "slot": 47, "registry": "gloves"},
+    {"name": "shield", "slot": 45, "registry": "shield"}
+  ]
+}

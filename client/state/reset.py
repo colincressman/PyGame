@@ -60,6 +60,7 @@ def reset_client_state():
     config.drag_item        = None
     config.open_chest_uid   = None
     config.chest_drag_slot  = None
+    config.chest_ui_hold_until = 0.0
 
     # Reset animation / combat state
     config.player_facing    = "down"
@@ -84,12 +85,13 @@ def reset_client_state():
     # These are lazily re-created on first use in the new session.
     import rendering.hud as _hud
     import rendering.inventory as _inv
+    import rendering.cache as _cache
     import rendering.display as _disp
     import rendering.mobs as _mobs
     import rendering.stat_screen as _ss
     _hud._font = None
     _inv._font = None
-    _inv._item_images.clear()
+    _cache._ITEM_SURFACE_CACHE.clear()
     _disp._MISSING_TILE_SURFACE = None
     _mobs._mob_timers.clear()
     _mobs._mob_buf.clear()

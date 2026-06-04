@@ -2,7 +2,19 @@ import pygame
 import time
 import config
 from input.controls_actions_v2 import handle_smart_action as _handle_smart_action_v2
+from input.controls_building import handle_world_left_click
+from input.controls_chat import handle_chat_keydown, handle_keybind_listen, try_open_chat
+from input.controls_inventory import (
+    cancel_active_drag,
+    handle_chest_mouse_down,
+    handle_drag_mouse_up,
+    handle_inventory_mouse_down,
+    handle_inventory_right_click,
+)
 from input.controls_movement_v2 import handle_movement
+from input.controls_shop import handle_shop_event
+from input.placeable_data import PLACEABLE_ITEMS as _PLACEABLE_ITEMS
+from input.resource_node_data import NODE_TOOL_REQUIREMENTS as _NODE_TOOL
 from input.tool_data import TOOL_ITEMS, TOOL_DAMAGE, PICK_TIER_RANK
 from rendering.display import toggle_fullscreen
 from rendering.inventory import _is_consumable
@@ -11,37 +23,7 @@ from config import TILE_SIZE, PLAYER_SPEED, SPRINT_SPEED, STEALTH_SPEED, WORLD_M
 _door_last_toggle: float = 0.0   # time.time() of last door toggle; prevents key-repeat flicker
 _DOOR_COOLDOWN: float   = 0.4    # seconds between allowed toggles
 
-# Tool requirements per node type (mirrors server/world/resource_nodes.py NODE_TYPES)
-_NODE_TOOL = {
-    "tree":          "axe",
-    "pine_tree":     "axe",
-    "jungle_tree":   "axe",
-    "palm_tree":     "axe",
-    "stone_deposit": "pickaxe",
-    "coal_deposit":  "pickaxe",
-    "iron_ore":      "pickaxe_stone",
-    "copper_ore":    "pickaxe_stone",
-    "tin_ore":       "pickaxe_stone",
-    "silver_ore":    "pickaxe_iron",
-    "gold_ore":      "pickaxe_iron",
-    "crystal":       "pickaxe_steel",
-    "obsidian":      "pickaxe_steel",
-}
 _HOTBAR_OFFSET = 27  # hotbar row starts at inventory slot 27
-
-# Placeable item IDs → object type string (mirrors server/game_state/placed_objects.py)
-_PLACEABLE_ITEMS = {
-    207: "campfire",      200: "crafting_table", 201: "furnace",
-    250: "wood_wall",     251: "stone_wall",     252: "door",    220: "bed",
-    253: "stone_brick_wall", 254: "stone_brick_floor", 202: "alloy_forge",
-    203: "chest",         204: "part_maker",
-    205: "part_combiner", 206: "embedder",
-    214: "torch",         215: "lantern",
-    # Farming — saplings and ore seeds
-    34:  "tree_sapling",  46: "pine_sapling",  47: "jungle_sapling", 48: "palm_sapling",
-    35:  "iron_seed",     36: "coal_seed",     37: "copper_seed",    38: "tin_seed",
-    39:  "silver_seed",   40: "gold_seed",     41: "crystal_seed",   42: "obsidian_seed",
-}
 
 
 def _hotbar_item():
@@ -84,94 +66,8 @@ def _best_tool_damage(tool_type: str) -> int:
 
 def handle_events(state):
     for event in pygame.event.get():
-        # ── Shop UI: intercept mouse events when shop is open ───────────────
-        if config.show_shop:
-            if event.type == pygame.MOUSEWHEEL:
-                config.shop_scroll = max(0, config.shop_scroll - event.y)
-                continue
-
-            # Right-click: cancel any active drag
-            if event.type == pygame.MOUSEBUTTONDOWN and event.button == 3:
-                if config.drag_item is not None:
-                    if config.drag_slot is not None:
-                        config.player_inventory[config.drag_slot] = config.drag_item
-                    config.drag_slot = None
-                    config.drag_item = None
-                continue
-
-            if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
-                mx, my = event.pos
-                sw, sh = state["WINDOW_WIDTH"], state["WINDOW_HEIGHT"]
-                from rendering.npc_shop import (
-                    merchant_slot_at as _msat, bag_slot_at as _bsat,
-                    close_shop as _close, panel_origin as _spo,
-                    PANEL_W as _SPW,
-                )
-                ppx, ppy = _spo(sw, sh)
-                # Close button [X] at panel-local (PANEL_W-24, 6), size (18, 18)
-                if ppx + _SPW - 24 <= mx <= ppx + _SPW - 6 and ppy + 6 <= my <= ppy + 24:
-                    _close()
-                    continue
-                # Click merchant slot → buy
-                midx = _msat(mx, my, sw, sh)
-                if midx is not None:
-                    config.state_outbox.put({
-                        "type":      "shop_buy",
-                        "npc_type":  config.shop_npc_type,
-                        "shop_slot": midx,
-                    })
-                    continue
-                # Click bag slot → start drag
-                bidx = _bsat(mx, my, sw, sh)
-                if bidx is not None and bidx < len(config.player_inventory):
-                    item = config.player_inventory[bidx]
-                    if item is not None:
-                        config.drag_slot = bidx
-                        config.drag_item = list(item)
-                        config.player_inventory[bidx] = None
-                continue
-
-            if event.type == pygame.MOUSEBUTTONUP and event.button == 1:
-                if config.drag_item is None:
-                    continue
-                mx, my = event.pos
-                sw, sh = state["WINDOW_WIDTH"], state["WINDOW_HEIGHT"]
-                from rendering.npc_shop import (
-                    bag_slot_at as _bsat2, merchant_section_rect as _msr,
-                )
-                # Dropped on merchant grid → sell
-                if (_msr(sw, sh).collidepoint(mx, my)
-                        and config.drag_slot is not None and config.drag_slot < 36):
-                    config.state_outbox.put({
-                        "type":     "shop_sell",
-                        "slot":     config.drag_slot,
-                        "npc_type": config.shop_npc_type,
-                    })
-                    config.drag_slot = None
-                    config.drag_item = None
-                    continue
-                # Dropped on bag slot → swap within bag
-                bidx2 = _bsat2(mx, my, sw, sh)
-                if bidx2 is not None:
-                    target_item = (config.player_inventory[bidx2]
-                                   if bidx2 < len(config.player_inventory) else None)
-                    config.player_inventory[bidx2] = config.drag_item
-                    if config.drag_slot is not None:
-                        config.player_inventory[config.drag_slot] = target_item
-                        config.state_outbox.put({
-                            "type":   "inv_swap",
-                            "slot_a": config.drag_slot,
-                            "slot_b": bidx2,
-                        })
-                    config.drag_slot = None
-                    config.drag_item = None
-                    continue
-                # Dropped outside → return to source
-                if config.drag_slot is not None:
-                    config.player_inventory[config.drag_slot] = config.drag_item
-                config.drag_slot = None
-                config.drag_item = None
-                continue
+        if handle_shop_event(event, state):
+            continue
         # ── Char creator: intercept mouse/scroll when creator is open ───────
         if config.show_char_creator:
             if event.type == pygame.MOUSEWHEEL:
@@ -186,37 +82,13 @@ def handle_events(state):
             state["running"] = False
         elif event.type == pygame.KEYDOWN:
             # ── Chat input mode: intercept all keys while chat is open ──────────
-            if config.chat_open:
-                if event.key == pygame.K_RETURN or event.key == pygame.K_KP_ENTER:
-                    text = config.chat_input.strip()
-                    if text:
-                        config.state_outbox.put({"type": "chat", "text": text})
-                    config.chat_input = ""
-                    config.chat_open  = False
-                elif event.key == pygame.K_ESCAPE:
-                    config.chat_input = ""
-                    config.chat_open  = False
-                elif event.key == pygame.K_BACKSPACE:
-                    config.chat_input = config.chat_input[:-1]
-                else:
-                    if event.unicode and ord(event.unicode) >= 32:
-                        config.chat_input += event.unicode
-                continue  # eat all other events while chat is open
+            if handle_chat_keydown(event):
+                continue
             # ── Open chat with T (when no other UI is blocking) ─────────────────
-            if event.key == pygame.K_t:
-                if (not config.show_inventory and not config.show_menu
-                        and not config.show_stats
-                        and config.show_station_popup is None
-                        and config.open_chest_uid is None):
-                    config.chat_open  = True
-                    config.chat_input = ""
+            if try_open_chat(event):
                 continue
             # ── Keybind rebind: intercept next key while listening ───────────────
-            if config.controls_listen is not None:
-                if event.key != pygame.K_ESCAPE:
-                    config.keybinds[config.controls_listen] = event.key
-                    config.save_keybinds()
-                config.controls_listen = None
+            if handle_keybind_listen(event):
                 continue
             if event.key == config.keybinds["map"]:
                 state["show_map"] = not state["show_map"]
@@ -243,10 +115,7 @@ def handle_events(state):
                         _start_roll(_dx / _length, _dy / _length)
             elif event.key == config.keybinds["inventory"]:
                 # Cancel any active drag before toggling inventory
-                if config.drag_item is not None:
-                    config.player_inventory[config.drag_slot] = config.drag_item
-                    config.drag_slot = None
-                    config.drag_item = None
+                cancel_active_drag()
                 config.pickup_mode = False
                 config.show_inventory = not config.show_inventory
             elif event.key == config.keybinds["interact"]:
@@ -373,15 +242,10 @@ def handle_events(state):
                 toggle_fullscreen(state)
             elif event.key == pygame.K_ESCAPE:
                 # Cancel any active drag first
-                if config.drag_item is not None:
-                    config.player_inventory[config.drag_slot] = config.drag_item
-                    config.drag_slot = None
-                    config.drag_item = None
-                if config.chest_drag_slot is not None:
-                    from rendering.chest import _cancel_drag
-                    _cancel_drag()
+                cancel_active_drag()
                 if config.open_chest_uid is not None:
                     config.open_chest_uid = None
+                    return
                 if config.show_shop:
                     from rendering.npc_shop import close_shop as _close_shop
                     _close_shop()
@@ -400,14 +264,19 @@ def handle_events(state):
                     config.station_popup_uid   = None
                     config.station_popup_scroll = 0
                     config.station_popup_recipe = None
+                    return
                 elif config.show_inventory:
                     config.show_inventory = False
+                    return
                 elif config.show_stats:
                     config.show_stats = False
+                    return
                 elif config.controls_listen is not None:
                     config.controls_listen = None
+                    return
                 elif config.show_controls:
                     config.show_controls = False
+                    return
                 else:
                     config.show_menu = not config.show_menu
         elif event.type == pygame.MOUSEWHEEL:
@@ -426,7 +295,7 @@ def handle_events(state):
                 config.controls_click_pos = event.pos
             elif event.button == 1 and config.show_station_popup == "part_combiner":
                 from rendering.combiner import combiner_popup_hit, valid_for_slot, _compute_preview
-                mx, my = event.pos
+                continue
                 ww, wh = state["WINDOW_WIDTH"], state["WINDOW_HEIGHT"]
                 result = combiner_popup_hit(mx, my, ww, wh)
                 if result is not None:
@@ -584,13 +453,11 @@ def handle_events(state):
                         })
             elif event.button == 1 and config.show_stats:
                 config.stat_click_pos = event.pos
-            elif event.button == 1 and config.open_chest_uid is not None \
-                    and not config.show_menu and not config.show_stats \
-                    and config.show_station_popup is None:
+            elif handle_chest_mouse_down(event, state):
                 # ── Unified chest panel click handler ────────────────────────
                 mx, my = event.pos
                 ww, wh = state["WINDOW_WIDTH"], state["WINDOW_HEIGHT"]
-                mods_chest = pygame.key.get_mods()
+                continue
                 from rendering.chest import chest_slot_at, chest_bag_slot_at
                 cs = chest_slot_at(mx, my, ww, wh)
                 if cs is not None:
@@ -615,6 +482,7 @@ def handle_events(state):
                                         "chest_slot":  cs,
                                         "player_slot": target_bag,
                                     })
+                                    config.chest_ui_hold_until = time.time() + 0.3
                             else:
                                 config.chest_drag_slot = cs
                                 config.drag_item       = list(chest_inv[cs])
@@ -643,6 +511,7 @@ def handle_events(state):
                                             "chest_slot":  target_cs,
                                             "player_slot": bs,
                                         })
+                                        config.chest_ui_hold_until = time.time() + 0.3
                             else:
                                 config.drag_slot = bs
                                 config.drag_item = list(config.player_inventory[bs])
@@ -652,10 +521,10 @@ def handle_events(state):
                         from rendering.chest import _cancel_drag
                         _cancel_drag()
                         config.open_chest_uid = None
-            elif event.button == 1 and config.show_inventory:
+            elif handle_inventory_mouse_down(event, state):
                 mx, my = event.pos
                 ww, wh = state["WINDOW_WIDTH"], state["WINDOW_HEIGHT"]
-                # Check tab click first
+                continue
                 from rendering.inventory import inventory_tab_hit, slot_at
                 inv_tab = inventory_tab_hit(mx, my, ww, wh)
                 if inv_tab is not None:
@@ -694,6 +563,13 @@ def handle_events(state):
                         config.drag_item = list(config.player_inventory[idx])
                         config.player_inventory[idx] = None
             elif event.button == 1 and not (config.show_stats or config.show_menu):
+                handle_world_left_click(
+                    _is_consumable,
+                    _has_tool,
+                    _best_tool_damage,
+                    _HOTBAR_OFFSET,
+                )
+                continue
                 if config.pickup_mode:
                     # Pickup mode: click picks up whatever placed object is at the mouse tile
                     tx, ty = config.mouse_tile
@@ -736,7 +612,8 @@ def handle_events(state):
                             _best_tool_damage,
                             _HOTBAR_OFFSET,
                         )
-            elif event.button == 3 and (config.show_inventory or config.open_chest_uid is not None):               
+            elif handle_inventory_right_click(event, state):
+                continue
                 if config.drag_item is not None:
                     # Cancel any active drag (chest-side or player-side)
                     from rendering.chest import _cancel_drag as _cd
@@ -789,7 +666,8 @@ def handle_events(state):
                             else:
                                 pass  # not equippable and no shop sell
         elif event.type == pygame.MOUSEBUTTONUP:
-            if event.button == 1 and config.drag_item is not None:
+            if handle_drag_mouse_up(event, state):
+                continue
                 from rendering.inventory import slot_at, can_drop_in_slot
                 mx, my = event.pos
                 ww, wh = state["WINDOW_WIDTH"], state["WINDOW_HEIGHT"]
@@ -833,6 +711,7 @@ def handle_events(state):
                             "player_slot": target,
                             **({"merge_dest": merge_dest} if merge_dest else {}),
                         })
+                        config.chest_ui_hold_until = time.time() + 0.3
                     else:
                         # Also try chest→chest slot swap
                         cs2 = _csa(mx, my, ww, wh)
@@ -890,6 +769,7 @@ def handle_events(state):
                                 "player_slot": config.drag_slot,
                                 **({"merge_dest": merge_dest} if merge_dest else {}),
                             })
+                            config.chest_ui_hold_until = time.time() + 0.3
                         else:
                             config.player_inventory[config.drag_slot] = config.drag_item
                         config.drag_slot = None
@@ -959,7 +839,11 @@ def handle_events(state):
                     config.drag_slot = None
                     config.drag_item = None
         elif event.type == pygame.VIDEORESIZE:
+            if state.get("is_fullscreen"):
+                continue
             state["WINDOW_WIDTH"], state["WINDOW_HEIGHT"] = event.w, event.h
+            state["_windowed_size"] = (event.w, event.h)
+            config.WINDOW_WIDTH, config.WINDOW_HEIGHT = event.w, event.h
             state["screen"] = pygame.display.set_mode((state["WINDOW_WIDTH"], state["WINDOW_HEIGHT"]), pygame.RESIZABLE | pygame.DOUBLEBUF)
             state["camera_x"] = state["player_data"]["pos"][0] * TILE_SIZE
             state["camera_y"] = state["player_data"]["pos"][1] * TILE_SIZE

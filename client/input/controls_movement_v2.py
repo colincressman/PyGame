@@ -4,6 +4,8 @@ import time
 import pygame
 
 import config
+from input.placeable_data import WALKABLE_TYPES as _WALKABLE_PLACEABLE_TYPES
+from input.resource_node_data import BLOCKING_NODES, NODE_COLLISION_CY, NODE_COLLISION_R
 from status_effect_data import STATUS_EFFECTS
 from config import PLAYER_SPEED, SPRINT_SPEED, STEALTH_SPEED, WORLD_MAX_TILES
 
@@ -58,9 +60,6 @@ def start_roll(dx: float, dy: float):
 # ---------------------------------------------------------------------------
 # Node collision & cactus damage
 # ---------------------------------------------------------------------------
-_BLOCKING_NODES = {"tree", "pine_tree", "jungle_tree", "palm_tree", "cactus", "stone_deposit", "coal_deposit", "iron_ore"}
-_NODE_COLLISION_R = {"tree": 0.38, "pine_tree": 0.30, "jungle_tree": 0.45, "palm_tree": 0.28, "cactus": 0.32, "stone_deposit": 0.42, "coal_deposit": 0.40, "iron_ore": 0.40}
-_NODE_COLLISION_CY = {"tree": 1.20, "pine_tree": 1.10, "jungle_tree": 1.15, "palm_tree": 1.05}
 _PLAYER_R = 0.32
 _PLAYER_FEET_Y = 0.75
 _cactus_timer = 0.0
@@ -74,11 +73,11 @@ def _node_collisions(px, py, dt):
     feet_py = py + _PLAYER_FEET_Y
     for node in config.world_nodes.values():
         ntype = node.get("type", "")
-        if ntype not in _BLOCKING_NODES:
+        if ntype not in BLOCKING_NODES:
             continue
-        nr = _NODE_COLLISION_R.get(ntype, 0.35)
+        nr = NODE_COLLISION_R.get(ntype, 0.35)
         cx = node["wx"] + 0.5
-        cy = node["wy"] + _NODE_COLLISION_CY.get(ntype, 0.5)
+        cy = node["wy"] + NODE_COLLISION_CY.get(ntype, 0.5)
         min_dist = _PLAYER_R + nr
         if abs(px - cx) > min_dist + 0.1 or abs(feet_py - cy) > min_dist + 0.1:
             continue
@@ -101,10 +100,9 @@ def _node_collisions(px, py, dt):
     # The hitbox is shifted 0.5 tiles (32 px) down to sit at the player's feet.
     _PO_FEET_Y = 0.5
     fpy = py + _PO_FEET_Y          # shifted probe y; px unchanged
-    _WALKABLE_TYPES = frozenset({"bed", "stone_brick_floor", "torch", "lantern"})
     for obj in config.placed_objects.values():
         otype = obj.get("type", "")
-        if otype in _WALKABLE_TYPES:
+        if otype in _WALKABLE_PLACEABLE_TYPES:
             continue
         if otype == "door" and obj.get("state", "closed") == "open":
             continue

@@ -8,8 +8,9 @@ All drag/drop is handled in controls.py.
 import pygame
 from rendering import ui_theme as _T
 import config
+from rendering.cache import get_item_surface
 from rendering.inventory import (
-    _draw_slot, _draw_tooltip, _get_font, _get_item_image,
+    _draw_slot, _draw_tooltip, _get_font,
     SLOT_SIZE, SLOT_PAD,
 )
 
@@ -157,7 +158,7 @@ def draw_chest_ui(screen: pygame.Surface, ww: int, wh: int) -> None:
     # Dragged item cursor
     if config.drag_item is not None:
         item_id, qty = config.drag_item[0], config.drag_item[1]
-        screen.blit(_get_item_image(item_id),
+        screen.blit(get_item_surface(item_id, SLOT_SIZE - 8),
                     (mx - SLOT_SIZE // 2 + 4, my - SLOT_SIZE // 2 + 4))
         if qty > 1:
             txt = font.render(str(qty), True, (255, 255, 255))
