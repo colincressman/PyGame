@@ -29,6 +29,7 @@ try:
 except ImportError:
     _orjson = None             # fallback: stdlib json used below
 import heapq
+from server.world.world_types import BIOME_ID_MAP, CLIFF_ID_MAP, ID_TO_BIOME, ID_TO_CLIFF
 
 queued_chunks = set()
 
@@ -84,32 +85,6 @@ CONT_YS  = np.array([-0.48,-0.22, -0.06,  0.0,   0.07,  0.20,  0.38], dtype=np.f
 # Erosion → PV amplitude scale  (high erosion = flat, no mountains)
 EROSION_XS = np.array([0.0,  0.30,  0.55,  0.80,  1.0 ], dtype=np.float64)
 EROSION_YS = np.array([2.0,  1.5,   0.8,   0.25,  0.08], dtype=np.float64)
-
-# ---------------------------------------------------------------------------
-# Biome ID mapping
-# ---------------------------------------------------------------------------
-BIOME_ID_MAP = {
-    "ocean": 0, "beach": 1, "swamp": 2, "river": 3,
-    "plains": 4, "forest": 5, "desert": 6, "alt_desert": 7,
-    "tropical": 8, "tundra": 9, "mountain": 10,
-}
-
-CLIFF_ID_MAP = {
-    "cliff_north":          100,
-    "cliff_south":          101,
-    "cliff_east":           102,
-    "cliff_west":           103,
-    "cliff_northeast":      104,
-    "cliff_northwest":      105,
-    "cliff_southeast":      106,
-    "cliff_southwest":      107,
-    "cliff_tall_south":     108,
-    "cliff_tall_southwest": 109,
-    "cliff_tall_southeast": 110,
-}
-
-ID_TO_BIOME = {v: k for k, v in BIOME_ID_MAP.items()}
-ID_TO_CLIFF = {v: k for k, v in CLIFF_ID_MAP.items()}
 
 # ---------------------------------------------------------------------------
 # 4D biome profiles  [temperature, humidity, continentalness, erosion]

@@ -15,6 +15,14 @@ import uuid
 from server.shared_lock import placed_objects_lock
 from server.item_data import get_effective_health_max, get_item as _get_item
 from server.config import CHUNK_DIR as _CHUNK_DIR, RENDER_DIST_TILES as _RENDER_DIST_TILES
+from server.game_state.placeable_data import (
+    FLOOR_TYPES as _FLOOR_TYPES,
+    GROWS_INTO,
+    GROW_TIMES,
+    ITEM_FOR_TYPE,
+    PLACEABLE_ITEMS,
+    SOLID_TYPES,
+)
 
 # {uid: {"type": str, "pos": [tx, ty], "placed_by": pid}}
 placed_objects: dict = {}
@@ -26,78 +34,6 @@ _tile_index: dict[tuple[int, int], str] = {}
 # Floor objects only (stone_brick_floor) — separate layer so furniture can be
 # placed on top of floors without "tile occupied" rejection.
 _floor_index: dict[tuple[int, int], str] = {}
-
-# Floor object types (can coexist with non-floor objects at the same tile)
-_FLOOR_TYPES = frozenset({"stone_brick_floor"})
-
-# Map item_id → object type (and reverse)
-PLACEABLE_ITEMS: dict[int, str] = {
-    207: "campfire",
-    200: "crafting_table",
-    201: "furnace",
-    250: "wood_wall",
-    251: "stone_wall",
-    252: "door",
-    220: "bed",
-    253: "stone_brick_wall",
-    254: "stone_brick_floor",
-    202: "alloy_forge",
-    203: "chest",
-    204: "part_maker",
-    205: "part_combiner",
-    206: "embedder",
-    214: "torch",
-    215: "lantern",
-    # Farming — saplings and ore seeds
-    34:  "tree_sapling",
-    46:  "pine_sapling",
-    47:  "jungle_sapling",
-    48:  "palm_sapling",
-    35:  "iron_seed",
-    36:  "coal_seed",
-    37:  "copper_seed",
-    38:  "tin_seed",
-    39:  "silver_seed",
-    40:  "gold_seed",
-    41:  "crystal_seed",
-    42:  "obsidian_seed",
-}
-ITEM_FOR_TYPE: dict[str, int] = {v: k for k, v in PLACEABLE_ITEMS.items()}
-
-# How long each planted type takes to mature (seconds)
-GROW_TIMES: dict[str, int] = {
-    "tree_sapling":  600,
-    "pine_sapling":  600,
-    "jungle_sapling": 600,
-    "palm_sapling":  600,
-    "iron_seed":    1200,
-    "coal_seed":     900,
-    "copper_seed":  1500,
-    "tin_seed":     1500,
-    "silver_seed":  2400,
-    "gold_seed":    3600,
-    "crystal_seed": 5400,
-    "obsidian_seed":7200,
-}
-
-# What node_type a matured seed becomes
-GROWS_INTO: dict[str, str] = {
-    "tree_sapling":  "tree",
-    "pine_sapling":  "pine_tree",
-    "jungle_sapling": "jungle_tree",
-    "palm_sapling":  "palm_tree",
-    "iron_seed":    "iron_ore",
-    "coal_seed":    "coal_deposit",
-    "copper_seed":  "copper_ore",
-    "tin_seed":     "tin_ore",
-    "silver_seed":  "silver_ore",
-    "gold_seed":    "gold_ore",
-    "crystal_seed": "crystal",
-    "obsidian_seed":"obsidian",
-}
-
-# Types that block movement (doors handled dynamically based on state)
-SOLID_TYPES = frozenset({"campfire", "crafting_table", "furnace", "alloy_forge", "wood_wall", "stone_wall", "door", "stone_brick_wall", "part_maker", "part_combiner", "embedder"})  # torch and lantern are NOT solid — players walk through them
 
 _SAVE_PATH = os.path.join(_CHUNK_DIR, "placed_objects.json")
 _dirty = False
@@ -251,7 +187,10 @@ def place_object(pid: str, obj_type: str, pos: list, inventory: list) -> tuple:
             entry["planted_at"] = time.time()
             entry["grow_time"]  = GROW_TIMES[obj_type]
         placed_objects[uid] = entry
-        _tile_index[(tx, ty)] = uid
+        if is_floor:
+            _floor_index[(tx, ty)] = uid
+        else:
+            _tile_index[(tx, ty)] = uid
         _mark_dirty()
         _bump_solid_revision()
 

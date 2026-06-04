@@ -4,6 +4,7 @@ import json
 from queue import Queue
 import queue
 import pygame
+from world_types import BIOME_ID_TO_NAME, CLIFF_ID_TO_NAME
 
 # Server connection details
 HOST = '127.0.0.1'
@@ -60,18 +61,6 @@ PLAYER_START_Y = 272
 
 # Debugging
 DEBUG_MODE = True
-
-BIOME_ID_TO_NAME = {
-    0: "ocean", 1: "beach", 2: "swamp", 3: "river", 4: "plains",
-    5: "forest", 6: "desert", 7: "alt_desert", 8: "tropical",
-    9: "tundra", 10: "mountain"
-}
-
-CLIFF_ID_TO_NAME = {
-    100: "cliff_north", 101: "cliff_south", 102: "cliff_east", 103: "cliff_west",
-    104: "cliff_northeast", 105: "cliff_northwest", 106: "cliff_southeast", 107: "cliff_southwest",
-    108: "cliff_tall_south", 109: "cliff_tall_southwest", 110: "cliff_tall_southeast"
-}
 
 # Ensure paths are correct regardless of where the script is run from
 base_dir = os.path.dirname(os.path.abspath(__file__))
@@ -179,6 +168,7 @@ station_popup_tab: str = "weapon"   # active tab for crafting_table popup
 # Chest interaction
 open_chest_uid: str | None = None   # uid of the chest currently open, or None
 chest_drag_slot: int | None = None  # chest-side slot being dragged from, or None
+chest_ui_hold_until: float = 0.0    # briefly preserve optimistic chest state across stale server snapshots
 
 # Part Combiner state
 combiner_slots: list = [None, None, None, None]  # inv slot indices for [Mold, Primary, Handle, Binding]

@@ -41,6 +41,7 @@ from server.item_data import get_equip_bonuses as _get_equip_bonuses, drain_dura
 from server.game_state.status_effect_data import STATUS_EFFECTS as _STATUS_EFFECTS
 from server.game_state.status_effects import apply_status_effect as _apply_status_effect, tick_effects_on_entity as _tick_effects_on_entity
 from server.mobs.mob_data import MOB_TYPES
+from server.world.world_types import WATER_BIOMES
 # NOTE: get_world_time is imported lazily inside update_mobs() to avoid
 # the circular import that would arise from mob_manager ↔ game_sync at module level.
 
@@ -49,7 +50,6 @@ from server.mobs.mob_data import MOB_TYPES
 # ---------------------------------------------------------------------------
 SPAWN_INTERVAL  = 1.0 / (SPAWN_RATE_COEFF * TICK_RATE)  # base spawn cadence
 COIN_ITEM_ID    = 1       # coin (economy currency)
-WATER_BIOMES    = frozenset({0, 3})  # biome IDs: 0=ocean, 3=river
 _MOB_OBJ_MIN_DSQ   = (0.35 + 0.40) ** 2
 # SPAWN_RADIUS, SPAWN_MIN_DIST, MELEE_KNOCKBACK, MAX_SLIME_LEVEL, MOB_SEP_DIST, MOB_SEP_FORCE,
 # STEALTH_AGGRO_MULT — all imported from server.config above

@@ -1,0 +1,32 @@
+{
+  "placeables": [
+    {"item_id": 207, "type": "campfire", "solid": true},
+    {"item_id": 200, "type": "crafting_table", "solid": true, "station": true},
+    {"item_id": 201, "type": "furnace", "solid": true, "station": true},
+    {"item_id": 250, "type": "wood_wall", "solid": true},
+    {"item_id": 251, "type": "stone_wall", "solid": true},
+    {"item_id": 252, "type": "door", "solid": true},
+    {"item_id": 220, "type": "bed", "solid": false},
+    {"item_id": 253, "type": "stone_brick_wall", "solid": true},
+    {"item_id": 254, "type": "stone_brick_floor", "solid": false, "floor": true},
+    {"item_id": 202, "type": "alloy_forge", "solid": true, "station": true},
+    {"item_id": 203, "type": "chest", "solid": false, "walkable": false, "station": true},
+    {"item_id": 204, "type": "part_maker", "solid": true, "station": true},
+    {"item_id": 205, "type": "part_combiner", "solid": true, "station": true},
+    {"item_id": 206, "type": "embedder", "solid": true, "station": true},
+    {"item_id": 214, "type": "torch", "solid": false},
+    {"item_id": 215, "type": "lantern", "solid": false},
+    {"item_id": 34, "type": "tree_sapling", "solid": false, "grow_time": 600, "grows_into": "tree"},
+    {"item_id": 46, "type": "pine_sapling", "solid": false, "grow_time": 600, "grows_into": "pine_tree"},
+    {"item_id": 47, "type": "jungle_sapling", "solid": false, "grow_time": 600, "grows_into": "jungle_tree"},
+    {"item_id": 48, "type": "palm_sapling", "solid": false, "grow_time": 600, "grows_into": "palm_tree"},
+    {"item_id": 35, "type": "iron_seed", "solid": false, "grow_time": 1200, "grows_into": "iron_ore"},
+    {"item_id": 36, "type": "coal_seed", "solid": false, "grow_time": 900, "grows_into": "coal_deposit"},
+    {"item_id": 37, "type": "copper_seed", "solid": false, "grow_time": 1500, "grows_into": "copper_ore"},
+    {"item_id": 38, "type": "tin_seed", "solid": false, "grow_time": 1500, "grows_into": "tin_ore"},
+    {"item_id": 39, "type": "silver_seed", "solid": false, "grow_time": 2400, "grows_into": "silver_ore"},
+    {"item_id": 40, "type": "gold_seed", "solid": false, "grow_time": 3600, "grows_into": "gold_ore"},
+    {"item_id": 41, "type": "crystal_seed", "solid": false, "grow_time": 5400, "grows_into": "crystal"},
+    {"item_id": 42, "type": "obsidian_seed", "solid": false, "grow_time": 7200, "grows_into": "obsidian"}
+  ]
+}

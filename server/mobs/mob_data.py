@@ -9,20 +9,7 @@ Biome name → ID mapping mirrors server/world/resource_nodes.py.
 """
 import json
 import os
-
-_BIOME_IDS: dict[str, int] = {
-    "ocean":      0,
-    "beach":      1,
-    "swamp":      2,
-    "river":      3,
-    "plains":     4,
-    "forest":     5,
-    "desert":     6,
-    "alt_desert": 7,
-    "tropical":   8,
-    "tundra":     9,
-    "mountain":   10,
-}
+from server.world.world_types import BIOME_ID_MAP as _BIOME_IDS
 
 _DATA_DIR = os.path.normpath(
     os.path.join(os.path.dirname(__file__), "..", "..", "data", "mobs")

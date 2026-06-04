@@ -15,6 +15,9 @@ Each LayerSpec carries:
   tint   : tuple | None   RGBA multiplier applied via BLEND_RGBA_MULT (None = no tint)
 """
 
+import json
+import os
+
 from typing import NamedTuple
 
 
@@ -328,7 +331,35 @@ _NECK: dict[int, LayerSpec] = {
     3657: LayerSpec("equipment/neck/amulet/star/male",    "bronze_purple"),          # Shadow Star
 }
 
-_HOTBAR_START = 27  # inventory slot index of hotbar slot 0
+def _load_layer_manifest() -> tuple[int, int, list[dict]]:
+    path = os.path.join(
+        os.path.dirname(os.path.abspath(__file__)),
+        "..",
+        "..",
+        "data",
+        "equipment_layers.json",
+    )
+    with open(path, "r", encoding="utf-8") as f:
+        raw = json.load(f)
+    return (
+        int(raw.get("hotbar_start", 27)),
+        int(raw.get("back_slot", 44)),
+        list(raw.get("render_order", [])),
+    )
+
+
+_HOTBAR_START, _BACK_SLOT, _LAYER_MANIFEST = _load_layer_manifest()
+_LAYER_REGISTRIES = {
+    "legs": _LEGS,
+    "neck": _NECK,
+    "torso": _TORSO,
+    "arms": _ARMS,
+    "feet": _FEET,
+    "head": _HEAD,
+    "shoulders": _SHOULDERS,
+    "gloves": _GLOVES,
+    "shield": _SHIELD,
+}
 
 
 # ---------------------------------------------------------------------------
@@ -405,13 +436,30 @@ def get_layers(inventory: list) -> list[LayerSpec]:
     return layers
 
 
+def _get_layers_from_manifest(inventory: list) -> list[LayerSpec]:
+    layers: list[LayerSpec] = []
+    for entry in _LAYER_MANIFEST:
+        registry = _LAYER_REGISTRIES.get(entry.get("registry"))
+        if registry is None:
+            continue
+        item_id = _slot_item_id(inventory, int(entry.get("slot", -1)))
+        if entry.get("default"):
+            layers.append(registry.get(item_id, _LEGS_DEFAULT))
+        elif item_id is not None and item_id in registry:
+            layers.append(registry[item_id])
+    return layers
+
+
+get_layers = _get_layers_from_manifest
+
+
 def get_back_layer(inventory: list) -> LayerSpec | None:
     """
     Return the LayerSpec for the cape/cloak worn in slot 44 (back),
     or None if the slot is empty or holds an unknown item.
     Capes must be rendered BEFORE the body so they appear behind the character.
     """
-    cape_id = _slot_item_id(inventory, 44)
+    cape_id = _slot_item_id(inventory, _BACK_SLOT)
     return _CAPE.get(cape_id) if cape_id is not None else None
 
 
@@ -421,7 +469,7 @@ def get_wing_item(inventory: list) -> tuple[str, str, str] | None:
     or None if no wing item is equipped there.
     Wings render as two layers (bg + fg) around the body.
     """
-    back_id = _slot_item_id(inventory, 44)
+    back_id = _slot_item_id(inventory, _BACK_SLOT)
     return _WINGS.get(back_id) if back_id is not None else None
 
 
@@ -442,13 +490,13 @@ def get_layers_from_equip_ids(equip_ids: dict) -> list[LayerSpec]:
 
 def get_back_layer_from_equip_ids(equip_ids: dict) -> LayerSpec | None:
     """Return the back/cape LayerSpec from a compact {slot_index: item_id} dict."""
-    item_id = equip_ids.get(44) or equip_ids.get("44")
+    item_id = equip_ids.get(_BACK_SLOT) or equip_ids.get(str(_BACK_SLOT))
     return _CAPE.get(item_id) if item_id is not None else None
 
 
 def get_wing_item_from_equip_ids(equip_ids: dict) -> tuple[str, str, str] | None:
     """Return (bg_folder, fg_folder, colour) from a compact {slot_index: item_id} dict, or None."""
-    item_id = equip_ids.get(44) or equip_ids.get("44")
+    item_id = equip_ids.get(_BACK_SLOT) or equip_ids.get(str(_BACK_SLOT))
     return _WINGS.get(item_id) if item_id is not None else None
 
 

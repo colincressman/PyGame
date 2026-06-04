@@ -12,6 +12,7 @@ from server.player_save import load_player, default_player_stats, _SAFE_ID
 from server.network.combat import handle_attack
 from server.ops import is_banned
 from server.session_auth import issue_token, verify_token
+from server.world.world_types import WATER_BIOMES
 
 # Minimum interval between accepted movement packets per client (half the server tick period)
 _UDP_MIN_INTERVAL = 1.0 / (TICK_RATE * 2)
@@ -26,9 +27,6 @@ pending_udp_assignments = None
 client_id_counter = None
 _world_data = None
 
-_WATER_BIOMES = frozenset({0, 3})  # biome IDs: 0=ocean, 3=river
-
-
 def _is_safe_player_id(player_id) -> bool:
     return isinstance(player_id, str) and bool(_SAFE_ID.match(player_id))
 
@@ -40,7 +38,7 @@ def _safe_spawn_pos(raw_pos):
     """
     from server.world.dyn_chunk_gen import get_tile_biome
     tx, ty = int(raw_pos[0]), int(raw_pos[1])
-    if get_tile_biome(tx, ty, _world_data) not in _WATER_BIOMES:
+    if get_tile_biome(tx, ty, _world_data) not in WATER_BIOMES:
         return raw_pos
     # Scan outward from the requested position for the nearest dry tile
     for r in range(1, 100):
@@ -49,7 +47,7 @@ def _safe_spawn_pos(raw_pos):
                 if abs(dx) != r and abs(dy) != r:
                     continue  # only check perimeter of expanding square
                 nx, ny = tx + dx, ty + dy
-                if get_tile_biome(nx, ny, _world_data) not in _WATER_BIOMES:
+                if get_tile_biome(nx, ny, _world_data) not in WATER_BIOMES:
                     return [float(nx), float(ny)]
     return [0.0, 0.0]  # fallback (shouldn't happen with radius 100)
 

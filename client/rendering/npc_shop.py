@@ -19,9 +19,10 @@ Interactions:
 """
 import pygame
 import config
+from rendering.cache import get_item_surface
 from rendering.inventory import (
     SLOT_SIZE as _S, SLOT_PAD as _SP, GRID_COLS as _COLS,
-    _draw_slot, _get_item_image, _get_item_name as _iname,
+    _draw_slot, _get_item_name as _iname,
     _get_font, _draw_tooltip, _load_item_names,
 )
 
@@ -209,7 +210,7 @@ def draw_shop(screen: pygame.Surface) -> None:
 
     # ── Dragged item follows cursor ───────────────────────────────────────────
     if dragging:
-        screen.blit(_get_item_image(config.drag_item[0]),
+        screen.blit(get_item_surface(config.drag_item[0], _S - 8),
                     (mx - _S // 2 + 4, my - _S // 2 + 4))
         qty = config.drag_item[1]
         if qty > 1:

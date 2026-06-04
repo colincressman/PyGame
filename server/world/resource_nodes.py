@@ -18,44 +18,12 @@ import time
 import threading
 import atexit
 from server.world.tool_data import TOOL_ITEMS, TOOL_DAMAGE, PICK_TIER_RANK
-
-# ---- Biome ID constants (match dyn_chunk_gen.py) ----
-OCEAN, BEACH, SWAMP, RIVER, PLAINS, FOREST = 0, 1, 2, 3, 4, 5
-DESERT, ALT_DESERT, TROPICAL, TUNDRA, MOUNTAIN = 6, 7, 8, 9, 10
+from server.world.resource_node_data import NODE_TYPES
 
 # _CHUNK_SIZE and _CHUNK_DIR come from server config; _PADDING is local world-gen detail
 from server.config import CHUNK_SIZE as _CHUNK_SIZE, CHUNK_DIR as _CHUNK_DIR, WORLD_SEED as _WORLD_SEED
 _PADDING    = 1
 
-# ---- Node type definitions ----
-# yields: [(item_id, min_qty, max_qty)]
-# tool:   None | "axe" | "pickaxe" | "pickaxe_stone"
-# density: per-tile spawn probability in allowed biomes
-NODE_TYPES: dict[str, dict] = {
-    "tree":          {"hp": 6, "yields": [(10, 2, 4), (12, 1, 2)],  "tool": "axe",           "respawn": 120,  "density": 0.045, "biomes": {FOREST, PLAINS},                           "permanent": True, "seed_drop": (34, 0.20)},
-    "pine_tree":     {"hp": 6, "yields": [(43, 2, 4), (12, 1, 2)], "tool": "axe",           "respawn": 120,  "density": 0.040, "biomes": {TUNDRA, MOUNTAIN},                          "permanent": True, "seed_drop": (46, 0.20)},
-    "jungle_tree":   {"hp": 8, "yields": [(44, 2, 5), (12, 1, 2)], "tool": "axe",           "respawn": 150,  "density": 0.050, "biomes": {TROPICAL},                                  "permanent": True, "seed_drop": (47, 0.20)},
-    "palm_tree":     {"hp": 5, "yields": [(45, 2, 4), (12, 1, 1)], "tool": "axe",           "respawn": 100,  "density": 0.035, "biomes": {BEACH},                                    "permanent": True, "seed_drop": (48, 0.20)},
-    "stick_pile":    {"hp": 1, "yields": [(12, 2, 4)],              "tool": None,            "respawn": 45,   "density": 0.022, "biomes": {FOREST, PLAINS, TROPICAL}},
-    "stone_deposit": {"hp": 20, "yields": [(11, 1, 3)],              "tool": "pickaxe",       "respawn": 180,  "density": 0.028, "biomes": {MOUNTAIN, TUNDRA, PLAINS}},
-    "iron_ore":      {"hp": 20, "yields": [(21, 1, 2)],             "tool": "pickaxe_stone", "respawn": 300,  "density": 0.003, "biomes": {MOUNTAIN},                "min_dist": 3,   "permanent": True, "seed_drop": (35, 0.04)},
-    "coal_deposit":  {"hp": 20, "yields": [(20, 1, 2)],             "tool": "pickaxe",       "respawn": 240,  "density": 0.008, "biomes": {MOUNTAIN, TUNDRA},        "min_dist": 2,   "permanent": True, "seed_drop": (36, 0.04)},
-    "herb_patch":    {"hp": 1, "yields": [(13,  1, 2)],             "tool": None,           "respawn": 60,   "density": 0.018, "biomes": {PLAINS, FOREST, SWAMP}},
-    "cactus":        {"hp": 2, "yields": [(15,  1, 3)],             "tool": None,           "respawn": 90,   "density": 0.012, "biomes": {DESERT, ALT_DESERT}},
-    "reed_cluster":  {"hp": 1, "yields": [(18, 2, 4)],             "tool": None,           "respawn": 60,   "density": 0.014, "biomes": {SWAMP, RIVER}},
-    "seashell_bed":  {"hp": 1, "yields": [(17,  1, 3)],             "tool": None,           "respawn": 60,   "density": 0.012, "biomes": {BEACH}},
-    "mushroom":      {"hp": 1, "yields": [(14,  1, 2)],             "tool": None,           "respawn": 60,   "density": 0.012, "biomes": {SWAMP, FOREST}},
-    "snow_crystal":  {"hp": 1, "yields": [(16,  1, 2)],             "tool": None,           "respawn": 60,   "density": 0.016, "biomes": {TUNDRA}},
-    "bone_pile":     {"hp": 1, "yields": [(19, 2, 4)],             "tool": None,           "respawn": 120,  "density": 0.012, "biomes": {DESERT, ALT_DESERT}},
-    "clay_deposit":  {"hp": 2, "yields": [(30, 2, 4)],             "tool": None,           "respawn": 90,   "density": 0.018, "biomes": {RIVER, SWAMP, PLAINS, BEACH}},
-    # --- Distance-gated ores (min_dist = chunk distance from origin) ---
-    "copper_ore":   {"hp": 25, "yields": [(22, 1, 2)], "tool": "pickaxe_stone", "respawn": 240, "density": 0.004, "biomes": {MOUNTAIN, PLAINS},         "min_dist": 15, "permanent": True, "seed_drop": (37, 0.025)},
-    "tin_ore":      {"hp": 25, "yields": [(23, 1, 2)], "tool": "pickaxe_stone", "respawn": 240, "density": 0.003, "biomes": {MOUNTAIN, DESERT},         "min_dist": 15, "permanent": True, "seed_drop": (38, 0.025)},
-    "silver_ore":   {"hp": 30, "yields": [(24, 1, 2)], "tool": "pickaxe_iron",  "respawn": 360, "density": 0.003, "biomes": {MOUNTAIN, TUNDRA},         "min_dist": 50, "permanent": True, "seed_drop": (39, 0.015)},
-    "gold_ore":     {"hp": 35, "yields": [(25, 1, 2)], "tool": "pickaxe_iron",  "respawn": 420, "density": 0.002, "biomes": {MOUNTAIN, DESERT},         "min_dist": 75, "permanent": True, "seed_drop": (40, 0.010)},
-    "crystal":      {"hp": 40, "yields": [(26, 1, 1)], "tool": "pickaxe_steel", "respawn": 600, "density": 0.001, "biomes": {MOUNTAIN},                 "min_dist": 100, "permanent": True, "seed_drop": (41, 0.008)},
-    "obsidian":     {"hp": 50, "yields": [(27, 1, 1)], "tool": "pickaxe_steel", "respawn": 720, "density": 0.001, "biomes": {MOUNTAIN},                 "min_dist": 130, "permanent": True, "seed_drop": (42, 0.005)},
-}
 
 # ---- Runtime node state (in-memory; resets on server restart) ----
 _state_lock    = threading.Lock()

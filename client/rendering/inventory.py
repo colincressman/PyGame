@@ -1,6 +1,7 @@
 import os
 import json
 import pygame
+from rendering.cache import get_item_surface
 from rendering.gem_data import GEM_COLORS
 from rendering.progression_data import QUALITY_BORDERS, QUALITY_COLORS, QUALITY_SELL_MULT, STAT_LABELS
 from rendering import ui_theme as _T
@@ -12,10 +13,8 @@ HOTBAR_SLOTS = 9
 GRID_ROWS    = 4
 GRID_COLS    = 9
 
-_item_images = {}
 _font = None
 _tooltip_font = None
-_items_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "data", "texturepack", "items")
 
 # ── Item name lookup (mirrors server/items.json) ────────────────────────────
 _ITEM_NAMES = {}
@@ -83,18 +82,7 @@ def _get_tooltip_font():
 
 
 def _get_item_image(item_id):
-    if item_id not in _item_images:
-        path = os.path.join(_items_dir, f"{item_id}.png")
-        img_size = SLOT_SIZE - 8
-        try:
-            img = pygame.image.load(path).convert_alpha()
-            _item_images[item_id] = pygame.transform.scale(img, (img_size, img_size))
-        except Exception:
-            from rendering.item_art import draw_item
-            surf = pygame.Surface((img_size, img_size), pygame.SRCALPHA)
-            draw_item(surf, 0, 0, img_size, item_id)
-            _item_images[item_id] = surf
-    return _item_images[item_id]
+    return get_item_surface(item_id, SLOT_SIZE - 8)
 
 
 def _draw_slot(screen, x, y, item, selected=False, hover=False):

@@ -4,6 +4,7 @@ import pygame, time, queue
 import math as _math
 import config as _config
 from config import BIOME_ID_TO_NAME, CHUNK_SIZE, CLIFF_ID_TO_NAME, FONT_NAME, FONT_SIZE, TILE_SIZE
+from input.resource_node_data import NODE_RENDER_SCALE, NODE_SIZE_DEFAULT, Y_SORTED_NODES
 from shared_lock import data_lock
 from rendering.light_sources import apply_light_holes as _apply_light_holes
 from rendering.projectile_data import PROJECTILE_COLORS, PROJECTILE_GLOBALS
@@ -36,21 +37,27 @@ def get_font():
     return pygame.font.SysFont(FONT_NAME, FONT_SIZE)
 
 def toggle_fullscreen(state):
+    state.setdefault("_windowed_size", (state["WINDOW_WIDTH"], state["WINDOW_HEIGHT"]))
     state["is_fullscreen"] = not state["is_fullscreen"]
+    _config.is_fullscreen = state["is_fullscreen"]
 
     if state["is_fullscreen"]:
-        pygame.display.quit()
-        time.sleep(0.05)
-        pygame.display.init()
-        state["screen"] = pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
+        state["_windowed_size"] = (state["WINDOW_WIDTH"], state["WINDOW_HEIGHT"])
+        state["screen"] = pygame.display.set_mode((0, 0), pygame.FULLSCREEN | pygame.DOUBLEBUF)
         info = pygame.display.Info()
         state["WINDOW_WIDTH"], state["WINDOW_HEIGHT"] = info.current_w, info.current_h
     else:
-        state["WINDOW_WIDTH"], state["WINDOW_HEIGHT"] = 1280, 720
+        state["WINDOW_WIDTH"], state["WINDOW_HEIGHT"] = state.get(
+            "_windowed_size",
+            (state["WINDOW_WIDTH"], state["WINDOW_HEIGHT"]),
+        )
         state["screen"] = pygame.display.set_mode(
             (state["WINDOW_WIDTH"], state["WINDOW_HEIGHT"]),
-            pygame.RESIZABLE
+            pygame.RESIZABLE | pygame.DOUBLEBUF
         )
+
+    _config.WINDOW_WIDTH = state["WINDOW_WIDTH"]
+    _config.WINDOW_HEIGHT = state["WINDOW_HEIGHT"]
 
     px, py = state["player_data"]["pos"]
     state["camera_x"] = px * TILE_SIZE
@@ -72,8 +79,6 @@ def draw_world_items(screen, world_items, offset_x, offset_y):
         draw_item(screen, sx, sy, item_size, item.get("item_id", 1))
 
 
-def draw_placed_objects(screen, placed_objects: dict, offset_x: int, offset_y: int):
-    """Render campfires, crafting tables, and furnaces placed in the world."""
 def draw_placed_object(screen, obj: dict, offset_x: int, offset_y: int):
     """Render a single placed world object (campfire / crafting_table / furnace)."""
     T     = TILE_SIZE
@@ -374,37 +379,10 @@ def draw_placement_ghost(screen, offset_x: int, offset_y: int):
 
 
 
-# Nodes that should render larger than the default (values > 1.0 overhang the tile)
-_NODE_SIZE_OVERRIDE: dict[str, float] = {
-    "tree":          3.2,   # ~102 px — ~2× the player (~48 px tall)
-    "pine_tree":     3.4,   # slightly taller / narrower
-    "jungle_tree":   3.6,   # tall canopy
-    "palm_tree":     3.0,   # shorter trunk, smaller canopy
-    "cactus":        1.8,   # ~58 px  — ~1.2× the player
-    "stone_deposit": 1.5,   # ~48 px  — cluster of rocks
-    "coal_deposit":  1.4,   # ~45 px
-    "iron_ore":      1.4,   # ~45 px
-    "copper_ore":    1.4,
-    "tin_ore":       1.4,
-    "silver_ore":    1.4,
-    "gold_ore":      1.4,
-    "crystal":       1.6,
-    "obsidian":      1.5,
-}
-_NODE_SIZE_DEFAULT = 0.65
-
-# These node types participate in Y-depth sorting with the player and mobs
-_Y_SORTED_NODES = {
-    "tree", "pine_tree", "jungle_tree", "palm_tree",
-    "cactus", "stone_deposit", "coal_deposit", "iron_ore",
-    "copper_ore", "tin_ore", "silver_ore", "gold_ore", "crystal", "obsidian",
-}
-
-
 def _draw_node_at(screen, node, offset_x, offset_y):
     """Draw one node sprite and its hit-progress bar."""
     ntype     = node.get("type", "tree")
-    scale     = _NODE_SIZE_OVERRIDE.get(ntype, _NODE_SIZE_DEFAULT)
+    scale     = NODE_RENDER_SCALE.get(ntype, NODE_SIZE_DEFAULT)
     node_size = int(TILE_SIZE * scale)
     # Horizontal: centre on the tile.  Vertical: ground trunk to tile bottom.
     pad_x = (TILE_SIZE - node_size) // 2
@@ -443,7 +421,7 @@ def get_node_drawables(screen, world_nodes, offset_x, offset_y):
         ntype     = node.get("type", "tree")
         if ntype == "item_drop":
             continue   # rendered separately as item sprites in client.py
-        scale     = _NODE_SIZE_OVERRIDE.get(ntype, _NODE_SIZE_DEFAULT)
+        scale     = NODE_RENDER_SCALE.get(ntype, NODE_SIZE_DEFAULT)
         node_size = int(TILE_SIZE * scale)
         pad_x = (TILE_SIZE - node_size) // 2
         pad_y = TILE_SIZE - node_size
@@ -456,7 +434,7 @@ def get_node_drawables(screen, world_nodes, offset_x, offset_y):
         if sy + node_size < 0 or sy > screen_rect.height:
             continue
 
-        if ntype in _Y_SORTED_NODES:
+        if ntype in Y_SORTED_NODES:
             # Sort on the trunk/base position (bottom of the tile the node occupies)
             sort_y = node["wy"] + 1.0
             drawables.append((sort_y, lambda n=node: _draw_node_at(screen, n, offset_x, offset_y)))
@@ -522,6 +500,22 @@ def draw_sleep_overlay(screen: pygame.Surface, w: int, h: int) -> None:
 # Element → (core_colour, glow_colour)
 _PROJ_RADIUS = int(PROJECTILE_GLOBALS.get("render_core_radius", 6))
 _PROJ_GLOW_RADIUS = int(PROJECTILE_GLOBALS.get("render_glow_radius", 11))
+_PROJECTILE_GLOW_SURFACES: dict[tuple[tuple[int, int, int], int], pygame.Surface] = {}
+
+
+def _get_projectile_glow_surface(glow_col: tuple[int, int, int]) -> pygame.Surface:
+    key = (glow_col, _PROJ_GLOW_RADIUS)
+    surf = _PROJECTILE_GLOW_SURFACES.get(key)
+    if surf is None:
+        surf = pygame.Surface((_PROJ_GLOW_RADIUS * 2, _PROJ_GLOW_RADIUS * 2), pygame.SRCALPHA)
+        pygame.draw.circle(
+            surf,
+            (*glow_col, 90),
+            (_PROJ_GLOW_RADIUS, _PROJ_GLOW_RADIUS),
+            _PROJ_GLOW_RADIUS,
+        )
+        _PROJECTILE_GLOW_SURFACES[key] = surf
+    return surf
 
 
 def draw_projectiles(screen: pygame.Surface) -> None:
@@ -535,10 +529,7 @@ def draw_projectiles(screen: pygame.Surface) -> None:
             core_col, glow_col = PROJECTILE_COLORS.get(elem, ((200, 200, 200), (140, 140, 140)))
             sx = int(wx * TILE_SIZE + offset_x + TILE_SIZE // 2)
             sy = int(wy * TILE_SIZE + offset_y + TILE_SIZE // 2)
-            # Glow (alpha circle on a temp surface)
-            glow_surf = pygame.Surface((_PROJ_GLOW_RADIUS * 2, _PROJ_GLOW_RADIUS * 2), pygame.SRCALPHA)
-            pygame.draw.circle(glow_surf, (*glow_col, 90),
-                               (_PROJ_GLOW_RADIUS, _PROJ_GLOW_RADIUS), _PROJ_GLOW_RADIUS)
+            glow_surf = _get_projectile_glow_surface(glow_col)
             screen.blit(glow_surf, (sx - _PROJ_GLOW_RADIUS, sy - _PROJ_GLOW_RADIUS))
             # Core
             pygame.draw.circle(screen, core_col, (sx, sy), _PROJ_RADIUS)

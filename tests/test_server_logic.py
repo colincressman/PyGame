@@ -7,6 +7,7 @@ from server.game_state import world_items
 from server.game_state import game_sync
 from server.game_state import gem_data
 from server.game_state import mold_data
+from server.game_state import placeable_data
 from server.game_state import progression_data
 from server.game_state import placed_objects
 from server.game_state import repair
@@ -15,7 +16,9 @@ from server.network import combat, tcp_routes, tcp_state_handlers_v2
 from server.network import commands
 from server import session_auth
 from server.world import npc_shops
+from server.world import resource_node_data
 from server.world import tool_data
+from server.world import world_types
 
 
 class GiveItemTests(unittest.TestCase):
@@ -270,6 +273,46 @@ class DataRegistryTests(unittest.TestCase):
         self.assertEqual(progression_data.QUALITY_SELL_MULT["Rare"], 4)
         self.assertEqual(progression_data.STAT_UPGRADES["health_max"]["amount"], 20.0)
         self.assertEqual(progression_data.CRAFT_QUALITY_TIERS[0]["name"], "Common")
+
+    def test_resource_node_registry_loads_biomes_and_seed_drop_data(self):
+        self.assertEqual(resource_node_data.NODE_TYPES["obsidian"]["hp"], 50)
+        self.assertIn(world_types.BIOME_ID_MAP["mountain"], resource_node_data.NODE_TYPES["obsidian"]["biomes"])
+        self.assertEqual(resource_node_data.NODE_TYPES["tree"]["seed_drop"], (34, 0.2))
+
+    def test_placeable_registry_loads_growth_and_solids(self):
+        self.assertEqual(placeable_data.PLACEABLE_ITEMS[254], "stone_brick_floor")
+        self.assertIn("stone_brick_floor", placeable_data.FLOOR_TYPES)
+        self.assertEqual(placeable_data.GROWS_INTO["obsidian_seed"], "obsidian")
+
+    def test_world_type_registry_loads_biome_and_cliff_ids(self):
+        self.assertEqual(world_types.BIOME_ID_MAP["river"], 3)
+        self.assertEqual(world_types.ID_TO_CLIFF[108], "cliff_tall_south")
+        self.assertEqual(world_types.WATER_BIOMES, frozenset({0, 3}))
+
+
+class PlacedObjectIndexTests(unittest.TestCase):
+    def setUp(self):
+        self.orig_objects = dict(placed_objects.placed_objects)
+        self.orig_tile_index = dict(placed_objects._tile_index)
+        self.orig_floor_index = dict(placed_objects._floor_index)
+
+    def tearDown(self):
+        placed_objects.placed_objects.clear()
+        placed_objects.placed_objects.update(self.orig_objects)
+        placed_objects._tile_index.clear()
+        placed_objects._tile_index.update(self.orig_tile_index)
+        placed_objects._floor_index.clear()
+        placed_objects._floor_index.update(self.orig_floor_index)
+
+    def test_place_floor_tracks_floor_index_not_solid_tile_index(self):
+        inventory = [None] * 45
+        inventory[0] = [254, 1]
+
+        ok, uid = placed_objects.place_object("p1", "stone_brick_floor", [12, 18], inventory)
+
+        self.assertTrue(ok)
+        self.assertEqual(placed_objects._floor_index[(12, 18)], uid)
+        self.assertNotIn((12, 18), placed_objects._tile_index)
 
 
 class ShopBuybackTests(unittest.TestCase):
