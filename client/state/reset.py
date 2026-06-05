@@ -1,5 +1,6 @@
 import config
 import state.player as _player_module
+from client_constants import DEFAULT_WINDOW_HEIGHT, DEFAULT_WINDOW_WIDTH
 
 def reset_client_state():
     # Persist the player's map exploration before any resets
@@ -31,8 +32,8 @@ def reset_client_state():
     config.last_player_chunk = None
     config.is_fullscreen = False
     config.screen = None
-    config.WINDOW_WIDTH = 1280
-    config.WINDOW_HEIGHT = 720
+    config.WINDOW_WIDTH = DEFAULT_WINDOW_WIDTH
+    config.WINDOW_HEIGHT = DEFAULT_WINDOW_HEIGHT
 
     config.ping = 0
     config.session_token = None

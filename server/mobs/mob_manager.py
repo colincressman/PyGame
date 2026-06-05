@@ -14,19 +14,15 @@ Spawn caps and spawn cadence are read from MOB_TYPES, which is expected to be po
 """
 import math
 import random
-import threading
 import time
 import uuid
 from server.shared_lock import mobs_lock  # canonical lock — defined in shared_lock
 from server.config import (
     WORLD_RADIUS, TICK_RATE,
     SPAWN_RATE_COEFF,
-    MOB_SPAWN_RADIUS   as SPAWN_RADIUS,
-    MOB_SPAWN_MIN_DIST as SPAWN_MIN_DIST,
     MOB_KNOCKBACK      as MELEE_KNOCKBACK,
-    MAX_MOB_LEVEL      as MAX_SLIME_LEVEL,
     MOB_SEP_DIST, MOB_SEP_FORCE, STEALTH_AGGRO_MULT,
-    LEVEL_DIST_SCALE, EXP_CURVE_BASE,
+    EXP_CURVE_BASE,
     KNOCKBACK_DECAY,
     PARRY_WINDOW       as _PARRY_WINDOW,
     PARRY_STAGGER_DUR  as _PARRY_STAGGER_DUR,
@@ -41,9 +37,28 @@ from server.item_data import (
     drain_defensive_gear_durability as _drain_defensive_gear_durability,
     get_equip_bonuses as _get_equip_bonuses,
 )
-from server.game_state.status_effect_data import STATUS_EFFECTS as _STATUS_EFFECTS
 from server.game_state.status_effects import apply_status_effect as _apply_status_effect, tick_effects_on_entity as _tick_effects_on_entity
 from server.mobs.mob_data import MOB_TYPES
+from server.mobs.mob_defs import (
+    AGGRO_RANGE,
+    AGGRO_RANGE_SQ,
+    ANIMAL_DEAGGRO_RANGE,
+    BOSS_MOB_TYPE,
+    DEFAULT_MOB_TYPE,
+    DEAGGRO_RANGE,
+    DESPAWN_RADIUS,
+    DESPAWN_RADIUS_SQ,
+    MOB_SLOW_MULT as _MOB_SLOW_MULT,
+    WANDER_IDLE_MAX,
+    WANDER_IDLE_MIN,
+    WANDER_RADIUS,
+    build_boss_mob as _build_boss_mob,
+    build_spawned_mob as _build_spawned_mob,
+    find_spawn_pos as _find_spawn_pos,
+    is_passive_mob as _is_passive_mob,
+    mob_cfg as _mob_cfg,
+    mob_special as _mob_special,
+)
 from server.world.world_types import WATER_BIOMES
 # NOTE: get_world_time is imported lazily inside update_mobs() to avoid
 # the circular import that would arise from mob_manager ↔ game_sync at module level.
@@ -60,22 +75,7 @@ _MOB_OBJ_MIN_DSQ   = (0.35 + 0.40) ** 2
 # ---------------------------------------------------------------------------
 # Data-driven mob defaults and helpers
 # ---------------------------------------------------------------------------
-DEFAULT_MOB_TYPE = next((k for k, v in MOB_TYPES.items() if v.get("behavior") == "melee"), next(iter(MOB_TYPES), None))
-DEFAULT_MOB = MOB_TYPES.get(DEFAULT_MOB_TYPE, {})
-BOSS_MOB_TYPE = next((k for k, v in MOB_TYPES.items() if v.get("behavior") == "boss"), None)
-
-DESPAWN_RADIUS    = DEFAULT_MOB.get("despawn_radius", 50)
-DESPAWN_RADIUS_SQ = DESPAWN_RADIUS ** 2
-
-WANDER_RADIUS   = DEFAULT_MOB.get("wander_radius", 6.25)
-WANDER_IDLE_MIN = DEFAULT_MOB.get("wander_idle_min", 2.0)
-WANDER_IDLE_MAX = DEFAULT_MOB.get("wander_idle_max", 5.0)
-
-AGGRO_RANGE          = DEFAULT_MOB.get("aggro_range", 3.0)
-AGGRO_RANGE_SQ       = AGGRO_RANGE ** 2
-DEAGGRO_RANGE        = DEFAULT_MOB.get("deaggro_range", 7.0)
-ANIMAL_DEAGGRO_RANGE = DEFAULT_MOB.get("deaggro_range", 7.0)
-_MOB_SLOW_MULT = float(_STATUS_EFFECTS.get("slow", {}).get("mob_move_mult", 0.4))
+DEFAULT_MOB = _mob_cfg(DEFAULT_MOB_TYPE)
 
 
 def _mark_inventory_dirty(player_id: str) -> None:
@@ -88,29 +88,6 @@ _next_spawn_times: dict[str, float] = {
     if cfg.get("max_count", 0) > 0 and cfg.get("behavior") != "boss"
 }
 
-
-def _mob_cfg(mob_or_type):
-    mob_type = mob_or_type.get("type") if isinstance(mob_or_type, dict) else mob_or_type
-    return MOB_TYPES.get(mob_type, DEFAULT_MOB)
-
-
-def _mob_special(mob_or_type):
-    return _mob_cfg(mob_or_type).get("special", {})
-
-
-def _mob_behavior(mob_or_type):
-    return _mob_cfg(mob_or_type).get("behavior", "melee")
-
-
-def _is_passive_mob(mob_or_type):
-    return _mob_behavior(mob_or_type) in ("passive", "flee", "animal")
-
-
-def _cfg_float(cfg, key, default=0.0):
-    try:
-        return float(cfg.get(key, default))
-    except (TypeError, ValueError):
-        return float(default)
 
 # ---------------------------------------------------------------------------
 # Shared state
@@ -236,95 +213,9 @@ def _is_obj_blocked(x, y, solid_tile_set):
 
 
 
-def _spawn_biome_allowed(pos, cfg):
-    biome_ids = cfg.get("biome_ids")
-    if not biome_ids:
-        return True
-    return _biome_at(pos) in biome_ids
-
-
-def _find_spawn_pos(player_pos, cfg, floor_positions: frozenset):
-    attempts = int(cfg.get("spawn_attempts", cfg.get("spawn_attempts_near_player", 15)))
-    avoid_water = cfg.get("spawn_avoid_water", True)
-    avoid_floor = cfg.get("spawn_avoid_floor", True)
-
-    for _ in range(attempts):
-        angle  = random.uniform(0, 2 * math.pi)
-        radius = random.uniform(SPAWN_MIN_DIST, SPAWN_RADIUS)
-        pos    = [player_pos[0] + math.cos(angle) * radius,
-                  player_pos[1] + math.sin(angle) * radius]
-
-        if avoid_water and _is_water(pos):
-            continue
-        if not _spawn_biome_allowed(pos, cfg):
-            continue
-        if avoid_floor and (int(pos[0]), int(pos[1])) in floor_positions:
-            continue
-        return pos
-
-    return None
-
-
-def _scaled_mob_level(player_pos, cfg):
-    if cfg.get("fixed_level") is not None:
-        return int(cfg["fixed_level"])
-    if _is_passive_mob(cfg):
-        return 1
-    dist = math.sqrt(player_pos[0] ** 2 + player_pos[1] ** 2)
-    base_level = max(1, int(dist / LEVEL_DIST_SCALE))
-    return max(1, min(MAX_SLIME_LEVEL, base_level + random.randint(-1, 1)))
-
-
-def _build_spawned_mob(mob_type, pos, player_pos):
-    cfg = _mob_cfg(mob_type)
-    level = _scaled_mob_level(player_pos, cfg)
-    passive = _is_passive_mob(cfg)
-
-    hp = round(_cfg_float(cfg, "hp", 1.0) * (1.0 + _cfg_float(cfg, "hp_scale_per_level", 0.0) * (level - 1)))
-    damage = 0.0 if passive else round(_cfg_float(cfg, "damage", 0.0) * (1.0 + _cfg_float(cfg, "damage_scale", 0.0) * (level - 1)), 2)
-    speed = _cfg_float(cfg, "speed", 1.0) * (1.0 + _cfg_float(cfg, "speed_scale", 0.0) * (level - 1))
-
-    idle_min = _cfg_float(cfg, "wander_idle_min", WANDER_IDLE_MIN)
-    idle_max = _cfg_float(cfg, "wander_idle_max", WANDER_IDLE_MAX)
-
-    mob = {
-        "type":          mob_type,
-        "behavior":      cfg.get("behavior", "melee"),
-        "pos":           pos,
-        "vel":           [0.0, 0.0],
-        "health":        hp,
-        "health_max":    hp,
-        "level":         level,
-        "damage":        damage,
-        "speed":         speed,
-        "windup_time":   _cfg_float(cfg, "windup", 0.0),
-        "exp_reward":    int(cfg.get("exp", 0)) * level,
-        "drop_id":       cfg.get("drop_id"),
-        "state":         "idle",
-        "idle_timer":    random.uniform(idle_min, idle_max),
-        "home_pos":      list(pos),
-        "origin_pos":    list(pos),
-        "target_player": None,
-        "last_attack":   0.0,
-        "facing":        "down",
-        "aggro_range_sq": _cfg_float(cfg, "aggro_range", AGGRO_RANGE) ** 2,
-        "deaggro_range": _cfg_float(cfg, "deaggro_range", DEAGGRO_RANGE),
-        "despawn_radius_sq": _cfg_float(cfg, "despawn_radius", DESPAWN_RADIUS) ** 2,
-    }
-
-    flee_range = cfg.get("flee_range")
-    if flee_range is not None:
-        mob["flee_range_sq"] = float(flee_range) ** 2
-
-    if "slam_range" in cfg.get("special", {}):
-        mob["last_slam"] = 0.0
-
-    return mob
-
-
 def _spawn_mob_near(mob_type, player_pos, floor_positions: frozenset = frozenset()):
     cfg = _mob_cfg(mob_type)
-    pos = _find_spawn_pos(player_pos, cfg, floor_positions)
+    pos = _find_spawn_pos(player_pos, cfg, floor_positions, _is_water, _biome_at)
     if pos is None:
         return
     mobs[str(uuid.uuid4())[:8]] = _build_spawned_mob(mob_type, pos, player_pos)
@@ -342,31 +233,7 @@ def spawn_boss_at(pos: list) -> bool:
         return False
     mob_id = str(uuid.uuid4())[:8]
     spawn_pos = list(pos)
-    cfg = _mob_cfg(BOSS_MOB_TYPE)
-    mobs[mob_id] = {
-        "type":          BOSS_MOB_TYPE,
-        "behavior":      cfg.get("behavior", "melee"),
-        "pos":           list(pos),
-        "vel":           [0.0, 0.0],
-        "health":        cfg["hp"],
-        "health_max":    cfg["hp"],
-        "level":         cfg.get("fixed_level", 1),
-        "damage":        cfg.get("damage", 0.0),
-        "speed":         cfg.get("speed", 0.0),
-        "windup_time":   cfg.get("windup", 0.0),
-        "exp_reward":    cfg.get("exp", 0),
-        "drop_id":       cfg.get("drop_id"),
-        "state":         "idle",
-        "idle_timer":    cfg.get("spawn_idle", 0.0),
-        "home_pos":      list(pos),
-        "origin_pos":    list(pos),
-        "target_player": None,
-        "last_attack":   0.0,
-        "facing":        "down",
-        "aggro_range_sq": cfg.get("aggro_range", AGGRO_RANGE) ** 2,
-        "deaggro_range": cfg.get("deaggro_range", DEAGGRO_RANGE),
-        "despawn_radius_sq": cfg.get("despawn_radius", DESPAWN_RADIUS) ** 2,
-    }
+    mobs[mob_id] = _build_boss_mob(pos)
     _boss_active = True
     _boss_dungeon_pos  = list(spawn_pos)
     _pending_events.append({"type": "boss_spawned", "name": _mob_cfg(BOSS_MOB_TYPE).get('name', (BOSS_MOB_TYPE or "boss").replace("_", " ").title()),

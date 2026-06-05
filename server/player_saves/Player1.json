@@ -1,7 +1,7 @@
 {
   "pos": [
-    849.1121407540368,
-    901.6124761205663
+    1431.50771726315,
+    154.80356150138195
   ],
   "health": 874,
   "health_max": 100,
@@ -12,10 +12,10 @@
   "hp_regen": 1.0,
   "sp_regen_bonus": 26.0,
   "level": 16,
-  "exp": 9426,
+  "exp": 10226,
   "exp_next": 13600,
   "stat_points": 0,
-  "coins": 8525,
+  "coins": 8695,
   "inventory": [
     [
       53,
@@ -47,18 +47,18 @@
     ],
     [
       11,
-      7
+      10
     ],
     [
-      1051,
+      1802,
       1,
       {
         "quality": "Common",
         "stats": {
-          "attack_power": 11
+          "attack_power": 49.1
         },
-        "dur": 65,
-        "dur_max": 65
+        "dur": 109,
+        "dur_max": 150
       }
     ],
     [
@@ -99,7 +99,7 @@
     ],
     [
       59,
-      4
+      12
     ],
     [
       61,
@@ -130,15 +130,15 @@
       }
     ],
     [
-      1802,
+      1874,
       1,
       {
-        "quality": "Common",
+        "quality": "Uncommon",
         "stats": {
-          "attack_power": 49.1
+          "attack_power": 98.0
         },
-        "dur": 110,
-        "dur_max": 150
+        "dur": 291,
+        "dur_max": 292
       }
     ],
     [
@@ -193,7 +193,18 @@
       2400,
       1
     ],
-    null,
+    [
+      1051,
+      1,
+      {
+        "quality": "Common",
+        "stats": {
+          "attack_power": 11
+        },
+        "dur": 64,
+        "dur_max": 65
+      }
+    ],
     [
       1850,
       1,
@@ -202,7 +213,7 @@
           "attack_power": 80,
           "speed_bonus": -0.2
         },
-        "dur": 151,
+        "dur": 147,
         "dur_max": 321,
         "traits": [
           "magical",
@@ -231,7 +242,7 @@
         "stats": {
           "speed_bonus": 0.05
         },
-        "dur": 224,
+        "dur": 222,
         "dur_max": 315,
         "traits": [
           "magical",
@@ -254,18 +265,7 @@
         "gem_trait": "Fire"
       }
     ],
-    [
-      1874,
-      1,
-      {
-        "quality": "Uncommon",
-        "stats": {
-          "attack_power": 98.0
-        },
-        "dur": 292,
-        "dur_max": 292
-      }
-    ],
+    null,
     [
       1864,
       1,

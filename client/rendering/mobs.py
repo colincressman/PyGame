@@ -50,6 +50,47 @@ _mob_timers: dict = {}   # {mob_id: float}           — animation clock
 _mob_buf:    dict = {}   # {mob_id: deque[(t, x, y)]} — interpolation buffer
 
 
+def _clamp_int(value, minimum, maximum):
+    return max(minimum, min(int(round(value)), maximum))
+
+
+def _get_mob_layout(mob_type: str, img: pygame.Surface) -> dict:
+    """Return anchor and visible-body layout for oversized mob sprites."""
+    cfg = _MOB_SPRITE_CFG.get(mob_type, {})
+    w, h = img.get_width(), img.get_height()
+    anchor_x = _clamp_int(cfg.get("anchor_x", w / 2), 0, w)
+    anchor_y = _clamp_int(cfg.get("anchor_y", h / 2), 0, h)
+
+    bounds_cfg = cfg.get("visual_bounds")
+    if isinstance(bounds_cfg, dict):
+        bx = _clamp_int(bounds_cfg.get("x", 0), 0, w)
+        by = _clamp_int(bounds_cfg.get("y", 0), 0, h)
+        bw = _clamp_int(bounds_cfg.get("w", w - bx), 1, max(1, w - bx))
+        bh = _clamp_int(bounds_cfg.get("h", h - by), 1, max(1, h - by))
+    else:
+        bx, by, bw, bh = 0, 0, w, h
+
+    bar_cfg = cfg.get("health_bar")
+    if isinstance(bar_cfg, dict):
+        bar_w = _clamp_int(bar_cfg.get("w", bw), 8, bw)
+        bar_x = bx + _clamp_int(bar_cfg.get("x", (bw - bar_w) / 2), 0, max(0, bw - bar_w))
+        bar_y = by + int(round(bar_cfg.get("y", -6)))
+    else:
+        bar_w = bw
+        bar_x = bx
+        bar_y = by - 6
+
+    sort_anchor_y = _clamp_int(cfg.get("sort_anchor_y", by + bh), 0, h)
+    return {
+        "anchor_x": anchor_x,
+        "anchor_y": anchor_y,
+        "bar_x": bar_x,
+        "bar_y": bar_y,
+        "bar_w": bar_w,
+        "sort_anchor_y": sort_anchor_y,
+    }
+
+
 def _load_mob_sprite(mob_type: str, cfg: dict) -> dict:
     """Load all directional frames for one mob from its sprite config.
 
@@ -215,7 +256,7 @@ def _ensure_loaded():
         pygame.draw.circle(_slime_king_surf, gc, (kx + gx_off, ky + gy_off), 2)
 
 
-def _make_mob_draw(screen, img, sx, sy, w, hit_flash, mob_state, hp_pct, mob_level):
+def _make_mob_draw(screen, img, sx, sy, bar_x, bar_y, bar_w, hit_flash, mob_state, hp_pct, mob_level):
     """Return a zero-argument callable that blits one mob entry onto screen."""
     def _draw():
         bar_h = 4
@@ -232,13 +273,13 @@ def _make_mob_draw(screen, img, sx, sy, w, hit_flash, mob_state, hp_pct, mob_lev
             tinted = img.copy()
             tinted.fill((100, 255, 100, 255), special_flags=pygame.BLEND_RGBA_MULT)
             screen.blit(tinted, (sx, sy))
-        bar_w = w
-        bar_x, bar_y = sx, sy - bar_h - 2
-        pygame.draw.rect(screen, (60, 0, 0),    (bar_x, bar_y, bar_w, bar_h))
-        pygame.draw.rect(screen, (200, 40, 40), (bar_x, bar_y, int(bar_w * hp_pct), bar_h))
+        draw_bar_x = sx + bar_x
+        draw_bar_y = sy + bar_y
+        pygame.draw.rect(screen, (60, 0, 0),    (draw_bar_x, draw_bar_y, bar_w, bar_h))
+        pygame.draw.rect(screen, (200, 40, 40), (draw_bar_x, draw_bar_y, int(bar_w * hp_pct), bar_h))
         lv_surf = _get_level_font().render(f"Lv{mob_level}", True, (255, 220, 50))
-        lv_x = bar_x + bar_w // 2 - lv_surf.get_width() // 2
-        lv_y = bar_y - lv_surf.get_height()
+        lv_x = draw_bar_x + bar_w // 2 - lv_surf.get_width() // 2
+        lv_y = draw_bar_y - lv_surf.get_height()
         pad = 1
         bg = pygame.Surface((lv_surf.get_width() + pad * 2, lv_surf.get_height()), pygame.SRCALPHA)
         bg.fill((0, 0, 0, 160))
@@ -328,15 +369,31 @@ def get_mob_drawables(screen: pygame.Surface, mobs: list, player_pos: list,
             fallback = next(iter(_mob_sprites.values()), None)
             frames_list = (fallback or {}).get("down", [])
             img = frames_list[0] if frames_list else pygame.Surface((32, 32))
-        w, h = img.get_width(), img.get_height()
-        sx = round((mx - px) * 32 + window_width  // 2 - w // 2)
-        sy = round((my - py) * 32 + window_height // 2 - h // 2)
+        layout = _get_mob_layout(mob_type, img)
+        sx = round((mx - px) * 32 + window_width  // 2 - layout["anchor_x"])
+        sy = round((my - py) * 32 + window_height // 2 - layout["anchor_y"])
 
         hit_flash = mob.get("hit_flash", 0.0)
         hp_pct    = mob.get("health", 100) / max(mob.get("health_max", 100), 1)
         mob_level = mob.get("level", 1)
 
-        result.append((my + h / 64.0, _make_mob_draw(screen, img, sx, sy, w, hit_flash, mob_state, hp_pct, mob_level)))
+        sort_y = my + (layout["sort_anchor_y"] - layout["anchor_y"]) / 32.0
+        result.append((
+            sort_y,
+            _make_mob_draw(
+                screen,
+                img,
+                sx,
+                sy,
+                layout["bar_x"],
+                layout["bar_y"],
+                layout["bar_w"],
+                hit_flash,
+                mob_state,
+                hp_pct,
+                mob_level,
+            ),
+        ))
 
     return result
 
