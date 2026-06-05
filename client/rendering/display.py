@@ -527,8 +527,9 @@ def draw_projectiles(screen: pygame.Surface) -> None:
             wx, wy = proj["pos"]
             elem   = proj.get("element", "arcane")
             core_col, glow_col = PROJECTILE_COLORS.get(elem, ((200, 200, 200), (140, 140, 140)))
-            sx = int(wx * TILE_SIZE + offset_x + TILE_SIZE // 2)
-            sy = int(wy * TILE_SIZE + offset_y + TILE_SIZE // 2)
+            # Projectile positions are already stored in world-space centre coords.
+            sx = int(wx * TILE_SIZE + offset_x)
+            sy = int(wy * TILE_SIZE + offset_y)
             glow_surf = _get_projectile_glow_surface(glow_col)
             screen.blit(glow_surf, (sx - _PROJ_GLOW_RADIUS, sy - _PROJ_GLOW_RADIUS))
             # Core

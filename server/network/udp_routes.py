@@ -153,6 +153,12 @@ def udp_loop():
                         "inventory":      stats["inventory"],
                         "last_seen":      time.time()
                     }
+                    if "bed_spawn" in stats:
+                        players[player_id]["bed_spawn"] = stats["bed_spawn"]
+                    if "home_pos" in stats:
+                        players[player_id]["home_pos"] = stats["home_pos"]
+                    if "appearance" in stats:
+                        players[player_id]["appearance"] = stats["appearance"]
                     player_positions[player_id] = {
                         'pos': spawn_pos, 'vel': [0, 0], 'timestamp': time.time(), 'seq': 0
                     }

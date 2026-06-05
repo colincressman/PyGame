@@ -390,17 +390,16 @@ def start_game_client(screen: pygame.Surface) -> None:
         _placement_key = (_mt, _placing_floor)
         if _placement_key != _last_placement_key[0]:
             _last_placement_key[0] = _placement_key
+            _node_id, _node = config.get_node_at_tile(_mt)
             if _placing_floor:
                 config.placement_blocked = (
-                    any(_mt == (_n["wx"], _n["wy"]) for _n in config.world_nodes.values())
-                    or any(_mt == (_o["pos"][0], _o["pos"][1]) for _o in config.placed_objects.values()
-                           if _o["type"] == "stone_brick_floor")
+                    _node is not None
+                    or _mt in config.floor_by_tile
                 )
             else:
                 config.placement_blocked = (
-                    any(_mt == (_n["wx"], _n["wy"]) for _n in config.world_nodes.values())
-                    or any(_mt == (_o["pos"][0], _o["pos"][1]) for _o in config.placed_objects.values()
-                           if _o["type"] != "stone_brick_floor")
+                    _node is not None
+                    or _mt in config.object_by_tile
                 )
 
         handle_events(state)
@@ -411,12 +410,20 @@ def start_game_client(screen: pygame.Surface) -> None:
         if _station_tile != _last_station_tile[0]:
             _last_station_tile[0] = _station_tile
             _STATION_DIST_SQ = 4.0
-            config.nearby_stations = {
-                obj["type"]
-                for obj in config.placed_objects.values()
-                if obj["type"] in _CRAFTING_STATIONS
-                and (obj["pos"][0] - _px) ** 2 + (obj["pos"][1] - _py) ** 2 <= _STATION_DIST_SQ
-            }
+            nearby: set = set()
+            chunk_x = int(_px) // CHUNK_SIZE
+            chunk_y = int(_py) // CHUNK_SIZE
+            for cx in range(chunk_x - 1, chunk_x + 2):
+                for cy in range(chunk_y - 1, chunk_y + 2):
+                    for uid in config.stations_by_chunk.get((cx, cy), ()):
+                        obj = config.placed_objects.get(uid)
+                        if obj is None:
+                            continue
+                        if obj["type"] not in _CRAFTING_STATIONS:
+                            continue
+                        if (obj["pos"][0] - _px) ** 2 + (obj["pos"][1] - _py) ** 2 <= _STATION_DIST_SQ:
+                            nearby.add(obj["type"])
+            config.nearby_stations = nearby
 
         keys = pygame.key.get_pressed()
         if not state["show_map"] and not config.show_inventory and not config.show_menu and not config.show_stats and not config.show_controls and config.show_station_popup is None and config.open_chest_uid is None:
@@ -534,8 +541,24 @@ def start_game_client(screen: pygame.Surface) -> None:
                         state["screen"], _o, offset_x, offset_y
                     )))
 
+                _mob_now = time.time()
+                _mob_draw_state = [
+                    {
+                        "id": mob.mob_id,
+                        "type": mob.mob_type,
+                        "pos": mob.get_render_pos(_mob_now),
+                        "_pre_smoothed": True,
+                        "health": mob.health,
+                        "health_max": mob.health_max,
+                        "level": mob.level,
+                        "hit_flash": mob.hit_flash,
+                        "state": mob.state,
+                        "facing": mob.facing,
+                    }
+                    for mob in config.mob_entities.values()
+                ]
                 for _world_y, _fn in get_mob_drawables(
-                    state["screen"], config.mobs,
+                    state["screen"], _mob_draw_state,
                     [cam_px, cam_py],
                     state["WINDOW_WIDTH"], state["WINDOW_HEIGHT"], dt
                 ):
@@ -565,6 +588,7 @@ def start_game_client(screen: pygame.Surface) -> None:
                                 state["WINDOW_WIDTH"], state["WINDOW_HEIGHT"],
                                 is_attacking=_rp.is_attacking, atk_frame=_rp.atk_frame,
                                 equip_ids=_rp.equip_ids,
+                                held_item_id=_rp.held_item_id,
                                 name=_pid,
                                 appearance=_rp.appearance,
                             )

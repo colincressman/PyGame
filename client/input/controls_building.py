@@ -6,11 +6,7 @@ from input.placeable_data import PLACEABLE_ITEMS as _PLACEABLE_ITEMS
 def handle_world_left_click(is_consumable_fn, has_tool_fn, best_tool_damage_fn, hotbar_offset):
     if config.pickup_mode:
         tx, ty = config.mouse_tile
-        target_uid = None
-        for uid, obj in list(config.placed_objects.items()):
-            if obj["pos"][0] == tx and obj["pos"][1] == ty:
-                target_uid = uid
-                break
+        target_uid, _target_obj = config.get_placed_object_at_tile((tx, ty))
         if target_uid is not None:
             if config.station_popup_uid == target_uid:
                 config.show_station_popup = None
@@ -18,7 +14,7 @@ def handle_world_left_click(is_consumable_fn, has_tool_fn, best_tool_damage_fn, 
                 config.station_popup_scroll = 0
                 config.station_popup_recipe = None
             config.state_outbox.put({"type": "remove_object", "uid": target_uid})
-            config.placed_objects.pop(target_uid, None)
+            config.remove_placed_object(target_uid)
         return
 
     active_slot = hotbar_offset + config.hotbar_slot
@@ -32,12 +28,12 @@ def handle_world_left_click(is_consumable_fn, has_tool_fn, best_tool_damage_fn, 
         else:
             config.player_inventory[active_slot] = None
         opt_uid = f"_opt_{tx}_{ty}"
-        config.placed_objects[opt_uid] = {
+        config.upsert_placed_object(opt_uid, {
             "uid": opt_uid,
             "type": obj_type,
             "pos": [tx, ty],
             "placed_by": "",
-        }
+        })
         return
 
     _handle_smart_action_v2(

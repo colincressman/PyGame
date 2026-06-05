@@ -3,14 +3,28 @@ import socket
 import threading, orjson
 import config
 from input.resource_node_data import NODE_MAX_HP
+from utils.logging import log_error, log_info
 from .sockets import connect_with_retry
 from .protocols import identify_socket, recv_json, send_json
 from state.player import player_data
+from state.remote_mob import RemoteMob
 from state.remote_player import RemotePlayer
 
 # Registry of every node's base data, used to re-add nodes when they respawn.
 # Never shrinks; depleted nodes are removed from config.world_nodes but stay here.
 _node_base_cache: dict = {}
+_debug_last_log: dict[str, float] = {}
+
+
+def _debug_log(key: str, message: str, interval: float = 2.0) -> None:
+    if not getattr(config, "DEBUG_MODE", False):
+        return
+    now = time.time()
+    last = _debug_last_log.get(key, 0.0)
+    if now - last < interval:
+        return
+    _debug_last_log[key] = now
+    log_info(message)
 
 def handle_world(HOST, PORT_WORLD, chunk_queue, player_id):
     _my_session = config.session_id
@@ -51,12 +65,12 @@ def handle_world(HOST, PORT_WORLD, chunk_queue, player_id):
                                     "type": ntype, "wx": wx, "wy": wy,
                                     "max_hp": max_hp, "hits": 0,
                                 }
-                        config.world_nodes = _new_nodes
+                        config.set_world_nodes(_new_nodes)
 
             except socket.timeout:
                 continue  # allow frequent checks
             except Exception as e:
-                print(f"[WORLD RECV ERROR] {e}")
+                log_error(f"[WORLD RECV ERROR] {e}")
                 break
 
             time.sleep(1 / 60)
@@ -72,7 +86,7 @@ def handle_state(HOST, PORT_STATE, player_id):
     if not sock:
         return
     identify_socket(sock, "game_state", player_id, config.session_token)
-    print("[STATE] Connected and handshake sent.")
+    log_info("[STATE] Connected and handshake sent.")
     sock.settimeout(0.1)
 
     try:
@@ -80,6 +94,19 @@ def handle_state(HOST, PORT_STATE, player_id):
             try:
                 data = recv_json(sock)
                 if data and data.get("type") == "game_state":
+                    _debug_log(
+                        "state_recv",
+                        (
+                            f"[CLIENT STATE DEBUG] recv "
+                            f"players={len(data.get('players', {}))} "
+                            f"placed={len(data.get('placed_objects', []))} "
+                            f"items={len(data.get('world_items', []))} "
+                            f"mobs={len(data.get('mobs', []))} "
+                            f"npcs={len(data.get('npcs', []))} "
+                            f"time={data.get('world_time', config.world_time):.2f} "
+                            f"weather={data.get('weather', config.weather)}"
+                        ),
+                    )
                     self_data = data.get("self", {})
                     # Store velocity knockback — applied smoothly in the game loop over 0.25 s
                     kb = self_data.get("knockback_vel")
@@ -126,15 +153,33 @@ def handle_state(HOST, PORT_STATE, player_id):
                         emit_levelup(_lupos[0], _lupos[1])
                     if "inventory" in self_data:
                         config.player_inventory = self_data["inventory"]
-                    for pid, pdata in data.get("players", {}).items():
-                        if pid in config.players_data:
+                    players_payload = data.get("players")
+                    if players_payload is not None:
+                        current_remote_ids = set()
+                        for pid, pdata in players_payload.items():
+                            current_remote_ids.add(pid)
+                            if pid not in config.players_data:
+                                config.players_data[pid] = RemotePlayer(list(pdata.get("pos", [0.0, 0.0])))
                             config.players_data[pid].health = pdata.get("health", 100)
                             equip = pdata.get("equip")
                             if equip is not None:
                                 config.players_data[pid].equip_ids = {int(k): v for k, v in equip.items()}
+                            config.players_data[pid].held_item_id = pdata.get("held_item")
                             appearance = pdata.get("appearance")
                             if isinstance(appearance, dict):
                                 config.players_data[pid].appearance = appearance
+                        for pid in [pid for pid in config.players_data if pid not in current_remote_ids]:
+                            config.players_data.pop(pid, None)
+                        if config.players_data:
+                            _sample_pid, _sample_player = next(iter(config.players_data.items()))
+                            _debug_log(
+                                "state_remote_sample",
+                                (
+                                    f"[CLIENT STATE DEBUG] remote sample={_sample_pid} "
+                                    f"body={_sample_player.appearance.get('body', 'missing')} "
+                                    f"equip_slots={sorted(_sample_player.equip_ids.keys())}"
+                                ),
+                            )
                     wi_list = data.get("world_items")
                     if wi_list is not None:
                         new_wi = {item["uid"]: item for item in wi_list}
@@ -160,14 +205,27 @@ def handle_state(HOST, PORT_STATE, player_id):
                             }
                             for uid, item in new_wi.items()
                         }
-                        config.world_nodes = {
+                        config.set_world_nodes({
                             k: v for k, v in config.world_nodes.items()
                             if not k.startswith("item:")
-                        }
-                        config.world_nodes.update(_item_nodes)
+                        })
+                        for node_id, node in _item_nodes.items():
+                            config.upsert_world_node(node_id, node)
                     mob_list = data.get("mobs")
                     if mob_list is not None:
-                        config.mobs = mob_list
+                        current_mob_ids = set()
+                        for mob in mob_list:
+                            mob_id = mob.get("id")
+                            if mob_id is None:
+                                continue
+                            current_mob_ids.add(mob_id)
+                            if mob_id not in config.mob_entities:
+                                config.mob_entities[mob_id] = RemoteMob(mob)
+                            else:
+                                config.mob_entities[mob_id].apply_snapshot(mob)
+                        for mob_id in [mid for mid in config.mob_entities if mid not in current_mob_ids]:
+                            config.mob_entities.pop(mob_id, None)
+                        config.mobs = [mob.to_snapshot() for mob in config.mob_entities.values()]
                     npcs_list = data.get("npcs")
                     if npcs_list is not None:
                         config.npcs = npcs_list
@@ -185,7 +243,14 @@ def handle_state(HOST, PORT_STATE, player_id):
                                 if "chest_inv" in current_open:
                                     merged_open["chest_inv"] = current_open["chest_inv"]
                                 new_placed[config.open_chest_uid] = merged_open
-                        config.placed_objects = new_placed
+                        config.set_placed_objects(new_placed)
+                        _debug_log(
+                            "state_placed_apply",
+                            (
+                                f"[CLIENT STATE DEBUG] applied placed={len(config.placed_objects)} "
+                                f"solid_tiles={len(config.object_by_tile)} floor_tiles={len(config.floor_by_tile)}"
+                            ),
+                        )
                     proj_list = data.get("projectiles")
                     if proj_list is not None:
                         config.projectiles = proj_list
@@ -203,13 +268,13 @@ def handle_state(HOST, PORT_STATE, player_id):
                                 # Node respawned — re-add from base cache
                                 if nid not in _new_nodes and nid in _node_base_cache:
                                     _new_nodes[nid] = dict(_node_base_cache[nid], hits=0)
-                        config.world_nodes = _new_nodes
+                        config.set_world_nodes(_new_nodes)
                     depleted_snapshot = data.get("depleted_snapshot")
                     if depleted_snapshot:
                         _new_nodes = dict(config.world_nodes)
                         for nid in depleted_snapshot:
                             _new_nodes.pop(nid, None)
-                        config.world_nodes = _new_nodes
+                        config.set_world_nodes(_new_nodes)
                     planted_list = data.get("planted_nodes")
                     if planted_list is not None:
                         _new_nodes = dict(config.world_nodes)
@@ -229,9 +294,15 @@ def handle_state(HOST, PORT_STATE, player_id):
                         # Remove planted nodes that are no longer active on the server
                         for nid in [k for k in _new_nodes if k.startswith("planted:") and k not in reported_ids]:
                             del _new_nodes[nid]
-                        config.world_nodes = _new_nodes
+                        config.set_world_nodes(_new_nodes)
                 elif data and data.get("type") == "shop_update":
                     config.shop_items = data.get("items", [])
+                elif data and data.get("type") == "teleport":
+                    pos = data.get("pos")
+                    if isinstance(pos, list) and len(pos) == 2:
+                        player_data["pos"] = [float(pos[0]), float(pos[1])]
+                        player_data.pop("knockback_vel", None)
+                        log_info(f"[CLIENT STATE DEBUG] teleport pos=({pos[0]}, {pos[1]})")
                 elif data and data.get("type") == "chat":
                     import time as _time
                     _msgs = config.chat_messages
@@ -246,7 +317,7 @@ def handle_state(HOST, PORT_STATE, player_id):
             except socket.timeout:
                 pass
             except Exception as e:
-                print(f"[STATE RECV ERROR] {e}")
+                log_error(f"[STATE RECV ERROR] {e}")
                 break
 
             # Forward any queued client→server messages (inv_swap, etc.)

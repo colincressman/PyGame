@@ -16,7 +16,7 @@ import config
 from rendering.lpc import get_frames, get_frames_128, get_attack_frames, get_attack_behind_frames, ANIM_FRAMES, DIR_ROW, CELL, _ATTACK_CELL, LPC_DIR
 from rendering.equipment_layers import (
     get_layers, get_layers_from_equip_ids,
-    get_weapon_layer, get_weapon_attack_anim,
+    get_weapon_layer, get_weapon_attack_anim, get_weapon_layer_from_id,
     get_back_layer, get_back_layer_from_equip_ids,
     get_wing_item, get_wing_item_from_equip_ids,
     _LEGS_DEFAULT, LayerSpec,
@@ -492,6 +492,7 @@ def draw_remote_player(
     is_attacking: bool = False,
     atk_frame: int = 0,
     equip_ids: dict | None = None,
+    held_item_id: int | None = None,
     name: str | None = None,
     appearance: dict | None = None,
 ) -> None:
@@ -523,6 +524,7 @@ def draw_remote_player(
     _wing_col  = _app.get("back_ext_color", "white")
     _wing_bg_fld_r: str | None = None
     _wing_fg_fld_r: str | None = None
+    weapon_spec = get_weapon_layer_from_id(held_item_id)
     # Equipped wing item overrides appearance wings for remote players too
     if equip_ids:
         _wing_item_r = get_wing_item_from_equip_ids(equip_ids)
@@ -539,6 +541,25 @@ def draw_remote_player(
         remote_cape = get_back_layer_from_equip_ids(equip_ids)
         if remote_cape is not None:
             _blit_layer(screen, remote_cape, anim, dir_row, frame, sx, sy)
+
+    # Weapon behind layer (rendered before body)
+    if weapon_spec is not None and weapon_spec.behind != "none" and anim != "thrust":
+        if anim == "slash":
+            if weapon_spec.col_stride > 1:
+                _sb = _get_cached_128(weapon_spec.folder, "slash/behind", weapon_spec.colour)
+                _sb_blit = (sx - CELL // 2, sy - CELL // 2)
+                _sb_col = frame
+            else:
+                _sb = _get_attack_behind_cached(weapon_spec.folder, weapon_spec.colour)
+                _sb_blit = (sx - CELL, sy - CELL)
+                _sb_col = frame
+            if _sb and dir_row < len(_sb) and _sb_col < len(_sb[dir_row]):
+                screen.blit(_sb[dir_row][_sb_col], _sb_blit)
+        else:
+            surf = _weapon_carry_surf(weapon_spec, "behind", dir_row, frame, anim)
+            if surf is not None:
+                _wp = (sx - CELL // 2, sy - CELL // 2) if weapon_spec.col_stride > 1 else (sx, sy + weapon_spec.y_offset)
+                screen.blit(surf, _wp)
 
     # Wing background layer (behind body)
     if _wing_bg_fld_r:
@@ -568,6 +589,30 @@ def draw_remote_player(
 
     for spec in layers:
         _blit_layer(screen, spec, anim, dir_row, frame, sx, sy)
+
+    # Foreground weapon layer
+    if weapon_spec is not None and anim == "slash":
+        atk = _get_attack_cached(weapon_spec.folder, weapon_spec.colour)
+        if atk and dir_row < len(atk) and frame < len(atk[dir_row]):
+            screen.blit(atk[dir_row][frame], (sx - CELL, sy - CELL))
+        else:
+            _load_fn = _get_cached_128 if weapon_spec.col_stride > 1 else _get_cached
+            slash_f = _load_fn(weapon_spec.folder, "slash", weapon_spec.colour)
+            if weapon_spec.col_stride > 1:
+                _slash_row = dir_row
+                _slash_col = frame
+            else:
+                _slash_row = dir_row * weapon_spec.row_stride + weapon_spec.row_offset
+                _slash_col = frame * weapon_spec.col_stride + weapon_spec.x_offset
+            if slash_f and _slash_row < len(slash_f) and _slash_col < len(slash_f[_slash_row]):
+                surf = slash_f[_slash_row][_slash_col]
+                _wp = (sx - CELL // 2, sy - CELL // 2) if weapon_spec.col_stride > 1 else (sx, sy + weapon_spec.y_offset)
+                screen.blit(surf, _wp)
+    elif weapon_spec is not None and anim not in ("slash", "thrust"):
+        surf = _weapon_carry_surf(weapon_spec, "front", dir_row, frame, anim)
+        if surf is not None:
+            _wp = (sx - CELL // 2, sy - CELL // 2) if weapon_spec.col_stride > 1 else (sx, sy + weapon_spec.y_offset)
+            screen.blit(surf, _wp)
 
     # Wing foreground layer (in front of equipment)
     if _wing_fg_fld_r:

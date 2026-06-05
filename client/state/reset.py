@@ -11,6 +11,7 @@ def reset_client_state():
     _player_module.player_id_dict["player_id"] = None
 
     config.players_data.clear()
+    config.mob_entities.clear()
     config.world_data.clear()
     # full_world_data intentionally kept — it's the player's map exploration history
     config.chunk_cache.clear()
@@ -54,6 +55,7 @@ def reset_client_state():
 
     # Clear world items so session 2 doesn't start with stale data
     config.world_items = {}
+    config.mobs = []
 
     # Cancel any in-progress inventory drag
     config.drag_slot        = None

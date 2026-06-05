@@ -37,7 +37,7 @@ def handle_smart_action(is_consumable_fn, has_tool_fn, best_tool_damage_fn, hotb
         }
         best_id = None
         best_dist = 2.25
-        for node_id, node in config.world_nodes.items():
+        for node_id, node in config.iter_world_nodes_near(px, py, 1.5):
             required = node_tool.get(node.get("type", ""))
             if required and not has_tool_fn(required):
                 continue
@@ -58,7 +58,7 @@ def handle_smart_action(is_consumable_fn, has_tool_fn, best_tool_damage_fn, hotb
                 dmg = best_tool_damage_fn(required) if required else 1
                 node["hits"] = node.get("hits", 0) + dmg
                 if node["hits"] >= node.get("max_hp", 1):
-                    config.world_nodes.pop(best_id, None)
+                    config.remove_world_node(best_id)
             config.is_attacking = True
         return
 

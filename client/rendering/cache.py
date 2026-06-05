@@ -62,7 +62,7 @@ def clear_distant_cache(center_chunk_x, center_chunk_y, radius_chunks=6):
             nid: node for nid, node in old_nodes.items()
             if (node["wx"] // CHUNK_SIZE, node["wy"] // CHUNK_SIZE) not in far_set
         }
-        _config.world_nodes = new_nodes
+        _config.set_world_nodes(new_nodes)
 
         # ── Tell server to re-send those chunks when the player returns ────────
         # Without this the server's "already sent" set prevents re-delivery.

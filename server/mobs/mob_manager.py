@@ -37,7 +37,10 @@ from server.config import (
     DAY_START_HOUR     as _DAY_START_HOUR,
     DAY_END_HOUR       as _DAY_END_HOUR,
 )
-from server.item_data import get_equip_bonuses as _get_equip_bonuses, drain_durability as _drain_durability
+from server.item_data import (
+    drain_defensive_gear_durability as _drain_defensive_gear_durability,
+    get_equip_bonuses as _get_equip_bonuses,
+)
 from server.game_state.status_effect_data import STATUS_EFFECTS as _STATUS_EFFECTS
 from server.game_state.status_effects import apply_status_effect as _apply_status_effect, tick_effects_on_entity as _tick_effects_on_entity
 from server.mobs.mob_data import MOB_TYPES
@@ -73,6 +76,11 @@ AGGRO_RANGE_SQ       = AGGRO_RANGE ** 2
 DEAGGRO_RANGE        = DEFAULT_MOB.get("deaggro_range", 7.0)
 ANIMAL_DEAGGRO_RANGE = DEFAULT_MOB.get("deaggro_range", 7.0)
 _MOB_SLOW_MULT = float(_STATUS_EFFECTS.get("slow", {}).get("mob_move_mult", 0.4))
+
+
+def _mark_inventory_dirty(player_id: str) -> None:
+    from server.game_state.game_sync import mark_inventory_dirty
+    mark_inventory_dirty(player_id)
 
 _next_spawn_times: dict[str, float] = {
     mob_type: 0.0
@@ -859,6 +867,7 @@ def update_mobs(dt: float):
         for pid, slow_dur in pending_slow.items():
             if pid in _players:
                 _apply_status_effect(_players[pid], "slow", duration=slow_dur)
+        dirty_players: set[str] = set()
         for pid, dmg, mob_pos, attacker_mid in pending_melee:
             if pid not in _players:
                 continue
@@ -888,9 +897,8 @@ def update_mobs(dt: float):
             _players[pid]["health"] = max(0.0, _players[pid]["health"] - actual_dmg)
             print(f"[MOB] Mob hit {pid} for {actual_dmg:.1f} dmg (def {defense:.0f}) "
                   f"(hp now {_players[pid]['health']:.1f})")
-            # Drain 1 durability from each equipped armor piece on mob hit
-            for eq_idx in range(36, 45):
-                _drain_durability(_players[pid].get("inventory", []), eq_idx)
+            _drain_defensive_gear_durability(_players[pid].get("inventory", []))
+            dirty_players.add(pid)
             # Knockback: push player away from the mob
             pp = _players[pid]["pos"]
             ddx = pp[0] - mob_pos[0]
@@ -915,6 +923,8 @@ def update_mobs(dt: float):
                 print(f"[MOB] Poisoned {pid} for {dur}s at {dps} dps")
         for pid, exp_amount in pending_exp:
             _apply_exp(pid, exp_amount)
+        for pid in dirty_players:
+            _mark_inventory_dirty(pid)
 
 def drain_events() -> list:
     """Return and clear all pending mob events (boss_spawned, boss_defeated, etc.).

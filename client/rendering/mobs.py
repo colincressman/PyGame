@@ -272,34 +272,38 @@ def get_mob_drawables(screen: pygame.Surface, mobs: list, player_pos: list,
         server_pos = mob.get("pos", [0, 0])
         facing     = mob.get("facing", "down")
         mob_state  = mob.get("state", "idle")
+        pre_smoothed = bool(mob.get("_pre_smoothed"))
 
-        buf = _mob_buf.get(mid)
-        if buf is None:
-            _mob_buf[mid] = buf = deque(maxlen=_BUFFER_MAXLEN)
-            buf.append((now, server_pos[0], server_pos[1]))
+        if pre_smoothed:
+            mx, my = server_pos[0], server_pos[1]
         else:
-            lx, ly = buf[-1][1], buf[-1][2]
-            pos_changed = abs(server_pos[0] - lx) > 0.0001 or abs(server_pos[1] - ly) > 0.0001
-            buf_stale   = (now - buf[-1][0]) > _INTERP_DELAY
-            if pos_changed or buf_stale:
+            buf = _mob_buf.get(mid)
+            if buf is None:
+                _mob_buf[mid] = buf = deque(maxlen=_BUFFER_MAXLEN)
                 buf.append((now, server_pos[0], server_pos[1]))
-
-        render_t = now - _INTERP_DELAY
-        if len(buf) == 1 or render_t <= buf[0][0]:
-            mx, my = buf[0][1], buf[0][2]
-        elif render_t >= buf[-1][0]:
-            mx, my = buf[-1][1], buf[-1][2]
-        else:
-            for i in range(len(buf) - 1):
-                if buf[i][0] <= render_t < buf[i + 1][0]:
-                    t0, x0, y0 = buf[i]
-                    t1, x1, y1 = buf[i + 1]
-                    alpha = (render_t - t0) / (t1 - t0)
-                    mx = x0 + (x1 - x0) * alpha
-                    my = y0 + (y1 - y0) * alpha
-                    break
             else:
+                lx, ly = buf[-1][1], buf[-1][2]
+                pos_changed = abs(server_pos[0] - lx) > 0.0001 or abs(server_pos[1] - ly) > 0.0001
+                buf_stale   = (now - buf[-1][0]) > _INTERP_DELAY
+                if pos_changed or buf_stale:
+                    buf.append((now, server_pos[0], server_pos[1]))
+
+            render_t = now - _INTERP_DELAY
+            if len(buf) == 1 or render_t <= buf[0][0]:
+                mx, my = buf[0][1], buf[0][2]
+            elif render_t >= buf[-1][0]:
                 mx, my = buf[-1][1], buf[-1][2]
+            else:
+                for i in range(len(buf) - 1):
+                    if buf[i][0] <= render_t < buf[i + 1][0]:
+                        t0, x0, y0 = buf[i]
+                        t1, x1, y1 = buf[i + 1]
+                        alpha = (render_t - t0) / (t1 - t0)
+                        mx = x0 + (x1 - x0) * alpha
+                        my = y0 + (y1 - y0) * alpha
+                        break
+                else:
+                    mx, my = buf[-1][1], buf[-1][2]
 
         _mob_timers[mid] = _mob_timers.get(mid, 0.0) + dt
 

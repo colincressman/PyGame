@@ -1,5 +1,6 @@
 import json
 import os
+import queue
 import sys
 from pathlib import Path
 
@@ -68,6 +69,8 @@ def reset_client_config():
     config.chest_drag_slot = None
     config.drag_slot = None
     config.drag_item = None
+    config.state_outbox = queue.Queue()
+    config.udp_outbox = queue.Queue()
     config.combiner_slots = [None, None, None, None]
     config.combiner_selected_slot = -1
     config.embedder_slots = [None, None]
@@ -82,8 +85,8 @@ def reset_client_config():
     config.player_hp_regen = 0.0
     config.player_sp_regen_bonus = 0.0
     config.nearby_stations = {"campfire", "crafting_table", "furnace", "part_maker", "embedder"}
-    config.placed_objects = {}
-    config.world_nodes = {}
+    config.set_placed_objects({})
+    config.set_world_nodes({})
     config.world_items = {}
     config.mouse_tile = (0, 0)
     config.placement_blocked = False

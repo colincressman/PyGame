@@ -30,6 +30,7 @@ executor = ThreadPoolExecutor(max_workers=MAX_PLAYERS)
 # one hasn't completed yet (prevents duplicate sends under lag).
 _world_futures:  dict[str, Future] = {}
 _state_futures:  dict[str, Future] = {}
+_future_started_at: dict[tuple[str, str], float] = {}
 
 # === Main Game Loop ===
 def game_loop():
@@ -104,26 +105,41 @@ def game_loop():
             # Skip if previous world-send for this player is still in flight
             prev = _world_futures.get(player_id)
             if prev is not None and not prev.done():
+                started = _future_started_at.get(("world", player_id), now)
+                if now - started > 1.0:
+                    print(f"[WORLD SYNC DEBUG] stalled send player={player_id} age={now - started:.2f}s")
                 continue
+            if prev is not None and prev.done():
+                err = prev.exception()
+                if err is not None:
+                    print(f"[WORLD SYNC ERROR] player={player_id} err={err}")
             try:
-                force_full = (tick_counter % 10 == 0)
                 _world_futures[player_id] = executor.submit(
-                    send_if_changed, player_id, sock, force_full=force_full
+                    send_if_changed, player_id, sock, force_full=False
                 )
+                _future_started_at[("world", player_id)] = now
             except Exception as e:
                 print(f"[GAME LOOP ERROR] {e}")
                 traceback.print_exc()
 
-        if tick_counter % 2 == 0:   # 60 Hz game state (120 / 2)
+        if tick_counter % 6 == 0:   # 20 Hz game state; UDP still handles high-rate positions
             for player_id, sock in valid_state_clients:
                 if player_id not in active_players:
                     continue
                 # Skip if previous state-send for this player is still in flight
                 prev = _state_futures.get(player_id)
                 if prev is not None and not prev.done():
+                    started = _future_started_at.get(("state", player_id), now)
+                    if now - started > 1.0:
+                        print(f"[STATE SYNC DEBUG] stalled send player={player_id} age={now - started:.2f}s")
                     continue
+                if prev is not None and prev.done():
+                    err = prev.exception()
+                    if err is not None:
+                        print(f"[STATE SYNC ERROR] player={player_id} err={err}")
                 try:
                     _state_futures[player_id] = executor.submit(send_game_state, player_id, sock)
+                    _future_started_at[("state", player_id)] = now
                 except Exception as e:
                     print(f"[GAME LOOP STATE ERROR] {e}")
                     traceback.print_exc()
@@ -189,6 +205,7 @@ if __name__ == "__main__":
         "broadcast_chat":   broadcast_chat,
         "save_all_players": _save_all_players,
         "send_to_player":   send_to_player,
+        "player_positions": player_positions,
     })
 
     set_cleanup_refs({

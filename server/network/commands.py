@@ -6,6 +6,8 @@ All commands start with '/'.
 
 == Any player ==
   /help                         list available commands
+  /sethome                      set your personal home point
+  /home                         teleport to your saved home point
   /tprequest <player>           request to teleport to a player
   /tpaccept                     accept an incoming tp request
   /tpdeny                       deny an incoming tp request
@@ -26,9 +28,11 @@ All commands start with '/'.
 
 import os
 import sys
+import time
 
 from server.shared_lock import players_lock
 from server.item_data import get_effective_health_max, get_item
+from server.player_save import save_player
 from server.ops import (
     is_op, add_op, remove_op,
     ban_player, unban_player,
@@ -46,7 +50,7 @@ _server_refs: dict = {}
 
 
 def set_server_refs(refs: dict) -> None:
-    """Inject kick_player, broadcast_chat, and save_all_players callables."""
+    """Inject command helpers such as send_to_player and player_positions refs."""
     global _server_refs
     _server_refs = refs
 
@@ -60,6 +64,51 @@ def _need_op(player_id: str) -> list | None:
     if not is_op(player_id):
         return [_reply("Permission denied — you are not an operator.")]
     return None
+
+
+def _reply_usage(*lines: str) -> list[dict]:
+    return [_reply(line) for line in lines]
+
+
+def _player_snapshot_for_save(player_id: str, players: dict) -> dict | None:
+    with players_lock:
+        player = players.get(player_id)
+        if player is None:
+            return None
+        return dict(player)
+
+
+def _notify_player(player_id: str, packet: dict) -> None:
+    send_to_player = _server_refs.get("send_to_player")
+    if send_to_player:
+        send_to_player(player_id, packet)
+
+
+def _teleport_player(player_id: str, dest_pos: list[float], players: dict) -> bool:
+    player_positions = _server_refs.get("player_positions")
+    safe_dest = [float(dest_pos[0]), float(dest_pos[1])]
+    with players_lock:
+        player = players.get(player_id)
+        if player is None:
+            return False
+        player["pos"] = list(safe_dest)
+        player["old_pos"] = list(safe_dest)
+        player["knockback"] = [0.0, 0.0]
+        if isinstance(player_positions, dict):
+            seq = int(player.get("seq", 0)) + 1
+            player["seq"] = seq
+            player_positions[player_id] = {
+                "pos": list(safe_dest),
+                "vel": [0.0, 0.0],
+                "timestamp": time.time(),
+                "seq": seq,
+            }
+    from server.game_state.sync import invalidate_player
+    from server.game_state.game_sync import invalidate_player_cache
+    invalidate_player(player_id)
+    invalidate_player_cache(player_id)
+    _notify_player(player_id, {"type": "teleport", "pos": list(safe_dest)})
+    return True
 
 
 # ---------------------------------------------------------------------------
@@ -86,6 +135,8 @@ def process_command(
     if cmd == "/help":
         lines = [
             "== General ==",
+            "  /sethome            — set your personal home point",
+            "  /home               — teleport to your saved home point",
             "  /tprequest <player> — request to teleport to a player",
             "  /tpaccept          — accept an incoming tp request",
             "  /tpdeny            — deny an incoming tp request",
@@ -107,6 +158,32 @@ def process_command(
                 "  /time set [day, night]   - Set server time",
             ]
         return [_reply(l) for l in lines]
+
+    # ── /sethome ───────────────────────────────────────────────────────────
+    elif cmd == "/sethome":
+        snapshot = None
+        with players_lock:
+            player = players.get(player_id)
+            if player is None:
+                return []
+            player["home_pos"] = list(player.get("pos", [0.0, 0.0]))
+            snapshot = dict(player)
+        save_player(player_id, snapshot)
+        home_pos = snapshot.get("home_pos", [0.0, 0.0])
+        return [_reply(f"Home set to ({home_pos[0]:.1f}, {home_pos[1]:.1f}).")]
+
+    # ── /home ──────────────────────────────────────────────────────────────
+    elif cmd == "/home":
+        with players_lock:
+            player = players.get(player_id)
+            if player is None:
+                return []
+            home_pos = player.get("home_pos")
+        if not (isinstance(home_pos, list) and len(home_pos) == 2):
+            return [_reply("You have not set a home yet. Use /sethome first.")]
+        if not _teleport_player(player_id, home_pos, players):
+            return []
+        return [_reply("Teleported home.")]
 
     # ── /tprequest ─────────────────────────────────────────────────────────
     elif cmd == "/tprequest":
@@ -137,10 +214,10 @@ def process_command(
                 return [_reply(f"{requester} is no longer online.")]
             if player_id not in players:
                 return []
-            players[requester]["pos"] = list(players[player_id].get("pos", [0, 0]))
-        stp = _server_refs.get("send_to_player")
-        if stp:
-            stp(requester, _reply(f"{player_id} accepted your tp request."))
+            dest_pos = list(players[player_id].get("pos", [0, 0]))
+        if not _teleport_player(requester, dest_pos, players):
+            return [_reply(f"{requester} is no longer online.")]
+        _notify_player(requester, _reply(f"{player_id} accepted your tp request."))
         return [_reply(f"Teleported {requester} to you.")]
 
     # ── /tpdeny ────────────────────────────────────────────────────────────
@@ -198,7 +275,9 @@ def process_command(
                 return []
             if target not in players:
                 return [_reply(f"Player '{target}' is not online.")]
-            players[player_id]["pos"] = list(players[target].get("pos", [0, 0]))
+            dest_pos = list(players[target].get("pos", [0, 0]))
+        if not _teleport_player(player_id, dest_pos, players):
+            return []
         return [_reply(f"Teleported to {target}.")]
 
     # ── /op ────────────────────────────────────────────────────────────────

@@ -43,7 +43,7 @@ main maintenance pressure still lives.
 
 - `server/world/resource_nodes.py`
   - Deterministic node generation, node HP, respawn, planted nodes, depletion persistence.
-  - Still hardcodes node registry and biome constants.
+  - Runtime logic now reads shared node/world-type registries, but the module is still a useful hotspot for depletion/respawn behavior audits.
 
 - `server/world/visible.py`
   - Visible-chunk payload builder.
@@ -64,19 +64,23 @@ main maintenance pressure still lives.
   - Convenient, but still overloaded.
 
 - `client/networking/handlers.py`
-  - TCP/UDP receive handlers plus `RemotePlayer` interpolation class.
-  - Also owns node respawn/base-cache logic.
+  - TCP/UDP receive handlers and client-side world/state application.
+  - `RemotePlayer` has moved out to `client/state/remote_player.py`.
+  - Still owns node respawn/base-cache logic.
+
+- `client/state/remote_player.py`
+  - Remote-player interpolation and presentation state.
 
 - `client/input/controls.py`
-  - Largest mixed input/UI handler.
-  - Handles inventory, chest, shop, stations, pickup mode, char creator, and more.
+  - Main input event router.
+  - Inventory/chest drag-drop, chat capture, shop input, and building/world-click logic now live in sibling modules under `client/input/`.
 
 - `client/input/controls_movement_v2.py`
   - Movement, sprint/stealth/roll, node collision, cactus damage.
 
 - `client/rendering/display.py`
   - World/background rendering, node drawables, placed objects, minimap surface generation, projectile drawing.
-  - Contains duplicate `draw_placed_objects()` definitions.
+  - Also owns fullscreen toggling behavior and related window-size state updates.
 
 - `client/rendering/status_effects.py`
   - Screen overlay cues for active debuffs.
@@ -88,12 +92,15 @@ main maintenance pressure still lives.
 ## Shared Data Registries Already Moved Out Of Code
 
 - `data/tools.json`
+- `data/resource_nodes.json`
+- `data/placeables.json`
 - `data/gems.json`
 - `data/progression.json`
 - `data/projectiles.json`
 - `data/status_effects.json`
 - `data/repair.json`
 - `data/molds.json`
+- `data/world_types.json`
 - `data/shops/*.json`
 - `data/mobs/*.json`
 
@@ -103,10 +110,8 @@ main maintenance pressure still lives.
 
 - `client/client.py`
   - Minimap path copies `full_world_data.items()` when the map is open.
-  - Placement and station checks still scan `world_nodes` / `placed_objects`.
-
-- `client/rendering/display.py`
-  - Projectile glow surface is recreated per projectile per frame.
+  - Placement and nearby-station checks now use tile/chunk indexes in `client/config.py`.
+  - Minimap and broader world-state submission are still the more important remaining client-side hot paths.
 
 - `server/world/visible.py`
   - Rebuilds per-call chunk tile key lists before assembling visible chunk payloads.
@@ -121,30 +126,26 @@ main maintenance pressure still lives.
 ### Modularity
 
 - `client/input/controls.py`
-  - Best candidate for further splitting.
+  - Much smaller after subsystem extraction, but still owns station/interaction/menu flow and remains worth trimming further.
 
 - `client/config.py`
   - Mutable session state and constants should eventually separate.
 
 - `client/networking/handlers.py`
-  - `RemotePlayer` should move out; node cache logic likely should too.
-
-- `server/world/resource_nodes.py`
-  - Node definitions still belong in JSON.
-
-- `server/world/dyn_chunk_gen.py` + `client/config.py`
-  - Biome/cliff constants still duplicated and should move to shared data.
+  - Node cache logic likely should move out next.
 
 ### Good Practice / Correctness
 
-- Durability coverage is incomplete:
+- Durability coverage was completed on 2026-06-04:
   - wands
   - shields
   - pauldrons
   - gloves
+  - inventory-dirty sync for incoming-damage wear now updates the client immediately
 
 - `client/rendering/display.py`
-  - duplicate helper definitions should be cleaned up.
+  - Fullscreen toggling is now stable after ignoring `VIDEORESIZE` while fullscreen is active and remembering the prior windowed size.
+  - Exiting true `pygame.FULLSCREEN` can still feel slow on Windows; a borderless desktop-window experiment reduced transition cost but did not center reliably.
 
 - README drift has been a recurring issue; keep `README.md` and `todo_06022026.md` aligned.
 
@@ -168,7 +169,7 @@ When debugging a gameplay bug:
 
 ## Next Recommended Refactor Batches
 
-1. `Resource node registry JSON` + `Shared biome/cliff constants`
-2. `Placeable/station/farming registry JSON`
-3. Split `client/input/controls.py`
-4. Add client lookup indexes for nodes/objects/stations
+1. Split `client/rendering/item_art.py`
+2. Separate mutable client state from constants
+3. Extract mob-manager behavior into smaller modules
+4. Optimize minimap/world-state hot paths

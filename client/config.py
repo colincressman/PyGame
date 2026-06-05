@@ -206,6 +206,7 @@ world_items = {}
 # Mobs visible near the player (server-authoritative)
 # list of {id, type, pos, health, health_max}
 mobs: list = []
+mob_entities: dict = {}
 
 # NPCs near the player (server-authoritative)
 # list of {id, type, name, greeting, pos: [wx, wy]}
@@ -214,10 +215,14 @@ npcs: list = []
 # Resource nodes visible near the player (server-authoritative)
 # {node_id: {"type": str, "wx": int, "wy": int, "max_hp": int, "depleted": bool, "hits": int}}
 world_nodes: dict = {}
+node_by_tile: dict = {}
 
 # Placed world objects near the player (server-authoritative)
 # {uid: {"type": str, "pos": [tx, ty], "placed_by": str[, "state": str]}}
 placed_objects: dict = {}
+object_by_tile: dict = {}
+floor_by_tile: dict = {}
+stations_by_chunk: dict = {}
 
 # Station types within interaction range this frame — recomputed each tick
 nearby_stations: set = set()
@@ -364,6 +369,172 @@ def save_visited_chunks() -> None:
             json.dump([list(_c) for _c in visited_chunks], _f)
     except OSError:
         pass
+
+
+def _tile_int_pair(pos_x, pos_y):
+    return int(pos_x), int(pos_y)
+
+
+def _chunk_key_from_tile(tile_x: int, tile_y: int) -> tuple[int, int]:
+    return tile_x // CHUNK_SIZE, tile_y // CHUNK_SIZE
+
+
+def rebuild_world_node_index() -> None:
+    global node_by_tile
+    new_index: dict = {}
+    for node_id, node in world_nodes.items():
+        tile = _tile_int_pair(node.get("wx", 0), node.get("wy", 0))
+        new_index.setdefault(tile, set()).add(node_id)
+    node_by_tile = new_index
+
+
+def set_world_nodes(new_nodes: dict) -> None:
+    global world_nodes
+    world_nodes = new_nodes
+    rebuild_world_node_index()
+
+
+def upsert_world_node(node_id: str, node: dict) -> None:
+    old_node = world_nodes.get(node_id)
+    if old_node is not None:
+        old_tile = _tile_int_pair(old_node.get("wx", 0), old_node.get("wy", 0))
+        old_ids = node_by_tile.get(old_tile)
+        if old_ids is not None:
+            old_ids.discard(node_id)
+            if not old_ids:
+                node_by_tile.pop(old_tile, None)
+    world_nodes[node_id] = node
+    tile = _tile_int_pair(node.get("wx", 0), node.get("wy", 0))
+    node_by_tile.setdefault(tile, set()).add(node_id)
+
+
+def remove_world_node(node_id: str):
+    node = world_nodes.pop(node_id, None)
+    if node is None:
+        return None
+    tile = _tile_int_pair(node.get("wx", 0), node.get("wy", 0))
+    node_ids = node_by_tile.get(tile)
+    if node_ids is not None:
+        node_ids.discard(node_id)
+        if not node_ids:
+            node_by_tile.pop(tile, None)
+    return node
+
+
+def rebuild_placed_object_indexes() -> None:
+    global object_by_tile, floor_by_tile, stations_by_chunk
+    new_object_index: dict = {}
+    new_floor_index: dict = {}
+    new_station_index: dict = {}
+    for uid, obj in placed_objects.items():
+        pos = obj.get("pos", [0, 0])
+        tile = _tile_int_pair(pos[0], pos[1])
+        if obj.get("type") == "stone_brick_floor":
+            new_floor_index[tile] = uid
+        else:
+            new_object_index[tile] = uid
+            chunk_key = _chunk_key_from_tile(tile[0], tile[1])
+            new_station_index.setdefault(chunk_key, set()).add(uid)
+    object_by_tile = new_object_index
+    floor_by_tile = new_floor_index
+    stations_by_chunk = new_station_index
+
+
+def set_placed_objects(new_objects: dict) -> None:
+    global placed_objects
+    placed_objects = new_objects
+    rebuild_placed_object_indexes()
+
+
+def upsert_placed_object(uid: str, obj: dict) -> None:
+    if uid in placed_objects:
+        remove_placed_object(uid)
+    placed_objects[uid] = obj
+    pos = obj.get("pos", [0, 0])
+    tile = _tile_int_pair(pos[0], pos[1])
+    if obj.get("type") == "stone_brick_floor":
+        floor_by_tile[tile] = uid
+    else:
+        object_by_tile[tile] = uid
+        chunk_key = _chunk_key_from_tile(tile[0], tile[1])
+        stations_by_chunk.setdefault(chunk_key, set()).add(uid)
+
+
+def remove_placed_object(uid: str):
+    obj = placed_objects.pop(uid, None)
+    if obj is None:
+        return None
+    pos = obj.get("pos", [0, 0])
+    tile = _tile_int_pair(pos[0], pos[1])
+    if obj.get("type") == "stone_brick_floor":
+        if floor_by_tile.get(tile) == uid:
+            floor_by_tile.pop(tile, None)
+    else:
+        if object_by_tile.get(tile) == uid:
+            object_by_tile.pop(tile, None)
+        chunk_key = _chunk_key_from_tile(tile[0], tile[1])
+        chunk_uids = stations_by_chunk.get(chunk_key)
+        if chunk_uids is not None:
+            chunk_uids.discard(uid)
+            if not chunk_uids:
+                stations_by_chunk.pop(chunk_key, None)
+    return obj
+
+
+def get_node_at_tile(tile: tuple[int, int]):
+    node_ids = node_by_tile.get(tile)
+    if not node_ids:
+        return None, None
+    node_id = next(iter(node_ids))
+    return node_id, world_nodes.get(node_id)
+
+
+def get_placed_object_at_tile(tile: tuple[int, int], include_floor: bool = True):
+    uid = object_by_tile.get(tile)
+    if uid is not None:
+        return uid, placed_objects.get(uid)
+    if include_floor:
+        uid = floor_by_tile.get(tile)
+        if uid is not None:
+            return uid, placed_objects.get(uid)
+    return None, None
+
+
+def iter_world_nodes_near(pos_x: float, pos_y: float, radius_tiles: float):
+    radius = max(1, int(radius_tiles) + 1)
+    base_x = int(pos_x)
+    base_y = int(pos_y)
+    for tx in range(base_x - radius, base_x + radius + 1):
+        for ty in range(base_y - radius, base_y + radius + 1):
+            node_ids = node_by_tile.get((tx, ty))
+            if not node_ids:
+                continue
+            for node_id in tuple(node_ids):
+                node = world_nodes.get(node_id)
+                if node is not None:
+                    yield node_id, node
+
+
+def iter_placed_objects_near(pos_x: float, pos_y: float, radius_tiles: float, include_floor: bool = False):
+    radius = max(1, int(radius_tiles) + 1)
+    base_x = int(pos_x)
+    base_y = int(pos_y)
+    seen: set[str] = set()
+    for tx in range(base_x - radius, base_x + radius + 1):
+        for ty in range(base_y - radius, base_y + radius + 1):
+            uid = object_by_tile.get((tx, ty))
+            if uid is not None and uid not in seen:
+                obj = placed_objects.get(uid)
+                if obj is not None:
+                    seen.add(uid)
+                    yield uid, obj
+            if include_floor:
+                floor_uid = floor_by_tile.get((tx, ty))
+                if floor_uid is not None and floor_uid not in seen:
+                    obj = placed_objects.get(floor_uid)
+                    if obj is not None:
+                        seen.add(floor_uid)
+                        yield floor_uid, obj
 
 
 # Load persisted keybinds immediately so callers always see the saved values.

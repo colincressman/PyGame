@@ -143,7 +143,7 @@ def handle_events(state):
                     _STATION_TYPES = {"furnace", "campfire", "crafting_table", "alloy_forge", "part_maker", "part_combiner", "embedder"}
                     # 0. Open nearby chest
                     best_ch_uid, best_ch_dsq = None, 1.0
-                    for uid, obj in config.placed_objects.items():
+                    for uid, obj in config.iter_placed_objects_near(px, py, 1.0):
                         if obj.get("type") != "chest":
                             continue
                         dx = (obj["pos"][0] + 0.5) - px
@@ -156,7 +156,7 @@ def handle_events(state):
                     else:
                         # 1. Open nearby crafting station
                         best_st_uid, best_st_dsq = None, 2.25
-                        for uid, obj in config.placed_objects.items():
+                        for uid, obj in config.iter_placed_objects_near(px, py, 1.5):
                             if obj.get("type") not in _STATION_TYPES:
                                 continue
                             dx = (obj["pos"][0] + 0.5) - px
@@ -181,7 +181,7 @@ def handle_events(state):
                                 # 2. Tool-less node gather (includes item_drop nodes)
                                 best_id   = None
                                 best_dist = 2.25
-                                for nid, node in config.world_nodes.items():
+                                for nid, node in config.iter_world_nodes_near(px, py, 1.5):
                                     if node.get("type", "") in _NODE_TOOL:
                                         continue
                                     dx  = (node["wx"] + 0.5) - px
@@ -200,7 +200,7 @@ def handle_events(state):
                                             config.world_items = {k: v for k, v in config.world_items.items() if k != uid}
                                         node["hits"] = node.get("hits", 0) + 1
                                         if node["hits"] >= node.get("max_hp", 1):
-                                            config.world_nodes.pop(best_id, None)
+                                            config.remove_world_node(best_id)
             elif event.key == pygame.K_z:
                 # Z = toggle pickup mode (click placed objects to pick them up)
                 if (not config.show_inventory
@@ -218,7 +218,7 @@ def handle_events(state):
                     px, py = _pd["pos"]
                     _INTERACTIVE = {"door", "bed"}
                     best_uid, best_dsq = None, 2.25  # 1.5 tiles squared
-                    for uid, obj in config.placed_objects.items():
+                    for uid, obj in config.iter_placed_objects_near(px, py, 1.5):
                         if obj.get("type") not in _INTERACTIVE:
                             continue
                         dx = (obj["pos"][0] + 0.5) - px

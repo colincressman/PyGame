@@ -6,7 +6,7 @@ import orjson
 from server.shared_lock import clients_lock, players_lock, world_items_lock
 from server.player_save import _SAFE_ID
 from server.game_state.world_items import world_items as _world_items
-from server.network.net_utils import send_json, recv_json
+from server.network.net_utils import send_json, recv_json, discard_socket
 from server.network.tcp_state_handlers_v2 import dispatch_message as _dispatch_state_message_v2
 from server.cleanup import cleanup_player
 from server.item_data import get_item, roll_item_stats
@@ -112,6 +112,7 @@ def handle_world(sock, addr):
         print(f"[WORLD DISCONNECT] {player_id}")
         if player_id is not None:
             cleanup_player(player_id)
+        discard_socket(sock)
         sock.close()
 
 
@@ -173,4 +174,5 @@ def handle_state(sock, addr):
         print(f"[STATE DISCONNECT] {player_id}")
         if player_id is not None:
             cleanup_player(player_id)
+        discard_socket(sock)
         sock.close()

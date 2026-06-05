@@ -1,6 +1,7 @@
 from .shared_lock import clients_lock, players_lock, hashes_lock
 from server.game_state.sync import invalidate_player as _sync_invalidate
-from server.game_state.game_sync import invalidate_node_snapshot as _game_sync_invalidate
+from server.game_state.game_sync import invalidate_node_snapshot as _game_sync_invalidate, invalidate_player_cache as _game_sync_invalidate_player_cache
+from server.network.net_utils import discard_socket as _discard_socket
 from server.player_save import save_player
 from server.session_auth import revoke_token
 
@@ -36,11 +37,13 @@ def cleanup_player(player_id):
     # Close sockets safely outside the lock
     try:
         if world_sock:
+            _discard_socket(world_sock)
             world_sock.close()
     except:
         pass
     try:
         if state_sock:
+            _discard_socket(state_sock)
             state_sock.close()
     except:
         pass
@@ -61,6 +64,7 @@ def cleanup_player(player_id):
     # Clear sent-chunk cache so the next connection for this ID gets a full resend
     _sync_invalidate(player_id)
     _game_sync_invalidate(player_id)
+    _game_sync_invalidate_player_cache(player_id)
     revoke_token(player_id)
 
     # Persist player state to disk outside all locks (avoids blocking other threads)
