@@ -468,6 +468,13 @@ def start_game_client(screen: pygame.Surface) -> None:
             config.camera_offset_x = offset_x
             config.camera_offset_y = offset_y
 
+            while not chunk_queue.empty():
+                chunk_key, tiles = chunk_queue.get()
+                world_data.update(tiles)
+                full_world_data.update(tiles)
+                config.world_data_loaded_chunks.add(chunk_key)
+                chunk_queue.task_done()
+
             if world_data:
                 if state["show_map"] and full_world_data:
                     # Always submit so player dot stays current
@@ -481,13 +488,6 @@ def start_game_client(screen: pygame.Surface) -> None:
                         _hint = font.render("M  -  close map", True, (200, 200, 200))
                         state["screen"].blit(_hint, (8, state["WINDOW_HEIGHT"] - 26))
                 else:
-                    while not chunk_queue.empty():
-                        chunk_key, tiles = chunk_queue.get()
-                        world_data.update(tiles)
-                        full_world_data.update(tiles)
-                        config.world_data_loaded_chunks.add(chunk_key)
-                        chunk_queue.task_done()
-
                     # Recompute sorted chunk list only when the player enters a new chunk
                     if current_chunk != _sorted_chunks_last_key:
                         _sorted_chunks_last_key = current_chunk

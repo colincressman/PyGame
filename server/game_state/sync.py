@@ -1,4 +1,4 @@
-from server.world.visible import get_visible_chunks_for_player
+from server.world.visible import get_visible_chunk_keys_for_player, get_visible_chunks
 from server.network.net_utils import send_json
 from server.shared_lock import hashes_lock
 from server.world.dyn_chunk_gen import chunk_nodes_cache, chunk_nodes_lock
@@ -29,8 +29,8 @@ def forget_player_chunks(player_id: str, chunk_keys: list) -> None:
 
 
 def send_if_changed(player_id, sock, force_full=False):
-    visible_chunks = get_visible_chunks_for_player(player_id)
-    if not visible_chunks:
+    visible_chunk_keys = get_visible_chunk_keys_for_player(player_id)
+    if not visible_chunk_keys:
         return
 
     with hashes_lock:
@@ -41,20 +41,29 @@ def send_if_changed(player_id, sock, force_full=False):
             already_sent = set()
             _sent_chunks[player_id] = already_sent
 
-    # Only build payloads for chunks this player hasn't received yet
-    delta = {}
-    for chunk_key, chunk_tiles in visible_chunks.items():
-        if chunk_key not in already_sent:
-            delta[str(chunk_key)] = {f"{x},{y}": v for (x, y), v in chunk_tiles.items()}
+    unsent_chunk_keys = [
+        chunk_key for chunk_key in visible_chunk_keys
+        if chunk_key not in already_sent
+    ]
+    if not unsent_chunk_keys:
+        return
 
-    if delta:
+    visible_chunks = get_visible_chunks(unsent_chunk_keys)
+    if not visible_chunks:
+        return
+
+    if visible_chunks:
         # Attach node definitions for all newly-sent chunks
         # Inject "max_hp" so the client doesn't need a local copy of NODE_TYPES hp values.
+        delta = {}
         node_data = {}
         with chunk_nodes_lock:
-            for chunk_key_str in delta:
-                cx, cy = map(int, chunk_key_str.strip("()").split(","))
-                nodes = chunk_nodes_cache.get((cx, cy))
+            for chunk_key, chunk_tiles in visible_chunks.items():
+                chunk_key_str = str(chunk_key)
+                delta[chunk_key_str] = {
+                    f"{x},{y}": v for (x, y), v in chunk_tiles.items()
+                }
+                nodes = chunk_nodes_cache.get(chunk_key)
                 if nodes:
                     node_data[chunk_key_str] = [
                         {**n, "max_hp": _NODE_TYPES[n["type"]]["hp"]}

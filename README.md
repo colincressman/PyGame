@@ -30,12 +30,14 @@ PyGame_M/
 High-signal areas:
 
 - `client/client.py`: launcher, session lifecycle, main render/update loop
-- `client/config.py`: client constants plus mutable session state
+- `client/config.py`: mutable client runtime/session state seeded from `client/client_constants.py`
+- `client/client_constants.py`: immutable client defaults and shared constants
 - `client/input/controls.py`: main input router; inventory, chat, shop, and building handlers have been split into sibling modules under `client/input/`
 - `server/game_state/game_sync.py`: authoritative state packet assembly plus dedicated mob replication
 - `client/state/remote_mob.py`: persistent remote-mob buffering / smoothing
 - `client/state/remote_player.py`: buffered remote-player smoothing and PvP responsiveness tuning
-- `server/mobs/mob_manager.py`: mob lifecycle and AI
+- `server/mobs/mob_manager.py`: mob lifecycle, AI tick flow, separation, and combat side effects
+- `server/mobs/mob_defs.py`: data-driven mob config helpers and spawned/boss mob construction
 - `server/world/dyn_chunk_gen.py`: chunk generation, load/save, cliff assignment
 - `server/world/resource_nodes.py`: node generation, depletion, respawn, planting
 
@@ -81,10 +83,16 @@ Remaining larger extraction targets are still concentrated in oversized code mod
 The most important current cleanup opportunities are:
 
 - `client/rendering/item_art.py` is still very large and should be split by item domain
-- `client/config.py` still mixes constants with mutable session state
 - minimap/world-state paths still do avoidable rebuild and copy work
 - `server/world/visible.py` still has avoidable repeated payload-building work
-- `server/mobs/mob_manager.py` still needs internal modularization even though the external mob replication model is now much healthier
+- `server/mobs/mob_manager.py` still has a large runtime AI/combat loop even after the new `server/mobs/mob_defs.py` extraction
+
+The next main workstream is `Priority 6` server/world performance:
+
+- visible-chunk payload construction
+- nearby entity/item query costs
+- mob separation scaling
+- chunk I/O / cache benchmarking
 
 ## Multiplayer Notes
 

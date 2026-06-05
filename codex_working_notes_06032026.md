@@ -52,8 +52,12 @@ main maintenance pressure still lives.
   - Still does more per-call work than it needs to.
 
 - `server/mobs/mob_manager.py`
-  - Spawn, AI state machine, mob combat, drops, separation, and some per-player combat side effects.
-  - Large and still a strong modularization candidate.
+  - Main mob tick loop: AI state machine, separation, mob combat, drops, and some per-player combat side effects.
+  - Still large, but no longer owns the mob factory/config layer directly.
+
+- `server/mobs/mob_defs.py`
+  - Data-driven mob config helpers, spawn-position selection, spawned-mob construction, and boss construction.
+  - First extraction pass taken out of `mob_manager.py` on 2026-06-05.
 
 ## Client Map
 
@@ -62,8 +66,12 @@ main maintenance pressure still lives.
   - Contains several frame-time-sensitive scans.
 
 - `client/config.py`
-  - Client constants and mutable runtime state singleton.
-  - Convenient, but still overloaded.
+  - Mutable runtime/session state singleton.
+  - Still broad, but immutable defaults were split out on 2026-06-05.
+
+- `client/client_constants.py`
+  - Immutable client defaults and shared constants.
+  - New home for window defaults, movement constants, keybind defaults, appearance defaults, and client data-path constants.
 
 - `client/networking/handlers.py`
   - TCP/UDP receive handlers and client-side world/state application.
@@ -138,11 +146,11 @@ main maintenance pressure still lives.
 - `client/input/controls.py`
   - Much smaller after subsystem extraction, but still owns station/interaction/menu flow and remains worth trimming further.
 
-- `client/config.py`
-  - Mutable session state and constants should eventually separate.
-
 - `client/networking/handlers.py`
   - Node cache logic likely should move out next.
+
+- `server/mobs/mob_manager.py`
+  - The mob config/factory layer has already been extracted, so the next modularization win would be splitting runtime behavior/combat/post-resolution helpers rather than redoing spawn definitions.
 
 ### Good Practice / Correctness
 
@@ -187,8 +195,8 @@ When debugging a gameplay bug:
 
 ## Next Recommended Refactor Batches
 
-1. Split `client/rendering/item_art.py`
-2. Separate mutable client state from constants
-3. Extract mob-manager behavior into smaller modules
-4. Optimize minimap/world-state hot paths
+1. Optimize minimap/world-state hot paths
+2. Benchmark and reduce visible-chunk payload rebuild work
+3. Add spatial indexing for mob separation / nearby server queries
+4. Continue modularizing the runtime side of `server/mobs/mob_manager.py` if mob behavior work resumes
 5. If multiplayer tuning resumes, prefer extending the current replicated-entity model rather than reintroducing broad snapshot buckets

@@ -160,6 +160,8 @@ def handle_state(HOST, PORT_STATE, player_id):
                             current_remote_ids.add(pid)
                             if pid not in config.players_data:
                                 config.players_data[pid] = RemotePlayer(list(pdata.get("pos", [0.0, 0.0])))
+                            else:
+                                config.players_data[pid].add_update(pdata)
                             config.players_data[pid].health = pdata.get("health", 100)
                             equip = pdata.get("equip")
                             if equip is not None:
@@ -306,6 +308,11 @@ def handle_state(HOST, PORT_STATE, player_id):
                     if isinstance(pos, list) and len(pos) == 2:
                         player_data["pos"] = [float(pos[0]), float(pos[1])]
                         player_data.pop("knockback_vel", None)
+                        config.chunk_cache.clear()
+                        config.scheduled_chunk_renders.clear()
+                        config.world_data.clear()
+                        config.world_data_loaded_chunks.clear()
+                        config.last_player_chunk = None
                         log_info(f"[CLIENT STATE DEBUG] teleport pos=({pos[0]}, {pos[1]})")
                 elif data and data.get("type") == "chat":
                     import time as _time
