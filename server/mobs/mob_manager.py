@@ -111,6 +111,8 @@ _world_data       = None    # injected reference to server world tile dict
 _solid_tile_set:    set       = set()
 _floor_positions:   frozenset = frozenset()
 _cached_solid_rev:  int       = -1  # -1 forces rebuild on first tick
+_mob_query_cells: dict[tuple[int, int], set[str]] = {}
+_MOB_QUERY_CELL_SIZE = 16.0
 
 
 def set_mob_refs(refs: dict):
@@ -118,6 +120,37 @@ def set_mob_refs(refs: dict):
     _players          = refs["players"]
     _spawn_world_item = refs["spawn_world_item"]
     _world_data       = refs.get("world_data")
+
+
+def _mob_query_cell(pos: list[float]) -> tuple[int, int]:
+    return (
+        int(math.floor(pos[0] / _MOB_QUERY_CELL_SIZE)),
+        int(math.floor(pos[1] / _MOB_QUERY_CELL_SIZE)),
+    )
+
+
+def get_nearby_mobs(px: float, py: float, radius_sq: float) -> dict[str, dict]:
+    radius_tiles = int(radius_sq ** 0.5) + 1
+    radius_cells = int(radius_tiles / _MOB_QUERY_CELL_SIZE) + 1
+    base_cell = _mob_query_cell([px, py])
+    nearby: dict[str, dict] = {}
+    with mobs_lock:
+        if not _mob_query_cells:
+            return {
+                mid: mob for mid, mob in mobs.items()
+                if (mob["pos"][0] - px) ** 2 + (mob["pos"][1] - py) ** 2 <= radius_sq
+            }
+        for dcx in range(-radius_cells, radius_cells + 1):
+            for dcy in range(-radius_cells, radius_cells + 1):
+                for mid in _mob_query_cells.get((base_cell[0] + dcx, base_cell[1] + dcy), ()):
+                    mob = mobs.get(mid)
+                    if mob is None:
+                        continue
+                    dx = mob["pos"][0] - px
+                    dy = mob["pos"][1] - py
+                    if dx * dx + dy * dy <= radius_sq:
+                        nearby[mid] = mob
+    return nearby
 
 
 # ---------------------------------------------------------------------------
@@ -651,23 +684,41 @@ def update_mobs(dt: float):
         # --- Mob-mob separation — prevent stacking (idle/wander only) ---
         _ATTACK_STATES = frozenset({"windup", "lunge", "landing", "return_to_origin"})
         live_ids = [mid for mid in mobs if mobs[mid]["health"] > 0]
-        for i in range(len(live_ids)):
-            for j in range(i + 1, len(live_ids)):
-                ma = mobs[live_ids[i]]
-                mb = mobs[live_ids[j]]
-                # skip if either mob is mid-attack — separation would deflect lunges
-                if ma.get("state") in _ATTACK_STATES or mb.get("state") in _ATTACK_STATES:
-                    continue
-                ddx = ma["pos"][0] - mb["pos"][0]
-                ddy = ma["pos"][1] - mb["pos"][1]
-                d = math.sqrt(ddx * ddx + ddy * ddy)
-                if 0 < d < MOB_SEP_DIST:
-                    push = MOB_SEP_FORCE * (MOB_SEP_DIST - d) / MOB_SEP_DIST * dt
-                    nx, ny = ddx / d, ddy / d
-                    ma["pos"][0] += nx * push
-                    ma["pos"][1] += ny * push
-                    mb["pos"][0] -= nx * push
-                    mb["pos"][1] -= ny * push
+        _sep_cell_size = max(1.0, MOB_SEP_DIST)
+        _mob_cells: dict[tuple[int, int], list[tuple[int, str]]] = {}
+        for _idx, _mid in enumerate(live_ids):
+            _mob = mobs[_mid]
+            _cell = (
+                int(math.floor(_mob["pos"][0] / _sep_cell_size)),
+                int(math.floor(_mob["pos"][1] / _sep_cell_size)),
+            )
+            _mob_cells.setdefault(_cell, []).append((_idx, _mid))
+
+        for i, mid_a in enumerate(live_ids):
+            ma = mobs[mid_a]
+            if ma.get("state") in _ATTACK_STATES:
+                continue
+            _cell_x = int(math.floor(ma["pos"][0] / _sep_cell_size))
+            _cell_y = int(math.floor(ma["pos"][1] / _sep_cell_size))
+            for _dx in (-1, 0, 1):
+                for _dy in (-1, 0, 1):
+                    for j, mid_b in _mob_cells.get((_cell_x + _dx, _cell_y + _dy), ()):
+                        if j <= i:
+                            continue
+                        mb = mobs[mid_b]
+                        # skip if either mob is mid-attack — separation would deflect lunges
+                        if mb.get("state") in _ATTACK_STATES:
+                            continue
+                        ddx = ma["pos"][0] - mb["pos"][0]
+                        ddy = ma["pos"][1] - mb["pos"][1]
+                        d = math.sqrt(ddx * ddx + ddy * ddy)
+                        if 0 < d < MOB_SEP_DIST:
+                            push = MOB_SEP_FORCE * (MOB_SEP_DIST - d) / MOB_SEP_DIST * dt
+                            nx, ny = ddx / d, ddy / d
+                            ma["pos"][0] += nx * push
+                            ma["pos"][1] += ny * push
+                            mb["pos"][0] -= nx * push
+                            mb["pos"][1] -= ny * push
 
         # --- Mob-player separation + contact slowdown ---
         for mob_id in live_ids:
@@ -710,7 +761,7 @@ def update_mobs(dt: float):
             ]
 
         # --- Remove dead mobs and drop items ---
-    global _boss_active, _boss_dungeon_pos
+    global _boss_active, _boss_dungeon_pos, _mob_query_cells
     despawn_set = set(pending_despawn)
     for mob_id in dead:
         drop_pos    = list(mobs[mob_id]["pos"])
@@ -737,6 +788,13 @@ def update_mobs(dt: float):
                 _spawn_world_item(gem_id, [drop_pos[0] + 0.5, drop_pos[1] + 0.5], qty=1)
             _spawn_world_item(COIN_ITEM_ID, drop_pos, qty=random.randint(mob_level * _COIN_DROP_MIN_MULT, mob_level * _COIN_DROP_MAX_MULT))
             print(f"[MOB] {mob_type.title()} {mob_id} (Lv{mob_level}) died — dropped items at {drop_pos}")
+
+    _new_query_cells: dict[tuple[int, int], set[str]] = {}
+    for mid, mob in mobs.items():
+        if mob.get("health", 0) <= 0:
+            continue
+        _new_query_cells.setdefault(_mob_query_cell(mob["pos"]), set()).add(mid)
+    _mob_query_cells = _new_query_cells
 
     # Apply all per-tick player updates: regen and combat events
     from server.shared_lock import players_lock

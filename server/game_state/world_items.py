@@ -1,9 +1,11 @@
 import uuid
 import threading
 from server.shared_lock import players_lock, world_items_lock  # world_items_lock defined in shared_lock
+from server.config import CHUNK_SIZE as _CHUNK_SIZE
 
 world_items = {}        # {uid: {"item_id": int, "pos": [x, y], "qty": int}}
 # world_items_lock imported from server.shared_lock
+_item_cells: dict[tuple[int, int], set[str]] = {}
 
 _PICKUP_RADIUS_SQ = 1.0
 
@@ -15,11 +17,60 @@ def set_world_items_refs(refs):
     _players = refs["players"]
 
 
+def _cell_for_pos(pos: list[float]) -> tuple[int, int]:
+    return int(pos[0]) // _CHUNK_SIZE, int(pos[1]) // _CHUNK_SIZE
+
+
+def _index_item(uid: str, item: dict) -> None:
+    _item_cells.setdefault(_cell_for_pos(item["pos"]), set()).add(uid)
+
+
+def _deindex_item(uid: str, item: dict | None) -> None:
+    if item is None:
+        return
+    cell = _cell_for_pos(item["pos"])
+    cell_items = _item_cells.get(cell)
+    if cell_items is None:
+        return
+    cell_items.discard(uid)
+    if not cell_items:
+        _item_cells.pop(cell, None)
+
+
+def get_nearby_items(px: float, py: float, radius_sq: float) -> list[dict]:
+    radius_tiles = int(radius_sq ** 0.5) + 1
+    radius_chunks = radius_tiles // _CHUNK_SIZE + 1
+    base_cell = (int(px) // _CHUNK_SIZE, int(py) // _CHUNK_SIZE)
+    nearby: list[dict] = []
+    seen: set[str] = set()
+    with world_items_lock:
+        for dcx in range(-radius_chunks, radius_chunks + 1):
+            for dcy in range(-radius_chunks, radius_chunks + 1):
+                for uid in _item_cells.get((base_cell[0] + dcx, base_cell[1] + dcy), ()):
+                    if uid in seen:
+                        continue
+                    item = world_items.get(uid)
+                    if item is None:
+                        continue
+                    dx = item["pos"][0] - px
+                    dy = item["pos"][1] - py
+                    if dx * dx + dy * dy <= radius_sq:
+                        nearby.append({
+                            "uid": uid,
+                            "item_id": item["item_id"],
+                            "pos": item["pos"],
+                            "qty": item["qty"],
+                        })
+                        seen.add(uid)
+    return nearby
+
+
 def spawn_world_item(item_id, pos, qty=1):
     """Add a dropped item to the world. Returns the assigned uid."""
     uid = str(uuid.uuid4())[:8]
     with world_items_lock:
         world_items[uid] = {"item_id": item_id, "pos": list(pos), "qty": qty}
+        _index_item(uid, world_items[uid])
     return uid
 
 
@@ -53,21 +104,27 @@ def pickup_tick():
     pickups = []   # [(uid, pid, item_id, qty)]
     with world_items_lock:
         claimed = set()
-        for uid, item in list(world_items.items()):
-            if uid in claimed:
-                continue
-            ix, iy = item["pos"]
-            for pid, pos in player_list:
-                dx = pos[0] - ix
-                dy = pos[1] - iy
-                if dx * dx + dy * dy <= _PICKUP_RADIUS_SQ:
-                    pickups.append((uid, pid, item["item_id"], item["qty"]))
-                    claimed.add(uid)
-                    break
+        for pid, pos in player_list:
+            base_cell = _cell_for_pos(pos)
+            for dcx in (-1, 0, 1):
+                for dcy in (-1, 0, 1):
+                    for uid in tuple(_item_cells.get((base_cell[0] + dcx, base_cell[1] + dcy), ())):
+                        if uid in claimed:
+                            continue
+                        item = world_items.get(uid)
+                        if item is None:
+                            continue
+                        ix, iy = item["pos"]
+                        dx = pos[0] - ix
+                        dy = pos[1] - iy
+                        if dx * dx + dy * dy <= _PICKUP_RADIUS_SQ:
+                            pickups.append((uid, pid, item["item_id"], item["qty"]))
+                            claimed.add(uid)
         # Remove collected items NOW while still holding the lock — eliminates the
         # window where send_game_state could include a "claimed but not yet removed"
         # item, which caused the client-side ghost/flicker effect.
         for uid, _, _, _ in pickups:
+            _deindex_item(uid, world_items.get(uid))
             world_items.pop(uid, None)
 
     if not pickups:
@@ -111,6 +168,7 @@ def handle_player_pickup(player_id: str, uid: str) -> bool:
         # Remove immediately while holding the lock
         item_id = item["item_id"]
         qty     = item["qty"]
+        _deindex_item(uid, item)
         del world_items[uid]
 
     _COIN_ITEM_ID = 1
@@ -119,6 +177,7 @@ def handle_player_pickup(player_id: str, uid: str) -> bool:
             # Player disconnected between the two lock blocks — re-spawn the item
             with world_items_lock:
                 world_items[uid] = {"item_id": item_id, "pos": [ix, iy], "qty": qty}
+                _index_item(uid, world_items[uid])
             return False
         if item_id == _COIN_ITEM_ID:
             _players[player_id]["coins"] = _players[player_id].get("coins", 0) + qty

@@ -10,13 +10,17 @@ from server.game_state.placed_objects import (
 from server.game_state.game_sync import mark_inventory_dirty, set_player_sleeping as _set_player_sleeping
 from server.item_data import drain_durability, get_effective_health_max, get_item, get_sell_price, is_valid_equip_placement
 from server.game_state.crafting import handle_craft
+import os
 
 # Injected clients reference for chat broadcast
 _clients: dict | None = None
 _debug_last_log: dict[str, float] = {}
+_VERBOSE_DEBUG = os.environ.get("PYGAME_M_DEBUG_LOGS", "").lower() in {"1", "true", "yes", "on"}
 
 
 def _debug_log(key: str, message: str, interval: float = 1.0) -> None:
+    if not _VERBOSE_DEBUG:
+        return
     import time as _time
 
     now = _time.time()
@@ -78,7 +82,7 @@ def dispatch_message(data, player_id: str, players: dict, give_item, world_items
     if handler is None:
         print(f"[DISPATCH] unknown type={msg_type!r} from {player_id}")
         return False
-    print(f"[DISPATCH] {player_id} -> {msg_type}")
+    _debug_log(f"dispatch:{player_id}:{msg_type}", f"[DISPATCH] {player_id} -> {msg_type}", interval=2.0)
     handler(data, player_id, players, give_item, world_items)
     return True
 

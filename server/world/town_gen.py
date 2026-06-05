@@ -58,6 +58,25 @@ def get_town_center_tile(cx: int, cy: int):
             cy * CHUNK_SIZE + CHUNK_SIZE // 2)
 
 
+def get_town_structure_tiles_in_chunk(cx: int, cy: int) -> set[tuple[int, int]]:
+    """Return all deterministic town structure tiles that overlap chunk (cx, cy)."""
+    min_tx = cx * CHUNK_SIZE
+    min_ty = cy * CHUNK_SIZE
+    max_tx = min_tx + CHUNK_SIZE - 1
+    max_ty = min_ty + CHUNK_SIZE - 1
+    result: set[tuple[int, int]] = set()
+    gx0 = cx // TOWN_GRID
+    gy0 = cy // TOWN_GRID
+    for dgx in range(-1, 2):
+        for dgy in range(-1, 2):
+            acx, acy = _anchor_for_cell(gx0 + dgx, gy0 + dgy)
+            tx, ty = get_town_center_tile(acx, acy)
+            for wx, wy, _obj_type in _town_tiles(tx, ty):
+                if min_tx <= wx <= max_tx and min_ty <= wy <= max_ty:
+                    result.add((wx, wy))
+    return result
+
+
 # ── Building / structure generation ─────────────────────────────────────────
 
 def _building_tiles(cx, cy, door_dir):

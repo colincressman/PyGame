@@ -2,6 +2,7 @@ import time
 import threading
 import traceback
 from concurrent.futures import ThreadPoolExecutor, Future
+import os
 
 from .config import PORT_WORLD, PORT_STATE, TICK_RATE, MAX_PLAYERS
 from server.world import visible
@@ -32,6 +33,7 @@ _world_futures:  dict[str, Future] = {}
 _state_futures:  dict[str, Future] = {}
 _mob_futures:    dict[str, Future] = {}
 _future_started_at: dict[tuple[str, str], float] = {}
+_VERBOSE_DEBUG = os.environ.get("PYGAME_M_DEBUG_LOGS", "").lower() in {"1", "true", "yes", "on"}
 
 # === Main Game Loop ===
 def game_loop():
@@ -107,7 +109,7 @@ def game_loop():
             prev = _world_futures.get(player_id)
             if prev is not None and not prev.done():
                 started = _future_started_at.get(("world", player_id), now)
-                if now - started > 1.0:
+                if _VERBOSE_DEBUG and now - started > 1.0:
                     print(f"[WORLD SYNC DEBUG] stalled send player={player_id} age={now - started:.2f}s")
                 continue
             if prev is not None and prev.done():
@@ -131,7 +133,7 @@ def game_loop():
                 prev = _state_futures.get(player_id)
                 if prev is not None and not prev.done():
                     started = _future_started_at.get(("state", player_id), now)
-                    if now - started > 1.0:
+                    if _VERBOSE_DEBUG and now - started > 1.0:
                         print(f"[STATE SYNC DEBUG] stalled send player={player_id} age={now - started:.2f}s")
                     continue
                 if prev is not None and prev.done():
@@ -152,7 +154,7 @@ def game_loop():
                 prev = _mob_futures.get(player_id)
                 if prev is not None and not prev.done():
                     started = _future_started_at.get(("mob", player_id), now)
-                    if now - started > 1.0:
+                    if _VERBOSE_DEBUG and now - started > 1.0:
                         print(f"[MOB SYNC DEBUG] stalled send player={player_id} age={now - started:.2f}s")
                     continue
                 if prev is not None and prev.done():

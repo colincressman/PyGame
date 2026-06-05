@@ -1,6 +1,6 @@
 from server.world.chunk_utils import split_tiles_by_chunk
 from server.world.io import save_multiple_chunks
-from server.world.dyn_chunk_gen import queue_chunks_near_players, process_chunk_queue
+from server.world.dyn_chunk_gen import queue_chunks_near_players, process_chunk_queue, prune_loaded_chunk_cache
 from server.world.resource_nodes import tick_respawns as _tick_node_respawns, register_planted_node as _register_planted_node
 from server.game_state.placed_objects import tick_growing_plants as _tick_growing_plants
 from server.game_state.game_sync import tick_player_deaths as _tick_deaths
@@ -33,6 +33,9 @@ def update_world(players, player_positions):
 
         chunks = split_tiles_by_chunk(new_data)
         save_multiple_chunks(chunks)
+
+    with world_data_lock:
+        prune_loaded_chunk_cache(world_data, player_positions_copy)
 
     # 4. Tick resource node respawns (broadcasts via resource_nodes._bcast_log)
     _tick_node_respawns()

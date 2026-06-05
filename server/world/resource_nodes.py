@@ -19,6 +19,8 @@ import threading
 import atexit
 from server.world.tool_data import TOOL_ITEMS, TOOL_DAMAGE, PICK_TIER_RANK
 from server.world.resource_node_data import NODE_TYPES
+from server.world.town_gen import get_town_structure_tiles_in_chunk
+from server.world.dungeon_gen import get_dungeon_structure_tiles_in_chunk
 
 # _CHUNK_SIZE and _CHUNK_DIR come from server config; _PADDING is local world-gen detail
 from server.config import CHUNK_SIZE as _CHUNK_SIZE, CHUNK_DIR as _CHUNK_DIR, WORLD_SEED as _WORLD_SEED
@@ -111,6 +113,7 @@ atexit.register(_save_persistence_sync)
 _bcast_lock   = threading.Lock()
 _bcast_log:   list[dict] = []  # [{node_id, depleted, ts}, ...]
 _BCAST_WINDOW = 8.0            # seconds to retain entries
+_planted_bcast_log: list[dict] = []  # [{action, node_id, node_type?, wx?, wy?, max_hp?, ts}, ...]
 
 
 # ---------------------------------------------------------------------------
@@ -128,6 +131,10 @@ def generate_resource_nodes(cx: int, cy: int, biome_ids) -> list[dict]:
     nodes: list[dict] = []
     occupied: set[tuple] = set()
     chunk_dist = math.sqrt(cx * cx + cy * cy)  # Euclidean distance from origin in chunks
+    blocked_world_tiles = (
+        get_town_structure_tiles_in_chunk(cx, cy)
+        | get_dungeon_structure_tiles_in_chunk(cx, cy)
+    )
 
     for node_type, defn in NODE_TYPES.items():
         if chunk_dist < defn.get("min_dist", 0):
@@ -137,7 +144,13 @@ def generate_resource_nodes(cx: int, cy: int, biome_ids) -> list[dict]:
         for lx in range(_CHUNK_SIZE):
             for ly in range(_CHUNK_SIZE):
                 biome = int(biome_ids[lx + _PADDING, ly + _PADDING])
-                if biome not in allowed or (lx, ly) in occupied:
+                wx = cx * _CHUNK_SIZE + lx
+                wy = cy * _CHUNK_SIZE + ly
+                if (
+                    biome not in allowed
+                    or (lx, ly) in occupied
+                    or (wx, wy) in blocked_world_tiles
+                ):
                     continue
                 if rng.random() < density:
                     idx = len(nodes)
@@ -157,7 +170,10 @@ def generate_resource_nodes(cx: int, cy: int, biome_ids) -> list[dict]:
 def is_depleted(node_id: str) -> bool:
     if node_id.startswith("planted:"):
         with _state_lock:
-            return node_id not in _planted_nodes
+            if node_id not in _planted_nodes:
+                return True
+            rt = _node_respawn.get(node_id)
+            return rt is not None and time.time() < rt
     with _state_lock:
         rt = _node_respawn.get(node_id)
         if rt is not None:
@@ -176,6 +192,11 @@ def damage_node(node_id: str, node_def: dict, damage: int = 1) -> list[tuple] | 
         [(item_id, qty)]   — destroyed; loot list
     """
     is_planted = node_id.startswith("planted:")
+    planted_persists = (
+        is_planted
+        and node_def.get("permanent", False)
+        and str(node_def.get("tool") or "").startswith("pickaxe")
+    )
     null_cache_slot = False   # set True when we need to zero the chunk cache entry
     restore_data    = None    # original node dict to save for timed-respawn restoration
 
@@ -183,6 +204,8 @@ def damage_node(node_id: str, node_def: dict, damage: int = 1) -> list[tuple] | 
         if is_planted:
             if node_id not in _planted_nodes:
                 return None   # already harvested
+            if node_id in _node_respawn and time.time() < _node_respawn[node_id]:
+                return None
         else:
             if node_id in _permanently_depleted:
                 return None
@@ -194,7 +217,10 @@ def damage_node(node_id: str, node_def: dict, damage: int = 1) -> list[tuple] | 
             _node_hp[node_id] = 0
             destroyed = True
             if is_planted:
-                del _planted_nodes[node_id]
+                if planted_persists:
+                    _node_respawn[node_id] = time.time() + node_def["respawn"]
+                else:
+                    del _planted_nodes[node_id]
             elif node_def.get("permanent"):
                 # Permanent nodes (trees, ores with seeds) don't auto-respawn.
                 # Players can regrow them by planting the seed/sapling drop.
@@ -229,6 +255,11 @@ def damage_node(node_id: str, node_def: dict, damage: int = 1) -> list[tuple] | 
                 _node_restore_data[node_id] = restore_data
 
     _record_update(node_id, depleted=destroyed)
+    if is_planted and destroyed:
+        if planted_persists:
+            _record_planted_update(node_id, action="remove")
+        else:
+            _record_planted_update(node_id, action="remove")
     if destroyed:
         _save_persistence_async()
 
@@ -293,8 +324,9 @@ def tick_respawns() -> list[str]:
             if now >= rt:
                 del _node_respawn[nid]
                 _node_hp.pop(nid, None)
+                planted_info = dict(_planted_nodes[nid]) if nid.startswith("planted:") and nid in _planted_nodes else None
                 # Skip respawn if a floor tile covers this node's position
-                wp = _get_node_world_pos(nid)
+                wp = (planted_info["wx"], planted_info["wy"]) if planted_info is not None else _get_node_world_pos(nid)
                 if wp is not None and (wp[0], wp[1]) in floor_positions:
                     _node_restore_data.pop(nid, None)
                     continue
@@ -302,6 +334,8 @@ def tick_respawns() -> list[str]:
                 node_data = _node_restore_data.pop(nid, None)
                 if node_data is not None:
                     to_restore.append((nid, node_data))
+                if planted_info is not None:
+                    _record_planted_update(nid, action="upsert", info=planted_info)
 
     # Restore nodes into chunk_nodes_cache (outside state lock)
     if to_restore:
@@ -373,6 +407,7 @@ def register_planted_node(node_type: str, wx: int, wy: int) -> str:
         _planted_nodes[planted_id] = {"type": node_type, "wx": wx, "wy": wy}
     _save_persistence_async()
     _record_update(planted_id, depleted=False)
+    _record_planted_update(planted_id, action="upsert", info={"type": node_type, "wx": wx, "wy": wy})
     return planted_id
 
 
@@ -386,11 +421,18 @@ def get_planted_snapshot() -> list[dict]:
     """Return all active planted nodes for inclusion in game_state payloads."""
     with _state_lock:
         return [
-            {"node_id": nid, "node_type": info["type"],
-             "wx": info["wx"], "wy": info["wy"],
-             "max_hp": NODE_TYPES[info["type"]]["hp"] if info["type"] in NODE_TYPES else 1}
+            _planted_payload(nid, info)
             for nid, info in _planted_nodes.items()
+            if nid not in _node_respawn
         ]
+
+
+def get_recent_planted_updates() -> list[dict]:
+    """Return recent planted-node lifecycle updates for delta sync."""
+    cutoff = time.time() - _BCAST_WINDOW
+    with _bcast_lock:
+        _planted_bcast_log[:] = [u for u in _planted_bcast_log if u["ts"] >= cutoff]
+        return [{k: v for k, v in u.items() if k != "ts"} for u in _planted_bcast_log]
 
 
 # ---------------------------------------------------------------------------
@@ -472,3 +514,22 @@ def get_depleted_snapshot() -> list[str]:
 def _record_update(node_id: str, depleted: bool) -> None:
     with _bcast_lock:
         _bcast_log.append({"node_id": node_id, "depleted": depleted, "ts": time.time()})
+
+
+def _planted_payload(node_id: str, info: dict) -> dict:
+    node_type = info["type"]
+    return {
+        "node_id": node_id,
+        "node_type": node_type,
+        "wx": info["wx"],
+        "wy": info["wy"],
+        "max_hp": NODE_TYPES[node_type]["hp"] if node_type in NODE_TYPES else 1,
+    }
+
+
+def _record_planted_update(node_id: str, action: str, info: dict | None = None) -> None:
+    update = {"action": action, "node_id": node_id, "ts": time.time()}
+    if action == "upsert" and info is not None:
+        update.update(_planted_payload(node_id, info))
+    with _bcast_lock:
+        _planted_bcast_log.append(update)

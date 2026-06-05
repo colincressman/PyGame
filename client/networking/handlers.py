@@ -246,7 +246,7 @@ def handle_state(HOST, PORT_STATE, player_id):
                         _new_nodes = dict(config.world_nodes)
                         for u in node_updates:
                             nid = u.get("node_id")
-                            if not nid:
+                            if not nid or nid.startswith("planted:"):
                                 continue
                             if u.get("depleted", False):
                                 # Node destroyed — remove it entirely
@@ -262,7 +262,9 @@ def handle_state(HOST, PORT_STATE, player_id):
                         for nid in depleted_snapshot:
                             _new_nodes.pop(nid, None)
                         config.set_world_nodes(_new_nodes)
-                    planted_list = data.get("planted_nodes")
+                    planted_list = data.get("planted_snapshot")
+                    if planted_list is None:
+                        planted_list = data.get("planted_nodes")
                     if planted_list is not None:
                         _new_nodes = dict(config.world_nodes)
                         reported_ids = {pn["node_id"] for pn in planted_list}
@@ -281,6 +283,28 @@ def handle_state(HOST, PORT_STATE, player_id):
                         # Remove planted nodes that are no longer active on the server
                         for nid in [k for k in _new_nodes if k.startswith("planted:") and k not in reported_ids]:
                             del _new_nodes[nid]
+                        config.set_world_nodes(_new_nodes)
+                    planted_updates = data.get("planted_updates")
+                    if planted_updates:
+                        _new_nodes = dict(config.world_nodes)
+                        for upd in planted_updates:
+                            nid = upd.get("node_id")
+                            if not nid:
+                                continue
+                            if upd.get("action") == "remove":
+                                _new_nodes.pop(nid, None)
+                                continue
+                            ntype = upd.get("node_type")
+                            if not isinstance(ntype, str):
+                                continue
+                            _new_nodes[nid] = {
+                                "type": ntype,
+                                "wx": upd["wx"],
+                                "wy": upd["wy"],
+                                "max_hp": upd.get("max_hp") or NODE_MAX_HP.get(ntype, 1),
+                                "depleted": False,
+                                "hits": 0,
+                            }
                         config.set_world_nodes(_new_nodes)
                 elif data and data.get("type") == "shop_update":
                     config.shop_items = data.get("items", [])
