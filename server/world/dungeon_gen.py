@@ -52,6 +52,25 @@ def get_dungeon_center_tile(acx: int, acy: int) -> tuple:
             acy * CHUNK_SIZE + CHUNK_SIZE // 2)
 
 
+def get_dungeon_structure_tiles_in_chunk(cx: int, cy: int) -> set[tuple[int, int]]:
+    """Return all deterministic dungeon structure tiles that overlap chunk (cx, cy)."""
+    min_tx = cx * CHUNK_SIZE
+    min_ty = cy * CHUNK_SIZE
+    max_tx = min_tx + CHUNK_SIZE - 1
+    max_ty = min_ty + CHUNK_SIZE - 1
+    result: set[tuple[int, int]] = set()
+    gx0 = cx // DUNGEON_GRID
+    gy0 = cy // DUNGEON_GRID
+    for dgx in range(-1, 2):
+        for dgy in range(-1, 2):
+            acx, acy = get_dungeon_anchor(gx0 + dgx, gy0 + dgy)
+            tx, ty = get_dungeon_center_tile(acx, acy)
+            for wx, wy, _obj_type in _dungeon_tiles(tx, ty):
+                if min_tx <= wx <= max_tx and min_ty <= wy <= max_ty:
+                    result.add((wx, wy))
+    return result
+
+
 # ---------------------------------------------------------------------------
 # Structure generation
 # ---------------------------------------------------------------------------

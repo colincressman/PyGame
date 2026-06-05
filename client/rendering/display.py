@@ -67,6 +67,107 @@ def toggle_fullscreen(state):
 from rendering.item_art import draw_item, draw_node
 
 
+_WALL_TYPES = frozenset({"wood_wall", "stone_wall", "stone_brick_wall"})
+
+
+def _neighbor_object(tile_x: int, tile_y: int, *, include_floor: bool = False):
+    uid = _config.object_by_tile.get((tile_x, tile_y))
+    if uid is not None:
+        return _config.placed_objects.get(uid)
+    if include_floor:
+        uid = _config.floor_by_tile.get((tile_x, tile_y))
+        if uid is not None:
+            return _config.placed_objects.get(uid)
+    return None
+
+
+def _wall_links(tx: int, ty: int) -> dict[str, bool]:
+    def _linked(nx: int, ny: int) -> bool:
+        neighbor = _neighbor_object(nx, ny)
+        if not neighbor:
+            return False
+        return neighbor.get("type") in _WALL_TYPES or neighbor.get("type") == "door"
+
+    return {
+        "n": _linked(tx, ty - 1),
+        "s": _linked(tx, ty + 1),
+        "w": _linked(tx - 1, ty),
+        "e": _linked(tx + 1, ty),
+    }
+
+
+def _floor_links(tx: int, ty: int, floor_type: str) -> dict[str, bool]:
+    def _linked(nx: int, ny: int) -> bool:
+        neighbor = _neighbor_object(nx, ny, include_floor=True)
+        return bool(neighbor and neighbor.get("type") == floor_type)
+
+    return {
+        "n": _linked(tx, ty - 1),
+        "s": _linked(tx, ty + 1),
+        "w": _linked(tx - 1, ty),
+        "e": _linked(tx + 1, ty),
+    }
+
+
+def _draw_connected_wall(screen, sx: int, sy: int, base_col, edge_col, detail_col, links: dict[str, bool]):
+    T = TILE_SIZE
+    post = max(8, T // 2)
+    thickness = max(6, T // 3)
+    post_x = sx + (T - post) // 2
+    post_y = sy + (T - post) // 2
+    arm_x = sx + (T - thickness) // 2
+    arm_y = sy + (T - thickness) // 2
+
+    if links["n"]:
+        pygame.draw.rect(screen, base_col, (arm_x, sy + 1, thickness, post_y - sy + 1))
+    if links["s"]:
+        pygame.draw.rect(screen, base_col, (arm_x, post_y + post - 1, thickness, sy + T - (post_y + post - 1) - 1))
+    if links["w"]:
+        pygame.draw.rect(screen, base_col, (sx + 1, arm_y, post_x - sx + 1, thickness))
+    if links["e"]:
+        pygame.draw.rect(screen, base_col, (post_x + post - 1, arm_y, sx + T - (post_x + post - 1) - 1, thickness))
+
+    pygame.draw.rect(screen, base_col, (post_x, post_y, post, post))
+    pygame.draw.rect(screen, edge_col, (post_x, post_y, post, post), 2)
+
+    if links["n"]:
+        pygame.draw.line(screen, edge_col, (arm_x, sy + 1), (arm_x + thickness, sy + 1), 1)
+    if links["s"]:
+        pygame.draw.line(screen, edge_col, (arm_x, sy + T - 2), (arm_x + thickness, sy + T - 2), 1)
+    if links["w"]:
+        pygame.draw.line(screen, edge_col, (sx + 1, arm_y), (sx + 1, arm_y + thickness), 1)
+    if links["e"]:
+        pygame.draw.line(screen, edge_col, (sx + T - 2, arm_y), (sx + T - 2, arm_y + thickness), 1)
+
+    pygame.draw.line(screen, detail_col, (post_x + 2, post_y + post // 2), (post_x + post - 3, post_y + post // 2), 1)
+    pygame.draw.line(screen, detail_col, (post_x + post // 2, post_y + 2), (post_x + post // 2, post_y + post - 3), 1)
+
+
+def _draw_connected_floor(screen, sx: int, sy: int, tx: int, ty: int, base_col, grout_col, links: dict[str, bool]):
+    T = TILE_SIZE
+    pygame.draw.rect(screen, base_col, (sx, sy, T, T))
+
+    if not links["n"]:
+        pygame.draw.line(screen, grout_col, (sx, sy), (sx + T - 1, sy), 1)
+    if not links["s"]:
+        pygame.draw.line(screen, grout_col, (sx, sy + T - 1), (sx + T - 1, sy + T - 1), 1)
+    if not links["w"]:
+        pygame.draw.line(screen, grout_col, (sx, sy), (sx, sy + T - 1), 1)
+    if not links["e"]:
+        pygame.draw.line(screen, grout_col, (sx + T - 1, sy), (sx + T - 1, sy + T - 1), 1)
+
+    row_mid = sy + T // 2
+    pygame.draw.line(screen, grout_col, (sx + 1, row_mid), (sx + T - 2, row_mid), 1)
+    if (tx + ty) % 2 == 0:
+        top_split = sx + T // 3
+        bottom_split = sx + 2 * T // 3
+    else:
+        top_split = sx + 2 * T // 3
+        bottom_split = sx + T // 3
+    pygame.draw.line(screen, grout_col, (top_split, sy + 1), (top_split, row_mid), 1)
+    pygame.draw.line(screen, grout_col, (bottom_split, row_mid), (bottom_split, sy + T - 2), 1)
+
+
 def draw_world_items(screen, world_items, offset_x, offset_y):
     """Draw dropped world items at their tile positions using camera offset."""
     if not world_items:
@@ -132,36 +233,16 @@ def draw_placed_object(screen, obj: dict, offset_x: int, offset_y: int):
         pygame.draw.rect(screen, gc2, (gx2 + 2, gy2 + 1, gw - 4, gh - 2))
 
     elif otype == "wood_wall":
-        pygame.draw.rect(screen, (100, 60, 25), (sx + 2, sy + 2, T - 4, T - 4))
-        pygame.draw.rect(screen, (65, 38, 12),  (sx + 2, sy + 2, T - 4, T - 4), 2)
-        for px_line in range(sx + 6, sx + T - 4, 8):
-            pygame.draw.line(screen, (75, 45, 18), (px_line, sy + 3), (px_line, sy + T - 3), 1)
-        pygame.draw.line(screen, (75, 45, 18), (sx + 3, sy + T // 2), (sx + T - 3, sy + T // 2), 1)
+        _draw_connected_wall(screen, sx, sy, (100, 60, 25), (65, 38, 12), (75, 45, 18), _wall_links(tx, ty))
 
     elif otype == "stone_wall":
-        pygame.draw.rect(screen, (88, 88, 92),  (sx + 2, sy + 2, T - 4, T - 4))
-        pygame.draw.rect(screen, (50, 50, 54),  (sx + 2, sy + 2, T - 4, T - 4), 2)
-        pygame.draw.line(screen, (55, 55, 60), (sx + 3,      sy + T//2),  (sx + T - 3, sy + T//2), 1)
-        pygame.draw.line(screen, (55, 55, 60), (sx + T//4,   sy + 3),     (sx + T//4,  sy + T//2), 1)
-        pygame.draw.line(screen, (55, 55, 60), (sx + 3*T//4, sy + T//2),  (sx + 3*T//4, sy + T - 3), 1)
+        _draw_connected_wall(screen, sx, sy, (88, 88, 92), (50, 50, 54), (55, 55, 60), _wall_links(tx, ty))
 
     elif otype == "stone_brick_wall":
-        pygame.draw.rect(screen, (130, 110, 80), (sx + 2, sy + 2, T - 4, T - 4))
-        pygame.draw.rect(screen, (90,  72, 50),  (sx + 2, sy + 2, T - 4, T - 4), 2)
-        # Brick pattern — two rows of offset bricks
-        mid = sy + T // 2
-        pygame.draw.line(screen, (90, 72, 50), (sx + 3, mid), (sx + T - 3, mid), 1)
-        pygame.draw.line(screen, (90, 72, 50), (sx + T // 3,     sy + 3), (sx + T // 3,     mid), 1)
-        pygame.draw.line(screen, (90, 72, 50), (sx + 2 * T // 3, mid),    (sx + 2 * T // 3, sy + T - 3), 1)
+        _draw_connected_wall(screen, sx, sy, (130, 110, 80), (90, 72, 50), (105, 86, 63), _wall_links(tx, ty))
 
     elif otype == "stone_brick_floor":
-        pygame.draw.rect(screen, (118, 100, 72), (sx + 1, sy + 1, T - 2, T - 2))
-        # Grout lines for a floor tile feel
-        mid = sy + T // 2
-        pygame.draw.line(screen, (95, 80, 58), (sx + 2, mid), (sx + T - 2, mid), 1)
-        pygame.draw.line(screen, (95, 80, 58), (sx + T // 2, sy + 2), (sx + T // 2, mid), 1)
-        pygame.draw.line(screen, (95, 80, 58), (sx + T // 4, mid),    (sx + T // 4, sy + T - 2), 1)
-        pygame.draw.line(screen, (95, 80, 58), (sx + 3*T//4, mid),    (sx + 3*T//4, sy + T - 2), 1)
+        _draw_connected_floor(screen, sx, sy, tx, ty, (118, 100, 72), (95, 80, 58), _floor_links(tx, ty, otype))
 
     elif otype == "door":
         is_open = obj.get("state", "closed") == "open"

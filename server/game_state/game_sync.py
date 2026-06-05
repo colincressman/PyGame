@@ -1,10 +1,15 @@
 from server.network.net_utils import send_json
 from server.shared_lock import players_lock
 from server.item_data import get_effective_health_max, get_equip_bonuses, get_hotbar_bonus
-from server.game_state.world_items import world_items, world_items_lock
+from server.game_state.world_items import get_nearby_items
 from server.game_state.placed_objects import get_nearby as _get_nearby_placed
-from server.mobs.mob_manager import mobs, mobs_lock
-from server.world.resource_nodes import get_recent_updates as _get_node_updates, get_planted_snapshot as _get_planted_snapshot, get_depleted_snapshot as _get_depleted_snapshot
+from server.mobs.mob_manager import get_nearby_mobs
+from server.world.resource_nodes import (
+    get_recent_updates as _get_node_updates,
+    get_planted_snapshot as _get_planted_snapshot,
+    get_recent_planted_updates as _get_planted_updates,
+    get_depleted_snapshot as _get_depleted_snapshot,
+)
 from server.world.town_gen import get_npcs_near as _get_npcs_near, ensure_towns_near as _ensure_towns_near
 from server.config import (
     CHUNK_SIZE as _CHUNK_SIZE,
@@ -30,11 +35,15 @@ _player_last_build_chunk: dict = {}
 import threading
 import time
 import math
+import os
 
 _debug_last_log: dict[str, float] = {}
+_VERBOSE_DEBUG = os.environ.get("PYGAME_M_DEBUG_LOGS", "").lower() in {"1", "true", "yes", "on"}
 
 
 def _debug_log(key: str, message: str, interval: float = 2.0) -> None:
+    if not _VERBOSE_DEBUG:
+        return
     now = time.time()
     last = _debug_last_log.get(key, 0.0)
     if now - last < interval:
@@ -121,12 +130,12 @@ _inventory_lock: threading.Lock = threading.Lock()
 _inventory_dirty: set = set()
 _inventory_sent:  set = set()  # players who have received at least one full inventory
 _node_snapshot_sent: set = set()  # players who have received the initial depleted-nodes snapshot
+_planted_snapshot_sent: set = set()  # players who have received the initial planted-nodes snapshot
 _state_send_cache: dict[str, dict] = {}
 
 _DYNAMIC_INTERVAL = 0.08
 _WORLD_INTERVAL = 0.25
 _TIME_INTERVAL = 0.25
-_PLANTED_INTERVAL = 1.00
 _MOB_SYNC_INTERVAL = 0.04
 
 
@@ -140,6 +149,7 @@ def invalidate_node_snapshot(player_id: str) -> None:
     """Clear the node-snapshot-sent flag so the next connection gets a fresh snapshot."""
     with _inventory_lock:
         _node_snapshot_sent.discard(player_id)
+        _planted_snapshot_sent.discard(player_id)
         _inventory_sent.discard(player_id)
         _inventory_dirty.discard(player_id)
     _state_send_cache.pop(player_id, None)
@@ -188,12 +198,10 @@ def _send_mob_sync(player_id: str, sock, px: float, py: float, now: float, cache
     if now - cache.get("mob_sync_at", 0.0) < _MOB_SYNC_INTERVAL:
         return
     render_dist_sq = 50 * 50
-    with mobs_lock:
-        visible: dict[str, dict] = {
-            mid: _mob_snapshot(mid, mob)
-            for mid, mob in mobs.items()
-            if (mob["pos"][0] - px) ** 2 + (mob["pos"][1] - py) ** 2 <= render_dist_sq
-        }
+    visible = {
+        mid: _mob_snapshot(mid, mob)
+        for mid, mob in get_nearby_mobs(px, py, render_dist_sq).items()
+    }
 
     known_ids: set[str] = cache.setdefault("mob_known_ids", set())
     last_sent: dict[str, tuple] = cache.setdefault("mob_last_sent", {})
@@ -253,7 +261,6 @@ def send_mob_sync(player_id: str, sock) -> None:
             "dynamic_at": 0.0,
             "world_at": 0.0,
             "time_at": 0.0,
-            "planted_at": 0.0,
             "mob_sync_at": 0.0,
             "last_weather": None,
             "last_world_time": None,
@@ -408,7 +415,6 @@ def send_game_state(player_id, sock):
             "dynamic_at": 0.0,
             "world_at": 0.0,
             "time_at": 0.0,
-            "planted_at": 0.0,
             "mob_sync_at": 0.0,
             "last_weather": None,
             "last_world_time": None,
@@ -427,8 +433,6 @@ def send_game_state(player_id, sock):
         or abs(_world_time - cache["last_world_time"]) >= 0.05
         or (now - cache["time_at"] >= _TIME_INTERVAL)
     )
-    include_planted = first_send or (now - cache["planted_at"] >= _PLANTED_INTERVAL)
-
     payload = {
         "type": "game_state",
         "self": self_data,
@@ -440,12 +444,7 @@ def send_game_state(player_id, sock):
         payload["dungeons"] = _get_dungeons_near(px, py)
         cache["world_at"] = now
     if include_dynamic:
-        with world_items_lock:
-            payload["world_items"] = [
-                {"uid": uid, "item_id": item["item_id"], "pos": item["pos"], "qty": item["qty"]}
-                for uid, item in world_items.items()
-                if (item["pos"][0] - px) ** 2 + (item["pos"][1] - py) ** 2 <= RENDER_DIST_SQ
-            ]
+        payload["world_items"] = get_nearby_items(px, py, RENDER_DIST_SQ)
         payload["projectiles"] = _proj_snapshot()
         cache["dynamic_at"] = now
     if include_time:
@@ -465,9 +464,15 @@ def send_game_state(player_id, sock):
             _node_snapshot_sent.add(player_id)
     if needs_node_snapshot:
         payload["depleted_snapshot"] = _get_depleted_snapshot()
-    if include_planted:
-        payload["planted_nodes"] = _get_planted_snapshot()
-        cache["planted_at"] = now
+    with _inventory_lock:
+        needs_planted_snapshot = player_id not in _planted_snapshot_sent
+        if needs_planted_snapshot:
+            _planted_snapshot_sent.add(player_id)
+    if needs_planted_snapshot:
+        payload["planted_snapshot"] = _get_planted_snapshot()
+    planted_updates = _get_planted_updates()
+    if planted_updates:
+        payload["planted_updates"] = planted_updates
     _debug_log(
         f"send_game_state:{player_id}",
         (

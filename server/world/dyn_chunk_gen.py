@@ -30,11 +30,12 @@ except ImportError:
     _orjson = None             # fallback: stdlib json used below
 import heapq
 from server.world.world_types import BIOME_ID_MAP, CLIFF_ID_MAP, ID_TO_BIOME, ID_TO_CLIFF
+import time
 
 queued_chunks = set()
 
 PADDING    = 1
-from server.config import CHUNK_SIZE, CHUNK_DIR, WORLD_SEED as SEED
+from server.config import CHUNK_SIZE, CHUNK_DIR, WORLD_SEED as SEED, CHUNK_RADIUS
 
 # ---------------------------------------------------------------------------
 # Noise scales
@@ -430,11 +431,19 @@ def detect_cliffs(elevation_map: np.ndarray, biome_map: np.ndarray,
 # ---------------------------------------------------------------------------
 chunk_queue      = []
 generated_chunks = set()
+loaded_chunks    = set()
 chunk_lock       = Lock()
+_last_cpu_sample = 0.0
+_last_cpu_usage = 0.0
+_CPU_SAMPLE_INTERVAL = 0.5
+_chunk_last_touch: dict[tuple[int, int], float] = {}
+_SERVER_CHUNK_CACHE_LIMIT = max(256, ((CHUNK_RADIUS * 2 + 5) ** 2) * 2)
+_SERVER_CHUNK_KEEP_MARGIN = 2
 
 
 def queue_chunks_near_players(player_data, radius):
     candidates: dict[tuple, int] = {}
+    now = time.time()
     for pos in player_data.values():
         px, py  = map(float, pos["pos"])
         bcx, bcy = int(px) // CHUNK_SIZE, int(py) // CHUNK_SIZE
@@ -447,13 +456,21 @@ def queue_chunks_near_players(player_data, radius):
 
     with chunk_lock:
         for coord, dist_sq in candidates.items():
-            if coord not in generated_chunks and coord not in queued_chunks:
+            if coord in loaded_chunks:
+                _chunk_last_touch[coord] = now
+                continue
+            if coord not in queued_chunks:
                 queued_chunks.add(coord)
                 heapq.heappush(chunk_queue, (dist_sq, coord[0], coord[1]))
 
 
 def get_cpu_percent():
-    return psutil.cpu_percent(interval=0.05)
+    global _last_cpu_sample, _last_cpu_usage
+    now = time.time()
+    if now - _last_cpu_sample >= _CPU_SAMPLE_INTERVAL:
+        _last_cpu_usage = psutil.cpu_percent(interval=None)
+        _last_cpu_sample = now
+    return _last_cpu_usage
 
 
 def process_chunk_queue(world_data):
@@ -463,11 +480,13 @@ def process_chunk_queue(world_data):
 
     for _ in range(min(chunk_limit, len(chunk_queue))):
         _, cx, cy = heapq.heappop(chunk_queue)
+        queued_chunks.discard((cx, cy))
 
         saved_chunk = load_chunk_from_disk(cx, cy)
         if saved_chunk:
             world_data.update(saved_chunk)
             new_tiles.update(saved_chunk)
+            _mark_chunk_loaded((cx, cy))
             continue
 
         biome_ids, elevations = generate_chunk_arrays(cx, cy)
@@ -508,7 +527,7 @@ def process_chunk_queue(world_data):
 
         world_data.update(chunk)
         new_tiles.update(chunk)
-        generated_chunks.add((cx, cy))
+        _mark_chunk_loaded((cx, cy))
 
         # Generate resource nodes and save alongside tile data
         from server.world.resource_nodes import generate_resource_nodes, apply_depletions_to_cache
@@ -525,6 +544,56 @@ def process_chunk_queue(world_data):
             f.write(_orjson.dumps(save_data) if _orjson else json.dumps(save_data).encode())
 
     return new_tiles
+
+
+def prune_loaded_chunk_cache(world_data, player_data) -> int:
+    """Evict old in-memory chunks outside the active player radius."""
+    with chunk_lock:
+        if len(loaded_chunks) <= _SERVER_CHUNK_CACHE_LIMIT:
+            return 0
+
+        protected: set[tuple[int, int]] = set()
+        keep_radius = CHUNK_RADIUS + _SERVER_CHUNK_KEEP_MARGIN
+        for pos in player_data.values():
+            px, py = map(float, pos["pos"])
+            bcx, bcy = int(px) // CHUNK_SIZE, int(py) // CHUNK_SIZE
+            for dx in range(-keep_radius, keep_radius + 1):
+                for dy in range(-keep_radius, keep_radius + 1):
+                    protected.add((bcx + dx, bcy + dy))
+
+        evictable = [coord for coord in loaded_chunks if coord not in protected]
+        if not evictable:
+            return 0
+        evictable.sort(key=lambda coord: _chunk_last_touch.get(coord, 0.0))
+        remove_count = min(len(loaded_chunks) - _SERVER_CHUNK_CACHE_LIMIT, len(evictable))
+        to_remove = evictable[:remove_count]
+
+        for cx, cy in to_remove:
+            loaded_chunks.discard((cx, cy))
+            generated_chunks.discard((cx, cy))
+            _chunk_last_touch.pop((cx, cy), None)
+
+    evicted = 0
+    with chunk_nodes_lock:
+        for cx, cy in to_remove:
+            chunk_nodes_cache.pop((cx, cy), None)
+            _remove_chunk_tiles(world_data, cx, cy)
+            evicted += 1
+    return evicted
+
+
+def _mark_chunk_loaded(coord: tuple[int, int]) -> None:
+    loaded_chunks.add(coord)
+    generated_chunks.add(coord)
+    _chunk_last_touch[coord] = time.time()
+
+
+def _remove_chunk_tiles(world_data: dict, cx: int, cy: int) -> None:
+    x0 = cx * CHUNK_SIZE
+    y0 = cy * CHUNK_SIZE
+    for dx in range(CHUNK_SIZE):
+        for dy in range(CHUNK_SIZE):
+            world_data.pop((x0 + dx, y0 + dy), None)
 
 
 # ---------------------------------------------------------------------------

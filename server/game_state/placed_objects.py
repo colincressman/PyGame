@@ -43,9 +43,12 @@ _FLUSH_INTERVAL = 10.0  # seconds between disk writes
 # mob_manager reads this to know when to rebuild its cached solid tile set.
 _solid_revision: int = 0
 _debug_last_log: dict[str, float] = {}
+_VERBOSE_DEBUG = os.environ.get("PYGAME_M_DEBUG_LOGS", "").lower() in {"1", "true", "yes", "on"}
 
 
 def _debug_log(key: str, message: str, interval: float = 2.0) -> None:
+    if not _VERBOSE_DEBUG:
+        return
     now = time.time()
     last = _debug_last_log.get(key, 0.0)
     if now - last < interval:
@@ -226,9 +229,9 @@ def place_object(pid: str, obj_type: str, pos: list, inventory: list) -> tuple:
             _tile_index[(tx, ty)] = uid
         _mark_dirty()
         _bump_solid_revision()
-        print(
-            f"[PLACED DEBUG] place pid={pid} type={obj_type} pos=({tx},{ty}) "
-            f"uid={uid} total={len(placed_objects)}"
+        _debug_log(
+            f"placed_place:{uid}",
+            f"[PLACED DEBUG] place pid={pid} type={obj_type} pos=({tx},{ty}) uid={uid} total={len(placed_objects)}",
         )
 
     return True, uid
@@ -260,9 +263,9 @@ def inject_object(obj_type: str, tx: int, ty: int, placed_by: str = "town") -> b
             _tile_index[(tx, ty)] = uid
         _mark_dirty()
         _bump_solid_revision()
-        print(
-            f"[PLACED DEBUG] inject by={placed_by} type={obj_type} pos=({tx},{ty}) "
-            f"uid={uid} total={len(placed_objects)}"
+        _debug_log(
+            f"placed_inject:{uid}",
+            f"[PLACED DEBUG] inject by={placed_by} type={obj_type} pos=({tx},{ty}) uid={uid} total={len(placed_objects)}",
         )
     return True
 
@@ -294,9 +297,9 @@ def remove_object(uid: str, inventory: list, pid: str) -> bool:
             _tile_index.pop((tx, ty), None)
         _mark_dirty()
         _bump_solid_revision()
-        print(
-            f"[PLACED DEBUG] remove pid={pid} uid={uid} type={obj.get('type')} "
-            f"pos=({tx},{ty}) total={len(placed_objects)}"
+        _debug_log(
+            f"placed_remove:{uid}",
+            f"[PLACED DEBUG] remove pid={pid} uid={uid} type={obj.get('type')} pos=({tx},{ty}) total={len(placed_objects)}",
         )
 
     # Return item to inventory: stack with existing slot first, then find empty slot
