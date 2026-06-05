@@ -578,7 +578,16 @@ def start_game_client(screen: pygame.Surface) -> None:
                 for pid, rp in players_data.items():
                     if pid != player_id_dict["player_id"]:
                         rp.update_anim(dt)
-                        _rp_pos = rp.get_render_pos(_now)
+                        _combat_active = (
+                            config.is_attacking
+                            or config.is_blocking
+                            or rp.is_attacking
+                        )
+                        _interp_delay = rp.get_interp_delay(
+                            state["player_data"]["pos"],
+                            combat_active=_combat_active,
+                        )
+                        _rp_pos = rp.get_render_pos(_now, interp_delay=_interp_delay)
                         _draw_list.append((
                             _rp_pos[1] + get_sprite_feet_offset(),
                             lambda _rp=rp, _pos=_rp_pos, _pid=pid: draw_remote_player(

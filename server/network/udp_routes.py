@@ -240,6 +240,9 @@ def udp_loop():
                     old_pos = players[player_id].get("old_pos", pos)
                     dx = pos[0] - old_pos[0]
                     dy = pos[1] - old_pos[1]
+                    prev_state = player_positions.get(player_id, {})
+                    prev_ts = float(prev_state.get("timestamp", now_t))
+                    vel_dt = max(now_t - prev_ts, 1e-6)
                     seq = players[player_id].get("seq", 0) + 1
                     players[player_id]["pos"] = pos
                     players[player_id]["stealthy"]      = payload.get("stealthy",    False)
@@ -255,8 +258,8 @@ def udp_loop():
                     players[player_id]["seq"] = seq
                     player_positions[player_id] = {
                         'pos': pos,
-                        'vel': [dx, dy],
-                        'timestamp': time.time(),
+                        'vel': [dx / vel_dt, dy / vel_dt],
+                        'timestamp': now_t,
                         'seq': seq
                     }
                 with clients_lock:

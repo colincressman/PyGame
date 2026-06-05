@@ -7,6 +7,7 @@ A Python/Pygame multiplayer action RPG with a custom server/client stack, chunke
 This project is no longer a small prototype. The active game already includes:
 
 - real-time multiplayer with TCP + UDP
+- dedicated replicated-entity smoothing for mobs and adaptive smoothing for remote players
 - procedural world generation with chunk persistence
 - combat, block/parry, dodge roll, stamina, durability, and status effects
 - equipment, crafting, repair, gem embedding, and part combining
@@ -31,7 +32,9 @@ High-signal areas:
 - `client/client.py`: launcher, session lifecycle, main render/update loop
 - `client/config.py`: client constants plus mutable session state
 - `client/input/controls.py`: main input router; inventory, chat, shop, and building handlers have been split into sibling modules under `client/input/`
-- `server/game_state/game_sync.py`: authoritative state packet assembly
+- `server/game_state/game_sync.py`: authoritative state packet assembly plus dedicated mob replication
+- `client/state/remote_mob.py`: persistent remote-mob buffering / smoothing
+- `client/state/remote_player.py`: buffered remote-player smoothing and PvP responsiveness tuning
 - `server/mobs/mob_manager.py`: mob lifecycle and AI
 - `server/world/dyn_chunk_gen.py`: chunk generation, load/save, cliff assignment
 - `server/world/resource_nodes.py`: node generation, depletion, respawn, planting
@@ -80,7 +83,22 @@ The most important current cleanup opportunities are:
 - `client/rendering/item_art.py` is still very large and should be split by item domain
 - `client/config.py` still mixes constants with mutable session state
 - minimap/world-state paths still do avoidable rebuild and copy work
-- `server/world/visible.py` and `server/game_state/game_sync.py` still have avoidable repeated payload-building work
+- `server/world/visible.py` still has avoidable repeated payload-building work
+- `server/mobs/mob_manager.py` still needs internal modularization even though the external mob replication model is now much healthier
+
+## Multiplayer Notes
+
+Recent work substantially changed multiplayer feel and stability:
+
+- large shared-state sync pressure was reduced by splitting heavy world state from time-sensitive entity updates
+- mobs now use explicit `spawn/update/despawn`-style replication with dedicated sync cadence, server-authored velocity/timestamps, and persistent client-side smoothing
+- remote players still use UDP movement, but now smooth against server-authored timing and use adaptive interpolation so close PvP targets render more responsively than distant/non-combat players
+
+Result:
+
+- multiplayer world state remains stable with multiple players online
+- mobs are now a high-quality reference implementation for entity smoothing
+- remote players remain smooth while feeling sharper in PvP range
 
 See [todo_06022026.md](C:/Users/colin/OneDrive/Desktop/Projects/PyGame_Working/PyGame_M/todo_06022026.md:1) for the active roadmap and [codex_working_notes_06032026.md](C:/Users/colin/OneDrive/Desktop/Projects/PyGame_Working/PyGame_M/codex_working_notes_06032026.md:1) for the rolling architecture reference.
 

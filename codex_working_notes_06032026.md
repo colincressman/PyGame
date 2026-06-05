@@ -24,12 +24,14 @@ main maintenance pressure still lives.
   - Player melee combat, PvP hit checks, mob hit resolution, gem on-hit effects.
 
 - `server/network/projectiles.py`
-  - Wand projectile simulation and projectile-on-mob effects.
+  - Wand projectile simulation and projectile effects.
   - Now reads `data/projectiles.json`.
+  - PvP wand projectile hits were added on 2026-06-04.
 
 - `server/game_state/game_sync.py`
   - Builds authoritative game-state payloads.
-  - Hot path: nearby items, mobs, placed objects, projectiles, planted nodes.
+  - Also owns dedicated mob replication state/cache (`mob_sync`) after the 2026-06-04 multiplayer overhaul.
+  - Hot path: nearby items, placed objects, projectiles, planted nodes, plus per-client mob replication cache.
 
 - `server/game_state/status_effects.py`
   - Shared status-effect application and ticking helpers.
@@ -66,10 +68,16 @@ main maintenance pressure still lives.
 - `client/networking/handlers.py`
   - TCP/UDP receive handlers and client-side world/state application.
   - `RemotePlayer` has moved out to `client/state/remote_player.py`.
+  - Applies `mob_sync` spawn/update/despawn packets into persistent `RemoteMob` entities.
   - Still owns node respawn/base-cache logic.
 
 - `client/state/remote_player.py`
   - Remote-player interpolation and presentation state.
+  - Now uses server-authored timing plus adaptive interpolation delay so close PvP targets render more responsively than distant players.
+
+- `client/state/remote_mob.py`
+  - Persistent remote-mob buffering / interpolation state.
+  - Current reference implementation for entity smoothing: timestamp-offset buffering, limited extrapolation, and dedicated lifecycle updates.
 
 - `client/input/controls.py`
   - Main input event router.
@@ -117,11 +125,13 @@ main maintenance pressure still lives.
   - Rebuilds per-call chunk tile key lists before assembling visible chunk payloads.
 
 - `server/game_state/game_sync.py`
-  - Still scans all world items and all mobs per player for nearby-state payloads.
-  - Sends full planted-node snapshot every state packet.
+  - Still scans all world items per player for nearby-state payloads.
+  - Mob lifecycle sync is much healthier now, but world-item and some broader payload assembly still have obvious repeated work.
+  - Sends full planted-node snapshot on its slower planted cadence instead of every packet, but that path is still a likely future optimization target.
 
 - `server/mobs/mob_manager.py`
   - Mob separation remains O(n^2) over live mobs.
+  - AI/state behavior is still monolithic even though the replication side is now much cleaner.
 
 ### Modularity
 
@@ -146,6 +156,14 @@ main maintenance pressure still lives.
 - `client/rendering/display.py`
   - Fullscreen toggling is now stable after ignoring `VIDEORESIZE` while fullscreen is active and remembering the prior windowed size.
   - Exiting true `pygame.FULLSCREEN` can still feel slow on Windows; a borderless desktop-window experiment reduced transition cost but did not center reliably.
+
+- Multiplayer replication was heavily reworked on 2026-06-04:
+  - Mobs moved from a generic nearby snapshot list into explicit `mob_sync` lifecycle packets (`reset`, `spawns`, `updates`, `despawns`).
+  - Mobs now send server-authored velocity/timestamps and replicate on a faster dedicated cadence.
+  - Remote players still use UDP transport, but now smooth against server-authored timing and adaptive delay.
+  - Practical outcome:
+    - mobs are now smoother than the old player path and serve as the current gold-standard replication model
+    - remote players were subsequently tuned so PvP-range targets appear sharper than distant players without losing general smoothness
 
 - README drift has been a recurring issue; keep `README.md` and `todo_06022026.md` aligned.
 
@@ -173,3 +191,4 @@ When debugging a gameplay bug:
 2. Separate mutable client state from constants
 3. Extract mob-manager behavior into smaller modules
 4. Optimize minimap/world-state hot paths
+5. If multiplayer tuning resumes, prefer extending the current replicated-entity model rather than reintroducing broad snapshot buckets

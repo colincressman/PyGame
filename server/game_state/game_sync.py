@@ -127,6 +127,7 @@ _DYNAMIC_INTERVAL = 0.08
 _WORLD_INTERVAL = 0.25
 _TIME_INTERVAL = 0.25
 _PLANTED_INTERVAL = 1.00
+_MOB_SYNC_INTERVAL = 0.04
 
 
 def mark_inventory_dirty(player_id: str) -> None:
@@ -147,6 +148,121 @@ def invalidate_node_snapshot(player_id: str) -> None:
 def invalidate_player_cache(player_id: str) -> None:
     """Force the next game-state packet for this player to include all buckets."""
     _state_send_cache.pop(player_id, None)
+
+
+def _mob_snapshot(mob_id: str, mob: dict) -> dict:
+    return {
+        "id": mob_id,
+        "type": mob["type"],
+        "pos": list(mob["pos"]),
+        "vel": list(mob.get("vel", [0.0, 0.0])),
+        "ts": time.time(),
+        "health": mob["health"],
+        "health_max": mob["health_max"],
+        "level": mob.get("level", 1),
+        "hit_flash": mob.get("hit_flash", 0.0),
+        "state": mob.get("state", "wander"),
+        "facing": mob.get("facing", "down"),
+    }
+
+
+def _mob_signature(snapshot: dict) -> tuple:
+    px, py = snapshot["pos"]
+    vx, vy = snapshot.get("vel", [0.0, 0.0])
+    return (
+        snapshot["type"],
+        round(px, 3),
+        round(py, 3),
+        round(vx, 3),
+        round(vy, 3),
+        round(snapshot["health"], 2),
+        round(snapshot["health_max"], 2),
+        int(snapshot.get("level", 1)),
+        round(snapshot.get("hit_flash", 0.0), 2),
+        snapshot.get("state", "wander"),
+        snapshot.get("facing", "down"),
+    )
+
+
+def _send_mob_sync(player_id: str, sock, px: float, py: float, now: float, cache: dict) -> None:
+    if now - cache.get("mob_sync_at", 0.0) < _MOB_SYNC_INTERVAL:
+        return
+    render_dist_sq = 50 * 50
+    with mobs_lock:
+        visible: dict[str, dict] = {
+            mid: _mob_snapshot(mid, mob)
+            for mid, mob in mobs.items()
+            if (mob["pos"][0] - px) ** 2 + (mob["pos"][1] - py) ** 2 <= render_dist_sq
+        }
+
+    known_ids: set[str] = cache.setdefault("mob_known_ids", set())
+    last_sent: dict[str, tuple] = cache.setdefault("mob_last_sent", {})
+    reset = bool(cache.get("mob_reset", True))
+    visible_ids = set(visible.keys())
+
+    spawns = [visible[mid] for mid in sorted(visible_ids - known_ids)]
+    despawns = sorted(known_ids - visible_ids)
+    updates = []
+    for mid in sorted(visible_ids & known_ids):
+        snap = visible[mid]
+        sig = _mob_signature(snap)
+        if last_sent.get(mid) != sig:
+            updates.append(snap)
+
+    if not reset and not spawns and not updates and not despawns:
+        cache["mob_sync_at"] = now
+        return
+
+    payload = {
+        "type": "mob_sync",
+        "reset": reset,
+        "spawns": spawns,
+        "updates": updates,
+        "despawns": despawns,
+    }
+    send_json(sock, payload)
+
+    if reset:
+        known_ids.clear()
+        last_sent.clear()
+    for snap in spawns:
+        mid = snap["id"]
+        known_ids.add(mid)
+        last_sent[mid] = _mob_signature(snap)
+    for snap in updates:
+        last_sent[snap["id"]] = _mob_signature(snap)
+    for mid in despawns:
+        known_ids.discard(mid)
+        last_sent.pop(mid, None)
+    cache["mob_sync_at"] = now
+    cache["mob_reset"] = False
+
+
+def send_mob_sync(player_id: str, sock) -> None:
+    now = time.time()
+    with players_lock:
+        if player_id not in _players:
+            return
+        me = _players[player_id]
+        pos = me.get("pos", [0.0, 0.0])
+        px = float(pos[0])
+        py = float(pos[1])
+    cache = _state_send_cache.setdefault(
+        player_id,
+        {
+            "dynamic_at": 0.0,
+            "world_at": 0.0,
+            "time_at": 0.0,
+            "planted_at": 0.0,
+            "mob_sync_at": 0.0,
+            "last_weather": None,
+            "last_world_time": None,
+            "mob_known_ids": set(),
+            "mob_last_sent": {},
+            "mob_reset": True,
+        },
+    )
+    _send_mob_sync(player_id, sock, px, py, now, cache)
 
 
 def set_game_state_refs(refs):
@@ -289,8 +405,12 @@ def send_game_state(player_id, sock):
             "world_at": 0.0,
             "time_at": 0.0,
             "planted_at": 0.0,
+            "mob_sync_at": 0.0,
             "last_weather": None,
             "last_world_time": None,
+            "mob_known_ids": set(),
+            "mob_last_sent": {},
+            "mob_reset": True,
         },
     )
     first_send = cache["world_at"] == 0.0
@@ -322,17 +442,6 @@ def send_game_state(player_id, sock):
                 for uid, item in world_items.items()
                 if (item["pos"][0] - px) ** 2 + (item["pos"][1] - py) ** 2 <= RENDER_DIST_SQ
             ]
-        with mobs_lock:
-            payload["mobs"] = [
-                {"id": mid, "type": mob["type"], "pos": list(mob["pos"]),
-                 "health": mob["health"], "health_max": mob["health_max"],
-                 "level": mob.get("level", 1),
-                 "hit_flash": mob.get("hit_flash", 0.0),
-                 "state": mob.get("state", "wander"),
-                 "facing": mob.get("facing", "down")}
-                for mid, mob in mobs.items()
-                if (mob["pos"][0] - px) ** 2 + (mob["pos"][1] - py) ** 2 <= RENDER_DIST_SQ
-            ]
         payload["projectiles"] = _proj_snapshot()
         cache["dynamic_at"] = now
     if include_time:
@@ -362,7 +471,7 @@ def send_game_state(player_id, sock):
             f"self_pos=({px:.1f},{py:.1f}) "
             f"players={'yes' if 'players' in payload else 'no'} "
             f"placed={len(payload.get('placed_objects', []))} "
-            f"items={len(payload.get('world_items', []))} mobs={len(payload.get('mobs', []))} "
+            f"items={len(payload.get('world_items', []))} mobs=mob_sync "
             f"npcs={len(payload.get('npcs', []))} dungeons={len(payload.get('dungeons', []))} "
             f"time={'yes' if 'world_time' in payload else 'no'} "
             f"weather={payload.get('weather', '-')} "

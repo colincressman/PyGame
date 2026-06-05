@@ -1,21 +1,21 @@
 {
   "pos": [
-    836.7789053560022,
-    897.7904879275789
+    856.273763323444,
+    909.6812535511533
   ],
   "health": 874,
   "health_max": 100,
   "stamina": 140.0,
   "stamina_max": 140.0,
-  "attack_power": 297.407,
+  "attack_power": 377.10799999999995,
   "speed_bonus": 0.5,
   "hp_regen": 1.0,
   "sp_regen_bonus": 26.0,
   "level": 16,
-  "exp": 6746,
+  "exp": 9426,
   "exp_next": 13600,
   "stat_points": 0,
-  "coins": 8403,
+  "coins": 8525,
   "inventory": [
     [
       53,
@@ -99,9 +99,12 @@
     ],
     [
       59,
-      2
+      4
     ],
-    null,
+    [
+      61,
+      3
+    ],
     null,
     null,
     null,
@@ -119,7 +122,7 @@
         "stats": {
           "attack_power": 21
         },
-        "dur": 90,
+        "dur": 77,
         "dur_max": 90
       }
     ],
@@ -264,7 +267,7 @@
           "defense": 16.3,
           "health_max": 99.4
         },
-        "dur": 269,
+        "dur": 267,
         "dur_max": 400
       }
     ],
@@ -277,7 +280,7 @@
           "defense": 42.6,
           "health_max": 248.3
         },
-        "dur": 269,
+        "dur": 267,
         "dur_max": 400
       }
     ],
@@ -292,7 +295,7 @@
           "defense": 24.9,
           "health_max": 147.7
         },
-        "dur": 269,
+        "dur": 267,
         "dur_max": 400
       }
     ],
@@ -306,7 +309,7 @@
           "health_max": 55.1,
           "speed_bonus": 0.0
         },
-        "dur": 269,
+        "dur": 267,
         "dur_max": 400
       }
     ],
@@ -320,7 +323,7 @@
           "defense": 13.7,
           "health_max": 56.7
         },
-        "dur": 269,
+        "dur": 267,
         "dur_max": 400
       }
     ],
@@ -333,7 +336,7 @@
         "stats": {
           "speed_bonus": 0.2
         },
-        "dur": 369,
+        "dur": 367,
         "dur_max": 500
       }
     ],
@@ -346,7 +349,7 @@
           "defense": 31.8,
           "health_max": 106.1
         },
-        "dur": 401,
+        "dur": 399,
         "dur_max": 440
       }
     ],
@@ -359,7 +362,7 @@
           "defense": 17.8,
           "health_max": 60.7
         },
-        "dur": 341,
+        "dur": 339,
         "dur_max": 380
       }
     ],
@@ -373,7 +376,7 @@
           "defense": 10.2,
           "speed_bonus": 0.9
         },
-        "dur": 311,
+        "dur": 309,
         "dur_max": 350
       }
     ]

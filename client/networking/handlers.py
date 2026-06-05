@@ -101,7 +101,7 @@ def handle_state(HOST, PORT_STATE, player_id):
                             f"players={len(data.get('players', {}))} "
                             f"placed={len(data.get('placed_objects', []))} "
                             f"items={len(data.get('world_items', []))} "
-                            f"mobs={len(data.get('mobs', []))} "
+                            f"mobs={len(config.mob_entities)} "
                             f"npcs={len(data.get('npcs', []))} "
                             f"time={data.get('world_time', config.world_time):.2f} "
                             f"weather={data.get('weather', config.weather)}"
@@ -211,21 +211,6 @@ def handle_state(HOST, PORT_STATE, player_id):
                         })
                         for node_id, node in _item_nodes.items():
                             config.upsert_world_node(node_id, node)
-                    mob_list = data.get("mobs")
-                    if mob_list is not None:
-                        current_mob_ids = set()
-                        for mob in mob_list:
-                            mob_id = mob.get("id")
-                            if mob_id is None:
-                                continue
-                            current_mob_ids.add(mob_id)
-                            if mob_id not in config.mob_entities:
-                                config.mob_entities[mob_id] = RemoteMob(mob)
-                            else:
-                                config.mob_entities[mob_id].apply_snapshot(mob)
-                        for mob_id in [mid for mid in config.mob_entities if mid not in current_mob_ids]:
-                            config.mob_entities.pop(mob_id, None)
-                        config.mobs = [mob.to_snapshot() for mob in config.mob_entities.values()]
                     npcs_list = data.get("npcs")
                     if npcs_list is not None:
                         config.npcs = npcs_list
@@ -297,6 +282,25 @@ def handle_state(HOST, PORT_STATE, player_id):
                         config.set_world_nodes(_new_nodes)
                 elif data and data.get("type") == "shop_update":
                     config.shop_items = data.get("items", [])
+                elif data and data.get("type") == "mob_sync":
+                    if data.get("reset", False):
+                        config.mob_entities.clear()
+                    for mob in data.get("spawns", []):
+                        mob_id = mob.get("id")
+                        if mob_id is None:
+                            continue
+                        config.mob_entities[mob_id] = RemoteMob(mob)
+                    for mob in data.get("updates", []):
+                        mob_id = mob.get("id")
+                        if mob_id is None:
+                            continue
+                        if mob_id not in config.mob_entities:
+                            config.mob_entities[mob_id] = RemoteMob(mob)
+                        else:
+                            config.mob_entities[mob_id].apply_snapshot(mob)
+                    for mob_id in data.get("despawns", []):
+                        config.mob_entities.pop(mob_id, None)
+                    config.mobs = [mob.to_snapshot() for mob in config.mob_entities.values()]
                 elif data and data.get("type") == "teleport":
                     pos = data.get("pos")
                     if isinstance(pos, list) and len(pos) == 2:

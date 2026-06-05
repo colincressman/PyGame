@@ -30,6 +30,7 @@ executor = ThreadPoolExecutor(max_workers=MAX_PLAYERS)
 # one hasn't completed yet (prevents duplicate sends under lag).
 _world_futures:  dict[str, Future] = {}
 _state_futures:  dict[str, Future] = {}
+_mob_futures:    dict[str, Future] = {}
 _future_started_at: dict[tuple[str, str], float] = {}
 
 # === Main Game Loop ===
@@ -144,6 +145,27 @@ def game_loop():
                     print(f"[GAME LOOP STATE ERROR] {e}")
                     traceback.print_exc()
 
+        if tick_counter % 3 == 0:   # 40 Hz dedicated mob replication over the state socket
+            for player_id, sock in valid_state_clients:
+                if player_id not in active_players:
+                    continue
+                prev = _mob_futures.get(player_id)
+                if prev is not None and not prev.done():
+                    started = _future_started_at.get(("mob", player_id), now)
+                    if now - started > 1.0:
+                        print(f"[MOB SYNC DEBUG] stalled send player={player_id} age={now - started:.2f}s")
+                    continue
+                if prev is not None and prev.done():
+                    err = prev.exception()
+                    if err is not None:
+                        print(f"[MOB SYNC ERROR] player={player_id} err={err}")
+                try:
+                    _mob_futures[player_id] = executor.submit(send_mob_sync, player_id, sock)
+                    _future_started_at[("mob", player_id)] = now
+                except Exception as e:
+                    print(f"[GAME LOOP MOB ERROR] {e}")
+                    traceback.print_exc()
+
         tick_counter += 1
         next_tick += 1 / TICK_RATE
         sleep_for = next_tick - _time.time()
@@ -170,7 +192,7 @@ if __name__ == "__main__":
     from server.network.tcp_state_handlers_v2 import set_chat_refs, broadcast_chat, kick_player, send_to_player
     from server.network.commands import set_server_refs as _set_cmd_refs
     from server.game_state.sync import send_if_changed
-    from server.game_state.game_sync import send_game_state, set_game_state_refs
+    from server.game_state.game_sync import send_game_state, send_mob_sync, set_game_state_refs
     from server.game_state.world_items import pickup_tick, set_world_items_refs, spawn_world_item
     from server.game_state.item_spawner import spawner_tick, set_spawner_refs
     from server.world.autosave import autosave_world, set_world_data_ref

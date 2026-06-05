@@ -8,11 +8,12 @@ class RemotePlayer:
     _ATK_FPS = 14.0
     _ATK_FRAMES = 6
     _MOVE_DECAY = 0.15
-    _MAX_EXTRAP_TIME = 0.3
+    _MAX_EXTRAP_TIME = 0.03
 
     def __init__(self, pos):
-        self.pos_buffer = deque(maxlen=3)
-        self.pos_buffer.append({"pos": pos, "vel": [0, 0], "ts": time.time(), "seq": 0})
+        self._time_offset = 0.0
+        self.pos_buffer = deque(maxlen=16)
+        self.pos_buffer.append({"pos": pos, "vel": [0.0, 0.0], "ts": time.time(), "seq": 0})
         self.last_seq = 0
         self.health = 100
         self.facing = "down"
@@ -27,6 +28,22 @@ class RemotePlayer:
         self.held_item_id: int | None = None
         self.appearance: dict = {}
 
+    def _resolved_ts(self, update, recv_now: float, prev_ts: float | None) -> float:
+        server_ts = update.get("timestamp")
+        if not isinstance(server_ts, (int, float)):
+            if prev_ts is None:
+                return recv_now
+            return max(recv_now, prev_ts + 1e-4)
+        target_offset = recv_now - float(server_ts)
+        if self._time_offset == 0.0:
+            self._time_offset = target_offset
+        else:
+            self._time_offset = self._time_offset * 0.9 + target_offset * 0.1
+        resolved = float(server_ts) + self._time_offset
+        if prev_ts is None:
+            return min(resolved, recv_now)
+        return max(resolved, prev_ts + 1e-4)
+
     def start_attack(self, direction: str):
         self.is_attacking = True
         self.atk_frame = 0
@@ -38,16 +55,22 @@ class RemotePlayer:
         seq = update.get("seq", 0)
         if seq > self.last_seq:
             self.last_seq = seq
+            recv_now = time.time()
+            prev = self.pos_buffer[-1]
+            vel = update.get("vel", [0.0, 0.0])
+            if not (isinstance(vel, (list, tuple)) and len(vel) == 2):
+                vel = [0.0, 0.0]
+            sample_ts = self._resolved_ts(update, recv_now, prev["ts"])
             self.pos_buffer.append({
                 "pos": update["pos"],
-                "vel": update.get("vel", [0, 0]),
-                "ts": update.get("timestamp", time.time()),
+                "vel": [float(vel[0]), float(vel[1])],
+                "ts": sample_ts,
                 "seq": seq,
             })
-            vx, vy = update.get("vel", [0, 0])
+            vx, vy = vel
             speed_sq = vx * vx + vy * vy
             if speed_sq > 1e-8:
-                self.last_move_time = time.time()
+                self.last_move_time = recv_now
                 if abs(vy) >= abs(vx):
                     self.facing = "down" if vy > 0 else "up"
                 else:
@@ -73,7 +96,7 @@ class RemotePlayer:
             self.walk_frame = 0
             self.walk_timer = 0.0
 
-    def get_render_pos(self, current_time, interp_delay=0.1):
+    def get_render_pos(self, current_time, interp_delay=0.17):
         if len(self.pos_buffer) < 2:
             return self.pos_buffer[0]["pos"]
         target_time = current_time - interp_delay
@@ -91,3 +114,21 @@ class RemotePlayer:
             last["pos"][0] + last["vel"][0] * time_diff,
             last["pos"][1] + last["vel"][1] * time_diff,
         ]
+
+    def get_interp_delay(self, local_pos, combat_active: bool = False) -> float:
+        latest = self.pos_buffer[-1]["pos"]
+        dx = latest[0] - float(local_pos[0])
+        dy = latest[1] - float(local_pos[1])
+        dist_sq = dx * dx + dy * dy
+
+        if combat_active or self.is_attacking:
+            if dist_sq <= 16.0:
+                return 0.08
+            if dist_sq <= 64.0:
+                return 0.10
+
+        if dist_sq <= 36.0:
+            return 0.11
+        if dist_sq <= 144.0:
+            return 0.14
+        return 0.17

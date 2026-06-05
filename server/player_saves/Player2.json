@@ -1,7 +1,7 @@
 {
   "pos": [
-    847.68,
-    900.0758327274115
+    852.0631915281366,
+    908.0780603561918
   ],
   "health": 40.08,
   "health_max": 100,
@@ -79,7 +79,7 @@
           "defense": 1,
           "health_max": 4
         },
-        "dur": 33,
+        "dur": 31,
         "dur_max": 40
       }
     ],
@@ -92,7 +92,7 @@
           "defense": 1,
           "health_max": 7
         },
-        "dur": 33,
+        "dur": 31,
         "dur_max": 40
       }
     ],
@@ -107,7 +107,7 @@
           "defense": 1,
           "health_max": 5
         },
-        "dur": 33,
+        "dur": 31,
         "dur_max": 40
       }
     ],
@@ -121,7 +121,7 @@
           "health_max": 17.6,
           "speed_bonus": 0.1
         },
-        "dur": 113,
+        "dur": 111,
         "dur_max": 120
       }
     ],
