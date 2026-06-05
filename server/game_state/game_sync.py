@@ -322,17 +322,21 @@ def send_game_state(player_id, sock):
                 return None
             return slot[0] if isinstance(slot, (list, tuple)) else int(slot)
 
-        others = {
-            pid: {
-                "pos":        list(pdata.get("pos", [0, 0])),
+        others = {}
+        for pid, pdata in _players.items():
+            if pid == player_id:
+                continue
+            pos_state = _player_positions.get(pid, {})
+            others[pid] = {
+                "pos":        list(pos_state.get("pos", pdata.get("pos", [0, 0]))),
+                "vel":        list(pos_state.get("vel", [0.0, 0.0])),
+                "timestamp":  pos_state.get("timestamp"),
+                "seq":        pos_state.get("seq", int(pdata.get("seq", 0))),
                 "health":     pdata.get("health", 100),
                 "equip":      _equip_ids(pdata),
                 "held_item":  _held_item_id(pdata),
                 "appearance": pdata.get("appearance", {}),
             }
-            for pid, pdata in _players.items()
-            if pid != player_id
-        }
 
     equip  = get_equip_bonuses(inventory)
     hotbar = get_hotbar_bonus(inventory, me.get("hotbar_slot", 0))

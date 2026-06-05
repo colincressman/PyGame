@@ -1,21 +1,21 @@
 {
   "pos": [
-    849.1121407540368,
-    901.6124761205663
+    852.1290750374633,
+    901.1928147894457
   ],
   "health": 874,
   "health_max": 100,
   "stamina": 140.0,
   "stamina_max": 140.0,
-  "attack_power": 377.10799999999995,
+  "attack_power": 500.0,
   "speed_bonus": 0.5,
   "hp_regen": 1.0,
   "sp_regen_bonus": 26.0,
   "level": 16,
-  "exp": 9426,
+  "exp": 11306,
   "exp_next": 13600,
   "stat_points": 0,
-  "coins": 8525,
+  "coins": 12059,
   "inventory": [
     [
       53,
@@ -47,31 +47,15 @@
     ],
     [
       11,
-      7
+      10
     ],
     [
-      1051,
-      1,
-      {
-        "quality": "Common",
-        "stats": {
-          "attack_power": 11
-        },
-        "dur": 65,
-        "dur_max": 65
-      }
+      3510,
+      2
     ],
     [
-      1053,
-      1,
-      {
-        "quality": "Common",
-        "stats": {
-          "attack_power": 21
-        },
-        "dur": 77,
-        "dur_max": 90
-      }
+      51,
+      1
     ],
     [
       28,
@@ -99,129 +83,34 @@
     ],
     [
       59,
-      4
+      12
     ],
     [
       61,
       3
     ],
     [
-      1801,
-      1,
-      {
-        "quality": "Common",
-        "stats": {
-          "attack_power": 81.9
-        },
-        "dur": 274,
-        "dur_max": 280
-      }
-    ],
-    [
-      1805,
-      1,
-      {
-        "quality": "Uncommon",
-        "stats": {
-          "attack_power": 100.1
-        },
-        "dur": 219,
-        "dur_max": 220
-      }
-    ],
-    [
-      1802,
-      1,
-      {
-        "quality": "Common",
-        "stats": {
-          "attack_power": 49.1
-        },
-        "dur": 110,
-        "dur_max": 150
-      }
-    ],
-    [
-      1803,
-      1,
-      {
-        "quality": "Common",
-        "stats": {
-          "attack_power": 64.1
-        },
-        "dur": 197,
-        "dur_max": 200
-      }
-    ],
-    [
-      1804,
-      1,
-      {
-        "quality": "Common",
-        "stats": {
-          "attack_power": 43.1
-        },
-        "dur": 172,
-        "dur_max": 180
-      }
-    ],
-    [
-      2750,
-      1,
-      {
-        "quality": "Common",
-        "stats": {
-          "attack_power": 82.6
-        },
-        "dur": 350,
-        "dur_max": 350
-      }
-    ],
-    [
-      1855,
-      1,
-      {
-        "quality": "Uncommon",
-        "stats": {
-          "attack_power": 118.1
-        },
-        "dur": 119,
-        "dur_max": 345
-      }
-    ],
-    [
-      2400,
+      52,
       1
     ],
     null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
     [
-      1850,
+      1401,
       1,
       {
+        "quality": "Rare",
         "stats": {
-          "attack_power": 80,
-          "speed_bonus": -0.2
+          "attack_power": 155.7
         },
-        "dur": 151,
-        "dur_max": 321,
-        "traits": [
-          "magical",
-          "heavy",
-          "papery",
-          "Light"
-        ],
-        "parts": [
-          199,
-          161,
-          290,
-          272
-        ],
-        "quality": "Common",
-        "gem_slots": 1,
-        "name": "Crystal Katana",
-        "material": "Crystal",
-        "gem": "Light Pearl",
-        "gem_trait": "Light"
+        "dur": 393,
+        "dur_max": 400
       }
     ],
     [
@@ -231,7 +120,7 @@
         "stats": {
           "speed_bonus": 0.05
         },
-        "dur": 224,
+        "dur": 222,
         "dur_max": 315,
         "traits": [
           "magical",
@@ -255,89 +144,26 @@
       }
     ],
     [
-      1874,
+      1805,
       1,
       {
         "quality": "Uncommon",
         "stats": {
-          "attack_power": 98.0
+          "attack_power": 100.1
         },
-        "dur": 292,
-        "dur_max": 292
+        "dur": 219,
+        "dur_max": 220
       }
     ],
     [
-      1864,
-      1,
-      {
-        "quality": "Rare",
-        "stats": {
-          "attack_power": 132.6
-        },
-        "dur": 298,
-        "dur_max": 298
-      }
+      2400,
+      1
     ],
-    [
-      1855,
-      1,
-      {
-        "quality": "Uncommon",
-        "stats": {
-          "attack_power": 126.3
-        },
-        "dur": 345,
-        "dur_max": 345
-      }
-    ],
-    [
-      1750,
-      1,
-      {
-        "quality": "Uncommon",
-        "stats": {
-          "attack_power": 122.1
-        },
-        "dur": 350,
-        "dur_max": 350
-      }
-    ],
-    [
-      1402,
-      1,
-      {
-        "quality": "Uncommon",
-        "stats": {
-          "attack_power": 178.3
-        },
-        "dur": 400,
-        "dur_max": 400
-      }
-    ],
-    [
-      1401,
-      1,
-      {
-        "quality": "Rare",
-        "stats": {
-          "attack_power": 155.7
-        },
-        "dur": 400,
-        "dur_max": 400
-      }
-    ],
-    [
-      1350,
-      1,
-      {
-        "quality": "Common",
-        "stats": {
-          "attack_power": 100.8
-        },
-        "dur": 350,
-        "dur_max": 350
-      }
-    ],
+    null,
+    null,
+    null,
+    null,
+    null,
     [
       3008,
       1,
@@ -347,7 +173,7 @@
           "defense": 16.3,
           "health_max": 99.4
         },
-        "dur": 267,
+        "dur": 261,
         "dur_max": 400
       }
     ],
@@ -360,7 +186,7 @@
           "defense": 42.6,
           "health_max": 248.3
         },
-        "dur": 267,
+        "dur": 261,
         "dur_max": 400
       }
     ],
@@ -372,7 +198,7 @@
         "stats": {
           "hp_regen": 3.5
         },
-        "dur": 100,
+        "dur": 94,
         "dur_max": 100
       }
     ],
@@ -384,7 +210,7 @@
         "stats": {
           "stamina_max": 21.9
         },
-        "dur": 100,
+        "dur": 94,
         "dur_max": 100
       }
     ],
@@ -397,7 +223,7 @@
           "defense": 24.9,
           "health_max": 147.7
         },
-        "dur": 267,
+        "dur": 261,
         "dur_max": 400
       }
     ],
@@ -411,7 +237,7 @@
           "health_max": 55.1,
           "speed_bonus": 0.0
         },
-        "dur": 267,
+        "dur": 261,
         "dur_max": 400
       }
     ],
@@ -425,7 +251,7 @@
           "defense": 13.7,
           "health_max": 56.7
         },
-        "dur": 267,
+        "dur": 261,
         "dur_max": 400
       }
     ],
@@ -438,7 +264,7 @@
           "attack_power": 7.4,
           "defense": 2.8
         },
-        "dur": 100,
+        "dur": 94,
         "dur_max": 100
       }
     ],
@@ -450,7 +276,7 @@
         "stats": {
           "speed_bonus": 0.2
         },
-        "dur": 367,
+        "dur": 361,
         "dur_max": 500
       }
     ],
@@ -463,7 +289,7 @@
           "defense": 31.8,
           "health_max": 106.1
         },
-        "dur": 399,
+        "dur": 393,
         "dur_max": 440
       }
     ],
@@ -476,7 +302,7 @@
           "defense": 17.8,
           "health_max": 60.7
         },
-        "dur": 339,
+        "dur": 333,
         "dur_max": 380
       }
     ],
@@ -490,7 +316,7 @@
           "defense": 10.2,
           "speed_bonus": 0.9
         },
-        "dur": 309,
+        "dur": 303,
         "dur_max": 350
       }
     ]

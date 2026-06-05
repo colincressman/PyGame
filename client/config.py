@@ -5,76 +5,54 @@ from queue import Queue
 import queue
 import pygame
 from world_types import BIOME_ID_TO_NAME, CLIFF_ID_TO_NAME
+from client_constants import (
+    BUFFER_SIZE,
+    CHAT_DISPLAY as DEFAULT_CHAT_DISPLAY,
+    CHAT_MAX_MESSAGES as DEFAULT_CHAT_MAX_MESSAGES,
+    CHUNK_RADIUS_X,
+    CHUNK_RADIUS_Y,
+    CHUNK_SIZE,
+    DEBUG_MODE as DEFAULT_DEBUG_MODE,
+    DEFAULT_KEYBINDS,
+    DEFAULT_PLAYER_APPEARANCE,
+    DEFAULT_PLAYER_ID as DEFAULT_PLAYER_ID_DEFAULT,
+    DEFAULT_WINDOW_HEIGHT,
+    DEFAULT_WINDOW_WIDTH,
+    FONT_NAME,
+    FONT_SIZE,
+    FULL_WORLD_UPDATE_INTERVAL,
+    HOST as DEFAULT_HOST,
+    INVENTORY_SIZE,
+    KEYBINDS_FILE,
+    KNOCKBACK_DECAY,
+    LOG_FILE,
+    MINIMAP_PADDING,
+    MINIMAP_SIZE,
+    MINIMAP_TILE_PX,
+    PARRY_WINDOW,
+    PLAYER_SPEED,
+    PLAYER_START_X,
+    PLAYER_START_Y,
+    PORT_STATE,
+    PORT_UDP,
+    PORT_WORLD,
+    SETTINGS_DIR,
+    SPRINT_SPEED,
+    STEALTH_SPEED,
+    TARGET_FPS,
+    TILE_PATHS,
+    TILE_SIZE,
+    VISITED_FILE,
+    WORLD_MAX_TILES,
+)
 
-# Server connection details
-HOST = '127.0.0.1'
-PORT_WORLD = 6000
-PORT_STATE = 6001
-PORT_UDP = 6002
-BUFFER_SIZE = 4096
-TILE_SIZE = 32
-CHUNK_SIZE = 16
-LOG_FILE = "client_log.txt"
-
-# ---------------------------------------------------------------------------
-# Combat / physics (must match server/config.py)
-# ---------------------------------------------------------------------------
-KNOCKBACK_DECAY = 12.0  # exponential decay rate for knockback velocity
-PARRY_WINDOW    = 0.15  # seconds after block-start for a perfect parry
-
-# ---------------------------------------------------------------------------
-# Inventory
-# ---------------------------------------------------------------------------
-INVENTORY_SIZE = 48  # total slot count including all equipment slots
-
-# ---------------------------------------------------------------------------
-# Minimap rendering
-# ---------------------------------------------------------------------------
-MINIMAP_SIZE    = 128   # pixels square
-MINIMAP_TILE_PX = 2     # pixels per world tile
-MINIMAP_PADDING = 8     # offset from top-right corner of the screen
-
-# Display settings
-WINDOW_WIDTH = 1280
-WINDOW_HEIGHT = 720
-FONT_NAME = "Arial"
-FONT_SIZE = 16
-
-# World handling
-CHUNK_RADIUS_X = 3
-CHUNK_RADIUS_Y = 3
-FULL_WORLD_UPDATE_INTERVAL = 5  # seconds
-
-# Timing
-TARGET_FPS = 60
-PLAYER_SPEED = 6
-SPRINT_SPEED = 9
-STEALTH_SPEED = 3
-
-# World limits — must match WORLD_RADIUS in server/config.py
-WORLD_MAX_TILES = 2000
-
-# Player defaults
-DEFAULT_PLAYER_ID = 'Player1'
-PLAYER_START_X = 680
-PLAYER_START_Y = 272
-
-# Debugging
-DEBUG_MODE = True
-
-# Ensure paths are correct regardless of where the script is run from
-base_dir = os.path.dirname(os.path.abspath(__file__))
-tiles_folder = os.path.join(base_dir, "tiles")
-tile_paths = {
-    name: os.path.join(tiles_folder, f"{name}.png")
-    for name in [
-        "ocean", "beach", "swamp", "river", "plains", "forest",
-        "desert", "alt_desert", "tropical", "tundra", "mountain",
-        "cliff_north", "cliff_south", "cliff_east", "cliff_west",
-        "cliff_northeast", "cliff_northwest", "cliff_southeast", "cliff_southwest",
-        "cliff_tall_south", "cliff_tall_southwest", "cliff_tall_southeast"
-    ]
-}
+# Mutable launch/session settings seeded from constants.
+HOST = DEFAULT_HOST
+WINDOW_WIDTH = DEFAULT_WINDOW_WIDTH
+WINDOW_HEIGHT = DEFAULT_WINDOW_HEIGHT
+DEFAULT_PLAYER_ID = DEFAULT_PLAYER_ID_DEFAULT
+DEBUG_MODE = DEFAULT_DEBUG_MODE
+tile_paths = dict(TILE_PATHS)
 
 # Game State
 players_data = {}
@@ -243,8 +221,8 @@ chat_open: bool = False          # True while chat input box is visible
 chat_input: str = ""             # text currently being typed
 # Each entry: {"sender": str, "text": str, "ts": float}
 chat_messages: list = []
-CHAT_MAX_MESSAGES: int = 50     # history kept in memory
-CHAT_DISPLAY: int = 10          # lines shown on screen at once
+CHAT_MAX_MESSAGES: int = DEFAULT_CHAT_MAX_MESSAGES     # history kept in memory
+CHAT_DISPLAY: int = DEFAULT_CHAT_DISPLAY          # lines shown on screen at once
 visited_chunks: set = set()     # (chunk_x, chunk_y) tuples seen by player; used by minimap
 player_creative: bool = False   # True when the server has creative mode active
 creative_scroll: int = 0        # row offset for creative inventory scroll
@@ -253,23 +231,7 @@ connection_error: str = ""      # set when server rejects login (e.g. banned)
 # ---------------------------------------------------------------------------
 # Controls / keybinds (remappable via the controls screen)
 # ---------------------------------------------------------------------------
-keybinds: dict = {
-    "move_up":    pygame.K_w,
-    "move_down":  pygame.K_s,
-    "move_left":  pygame.K_a,
-    "move_right": pygame.K_d,
-    "sprint":     pygame.K_LSHIFT,
-    "crouch":     pygame.K_LCTRL,
-    "roll":       pygame.K_SPACE,
-    "inventory":  pygame.K_e,
-    "interact":   pygame.K_f,
-    "door":       pygame.K_r,
-    "map":        pygame.K_m,
-    "stats":      pygame.K_p,
-    # -1 = LMB, -2 = RMB (mouse button sentinels); 0 = unbound; >0 = pygame key
-    "attack":     -1,
-    "block":      -2,
-}
+keybinds: dict = dict(DEFAULT_KEYBINDS)
 show_controls: bool       = False        # True while controls rebind screen is open
 controls_click_pos        = None         # set by handle_events on LMB while controls open
 controls_listen: str | None = None       # action name being rebound, or None
@@ -299,15 +261,7 @@ shop_tab: str                = "buy" # "buy" | "sell"
 # ---------------------------------------------------------------------------
 # Character appearance / customisation
 # ---------------------------------------------------------------------------
-player_appearance: dict = {
-    "body":           "male",        # "male" | "female" | "muscular" | "teen"
-    "hair_style":     "plain",       # subfolder name under hair/
-    "hair_color":     "dark_brown",  # colour variant name (hair/ sheets are colour-subdir)
-    "skin_tint":      None,          # (R,G,B,A) tint or None for default
-    "back_ext":       None,          # wing/cape type: "feathered"|"bat"|"pixie"|"lunar"|"monarch"|"dragonfly"|None
-    "back_ext_color": "white",       # colour name for the wing/cape
-    "aura":           None,          # "fire"|"ice"|"golden"|"shadow"|"rainbow"|None
-}
+player_appearance: dict = dict(DEFAULT_PLAYER_APPEARANCE)
 show_char_creator: bool = False      # True while the character editor screen is open
 
 # ---------------------------------------------------------------------------
@@ -318,8 +272,8 @@ projectiles: list = []   # list of {"uid", "pos": [x,y], "element"}
 # ---------------------------------------------------------------------------
 # Keybind persistence helpers
 # ---------------------------------------------------------------------------
-_SETTINGS_DIR  = os.path.join(os.path.dirname(__file__), "config")
-_KEYBINDS_FILE = os.path.join(_SETTINGS_DIR, "keybinds.json")
+_SETTINGS_DIR = SETTINGS_DIR
+_KEYBINDS_FILE = KEYBINDS_FILE
 
 
 def load_keybinds() -> None:
@@ -348,7 +302,7 @@ def save_keybinds() -> None:
 # ---------------------------------------------------------------------------
 # Visited-chunks persistence (fog-of-war map memory)
 # ---------------------------------------------------------------------------
-_VISITED_FILE = os.path.join(_SETTINGS_DIR, "visited_chunks.json")
+_VISITED_FILE = VISITED_FILE
 
 
 def load_visited_chunks() -> None:
