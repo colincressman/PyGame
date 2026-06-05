@@ -1,7 +1,7 @@
 {
   "pos": [
-    856.273763323444,
-    909.6812535511533
+    849.1121407540368,
+    901.6124761205663
   ],
   "health": 874,
   "health_max": 100,
@@ -62,15 +62,15 @@
       }
     ],
     [
-      1855,
+      1053,
       1,
       {
-        "quality": "Uncommon",
+        "quality": "Common",
         "stats": {
-          "attack_power": 118.1
+          "attack_power": 21
         },
-        "dur": 119,
-        "dur_max": 345
+        "dur": 77,
+        "dur_max": 90
       }
     ],
     [
@@ -104,57 +104,6 @@
     [
       61,
       3
-    ],
-    null,
-    null,
-    null,
-    null,
-    null,
-    null,
-    null,
-    null,
-    null,
-    [
-      1053,
-      1,
-      {
-        "quality": "Common",
-        "stats": {
-          "attack_power": 21
-        },
-        "dur": 77,
-        "dur_max": 90
-      }
-    ],
-    [
-      2101,
-      1,
-      {
-        "stats": {
-          "speed_bonus": 0.05
-        },
-        "dur": 224,
-        "dur_max": 315,
-        "traits": [
-          "magical",
-          "papery",
-          "Fire"
-        ],
-        "parts": [
-          193,
-          181,
-          291,
-          272
-        ],
-        "quality": "Common",
-        "gem_slots": 1,
-        "mining_damage": 10,
-        "mining_tier": "pickaxe_steel",
-        "name": "Crystal Pickaxe",
-        "material": "Crystal",
-        "gem": "Fire Ruby",
-        "gem_trait": "Fire"
-      }
     ],
     [
       1801,
@@ -217,17 +166,34 @@
       }
     ],
     [
-      1350,
+      2750,
       1,
       {
         "quality": "Common",
         "stats": {
-          "attack_power": 100.8
+          "attack_power": 82.6
         },
         "dur": 350,
         "dur_max": 350
       }
     ],
+    [
+      1855,
+      1,
+      {
+        "quality": "Uncommon",
+        "stats": {
+          "attack_power": 118.1
+        },
+        "dur": 119,
+        "dur_max": 345
+      }
+    ],
+    [
+      2400,
+      1
+    ],
+    null,
     [
       1850,
       1,
@@ -259,6 +225,120 @@
       }
     ],
     [
+      2101,
+      1,
+      {
+        "stats": {
+          "speed_bonus": 0.05
+        },
+        "dur": 224,
+        "dur_max": 315,
+        "traits": [
+          "magical",
+          "papery",
+          "Fire"
+        ],
+        "parts": [
+          193,
+          181,
+          291,
+          272
+        ],
+        "quality": "Common",
+        "gem_slots": 1,
+        "mining_damage": 10,
+        "mining_tier": "pickaxe_steel",
+        "name": "Crystal Pickaxe",
+        "material": "Crystal",
+        "gem": "Fire Ruby",
+        "gem_trait": "Fire"
+      }
+    ],
+    [
+      1874,
+      1,
+      {
+        "quality": "Uncommon",
+        "stats": {
+          "attack_power": 98.0
+        },
+        "dur": 292,
+        "dur_max": 292
+      }
+    ],
+    [
+      1864,
+      1,
+      {
+        "quality": "Rare",
+        "stats": {
+          "attack_power": 132.6
+        },
+        "dur": 298,
+        "dur_max": 298
+      }
+    ],
+    [
+      1855,
+      1,
+      {
+        "quality": "Uncommon",
+        "stats": {
+          "attack_power": 126.3
+        },
+        "dur": 345,
+        "dur_max": 345
+      }
+    ],
+    [
+      1750,
+      1,
+      {
+        "quality": "Uncommon",
+        "stats": {
+          "attack_power": 122.1
+        },
+        "dur": 350,
+        "dur_max": 350
+      }
+    ],
+    [
+      1402,
+      1,
+      {
+        "quality": "Uncommon",
+        "stats": {
+          "attack_power": 178.3
+        },
+        "dur": 400,
+        "dur_max": 400
+      }
+    ],
+    [
+      1401,
+      1,
+      {
+        "quality": "Rare",
+        "stats": {
+          "attack_power": 155.7
+        },
+        "dur": 400,
+        "dur_max": 400
+      }
+    ],
+    [
+      1350,
+      1,
+      {
+        "quality": "Common",
+        "stats": {
+          "attack_power": 100.8
+        },
+        "dur": 350,
+        "dur_max": 350
+      }
+    ],
+    [
       3008,
       1,
       {
@@ -284,8 +364,30 @@
         "dur_max": 400
       }
     ],
-    null,
-    null,
+    [
+      3601,
+      1,
+      {
+        "quality": "Uncommon",
+        "stats": {
+          "hp_regen": 3.5
+        },
+        "dur": 100,
+        "dur_max": 100
+      }
+    ],
+    [
+      3600,
+      1,
+      {
+        "quality": "Common",
+        "stats": {
+          "stamina_max": 21.9
+        },
+        "dur": 100,
+        "dur_max": 100
+      }
+    ],
     [
       3309,
       1,
@@ -327,7 +429,19 @@
         "dur_max": 400
       }
     ],
-    null,
+    [
+      3657,
+      1,
+      {
+        "quality": "Common",
+        "stats": {
+          "attack_power": 7.4,
+          "defense": 2.8
+        },
+        "dur": 100,
+        "dur_max": 100
+      }
+    ],
     [
       3523,
       1,

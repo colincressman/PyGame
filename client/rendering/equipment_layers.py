@@ -228,12 +228,12 @@ _WEAPON: dict[int, LayerSpec] = {
     # Katana sheets use 128-px cells (8 rows × 2 = 4 LPC directions).  Use row_stride=2 so
     # actual_row = dir_row * 2 + 1 → lower-half rows 1/3/5/7 which have the most content.
     # y_offset=32 shifts the sprite down half a cell to sit at character waist height.
-    1850: LayerSpec("equipment/weapon/sword/katana", behind="behind", col_stride=2),                        # Iron Katana
-    1851: LayerSpec("equipment/weapon/sword/katana", tint=_TINT["copper"],  behind="behind", col_stride=2), # Copper Katana
-    1852: LayerSpec("equipment/weapon/sword/katana", tint=_TINT["bronze"],  behind="behind", col_stride=2), # Bronze Katana
-    1853: LayerSpec("equipment/weapon/sword/katana", tint=_TINT["steel"],   behind="behind", col_stride=2), # Steel Katana
-    1854: LayerSpec("equipment/weapon/sword/katana", tint=_TINT["gold"],    behind="behind", col_stride=2), # Gold Katana
-    1855: LayerSpec("equipment/weapon/sword/katana", tint=_TINT["crystal"], behind="behind", col_stride=2), # Crystal Katana
+    1850: LayerSpec("equipment/weapon/sword/katana", behind="behind", row_offset=1, row_stride=2, col_stride=2, y_offset=32),                        # Iron Katana
+    1851: LayerSpec("equipment/weapon/sword/katana", tint=_TINT["copper"],  row_offset=1, behind="behind", row_stride=2, col_stride=2, y_offset=32), # Copper Katana
+    1852: LayerSpec("equipment/weapon/sword/katana", tint=_TINT["bronze"],  row_offset=1, behind="behind", row_stride=2, col_stride=2, y_offset=32), # Bronze Katana
+    1853: LayerSpec("equipment/weapon/sword/katana", tint=_TINT["steel"],   row_offset=1, behind="behind", row_stride=2, col_stride=2, y_offset=32), # Steel Katana
+    1854: LayerSpec("equipment/weapon/sword/katana", tint=_TINT["gold"],    row_offset=1, behind="behind", row_stride=2, col_stride=2, y_offset=32), # Gold Katana
+    1855: LayerSpec("equipment/weapon/sword/katana", tint=_TINT["crystal"], row_offset=1, behind="behind", row_stride=2, col_stride=2, y_offset=32), # Crystal Katana
     # ---- Sabers (192px attack_slash, unique sprite) ----
     1860: LayerSpec("equipment/weapon/sword/saber", behind="universal_behind"),                                       # Iron Saber
     1861: LayerSpec("equipment/weapon/sword/saber", tint=_TINT["copper"],  behind="universal_behind"),                # Copper Saber
@@ -242,11 +242,11 @@ _WEAPON: dict[int, LayerSpec] = {
     1864: LayerSpec("equipment/weapon/sword/saber", tint=_TINT["gold"],    behind="universal_behind"),                # Gold Saber
     1865: LayerSpec("equipment/weapon/sword/saber", tint=_TINT["crystal"], behind="universal_behind"),                # Crystal Saber
     # ---- Scimitars (slash animation, unique curved sprite) ----
-    1870: LayerSpec("equipment/weapon/sword/scimitar"),                                    # Iron Scimitar
-    1871: LayerSpec("equipment/weapon/sword/scimitar", tint=_TINT["copper"], behind="behind", col_stride=2),             # Copper Scimitar
-    1872: LayerSpec("equipment/weapon/sword/scimitar", tint=_TINT["bronze"], behind="behind", col_stride=2),             # Bronze Scimitar
-    1873: LayerSpec("equipment/weapon/sword/scimitar", tint=_TINT["steel"], behind="behind", col_stride=2),              # Steel Scimitar
-    1874: LayerSpec("equipment/weapon/sword/scimitar", tint=_TINT["gold"], behind="behind", col_stride=2),               # Gold Scimitar
+    1870: LayerSpec("equipment/weapon/sword/scimitar", behind="behind", row_offset=1, row_stride=2, col_stride=2, y_offset=32),                                     # Iron Scimitar
+    1871: LayerSpec("equipment/weapon/sword/scimitar", tint=_TINT["copper"], behind="behind", row_offset=1, row_stride=2, col_stride=2, y_offset=32),               # Copper Scimitar
+    1872: LayerSpec("equipment/weapon/sword/scimitar", tint=_TINT["bronze"], behind="behind", row_offset=1, row_stride=2, col_stride=2, y_offset=32),               # Bronze Scimitar
+    1873: LayerSpec("equipment/weapon/sword/scimitar", tint=_TINT["steel"], behind="behind", row_offset=1, row_stride=2, col_stride=2, y_offset=32),                # Steel Scimitar
+    1874: LayerSpec("equipment/weapon/sword/scimitar", tint=_TINT["gold"], behind="behind", row_offset=1, row_stride=2, col_stride=2, y_offset=32),                 # Gold Scimitar
     # ---- Wands (slash sheet only; walk/idle pin to slash frame 0) ----
     1800: LayerSpec("equipment/weapon/magic/wand/male", colour="wand"),                                                  # Wooden Wand
     1801: LayerSpec("equipment/weapon/magic/wand/male", colour="wand", tint=_TINT["crystal"]),                           # Crystal Wand
