@@ -74,6 +74,9 @@ def save_player(player_id, player_data):
     # Persist bed spawn only if set
     if "bed_spawn" in player_data:
         data["bed_spawn"] = player_data["bed_spawn"]
+    # Persist player-set home only if set
+    if "home_pos" in player_data:
+        data["home_pos"] = player_data["home_pos"]
     # Persist cosmetic appearance if set
     if "appearance" in player_data:
         data["appearance"] = player_data["appearance"]

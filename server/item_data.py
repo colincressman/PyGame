@@ -83,6 +83,7 @@ def get_equip_bonuses(inventory: list) -> dict:
 
 # Hotbar occupies inventory indices 27-35 (last row of the 4×9 grid).
 _HOTBAR_OFFSET = 27
+_DEFENSE_SLOT_RANGE = range(36, 48)
 
 # Maps equip slot index → the slot_type an item must have to be placed there.
 _EQUIP_SLOT_TYPES: dict[int, str] = {
@@ -226,6 +227,28 @@ def drain_durability(inventory: list, slot_idx: int) -> bool:
         inventory[slot_idx] = None
         return True
     return False
+
+
+def drain_defensive_gear_durability(inventory: list) -> bool:
+    """Drain one durability from each equipped defensive slot.
+
+    This includes armor pieces plus the offhand shield slot so melee and mob
+    damage paths do not silently skip later-added equipment slots.
+    """
+    destroyed_any = False
+    for slot_idx in _DEFENSE_SLOT_RANGE:
+        if drain_durability(inventory, slot_idx):
+            destroyed_any = True
+    return destroyed_any
+
+
+def drain_active_hotbar_durability(player: dict) -> bool:
+    """Drain durability from the player's currently selected hotbar item."""
+    inventory = player.get("inventory", [])
+    hotbar_slot = player.get("hotbar_slot", 0)
+    if not isinstance(hotbar_slot, int) or not 0 <= hotbar_slot < 9:
+        return False
+    return drain_durability(inventory, _HOTBAR_OFFSET + hotbar_slot)
 
 
 def get_sell_price(slot) -> int:

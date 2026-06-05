@@ -24,6 +24,7 @@ class RemotePlayer:
         self.atk_frame = 0
         self.atk_timer = 0.0
         self.equip_ids: dict = {}
+        self.held_item_id: int | None = None
         self.appearance: dict = {}
 
     def start_attack(self, direction: str):

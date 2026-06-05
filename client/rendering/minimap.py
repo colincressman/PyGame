@@ -158,18 +158,19 @@ def draw_minimap(screen: pygame.Surface,
 
     # --- Mob dots ---
     try:
-        mobs = getattr(config, "mobs", None) or []
-        for mob in mobs:
+        mobs = getattr(config, "mob_entities", None) or {}
+        _now = __import__("time").time()
+        for mob in mobs.values():
             try:
-                mx, my = mob["pos"]
-            except (KeyError, TypeError, ValueError):
+                mx, my = mob.get_render_pos(_now)
+            except Exception:
                 continue
             dx = int((mx - px) * MM_TILE_PX)
             dy = int((my - py) * MM_TILE_PX)
             mdx = pcx + dx
             mdy = pcy + dy
             if mm_x <= mdx <= mm_x + MM_SIZE - 1 and mm_y <= mdy <= mm_y + MM_SIZE - 1:
-                mob_type = mob.get("type", "slime")
+                mob_type = getattr(mob, "mob_type", "slime")
                 if mob_type == "slime_king":
                     color = (255, 200, 0)
                 elif mob_type in ("rabbit", "deer"):

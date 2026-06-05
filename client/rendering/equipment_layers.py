@@ -478,8 +478,8 @@ def get_layers_from_equip_ids(equip_ids: dict) -> list[LayerSpec]:
     Build layer stack from a compact {slot_index: item_id} dict.
     Used for remote players where only equip slot IDs are transmitted.
     """
-    # Build a minimal 47-slot list with only the equip slots filled
-    inv: list = [None] * 47
+    # Build a minimal inventory list with enough room for the highest equip slot.
+    inv: list = [None] * 48
     for slot_idx, item_id in equip_ids.items():
         try:
             inv[int(slot_idx)] = [item_id, 1]

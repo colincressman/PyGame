@@ -202,6 +202,71 @@ class CombatValidationTests(unittest.TestCase):
         self.assertGreater(players["p1"]["health"], 50.0)
         self.assertLess(players["p2"]["health"], 100.0)
 
+    def test_player_hit_drains_shield_shoulders_and_gloves(self):
+        armor_id, armor_def = find_item(
+            lambda iid, item: item.get("slot_type") == "shield" and item.get("durability")
+        )
+        shoulder_id, shoulder_def = find_item(
+            lambda iid, item: item.get("slot_type") == "shoulders" and item.get("durability")
+        )
+        glove_id, glove_def = find_item(
+            lambda iid, item: item.get("slot_type") == "hands" and item.get("durability")
+        )
+        players = {
+            "p1": {
+                "pos": [0.0, 0.0],
+                "inventory": [None] * 48,
+                "hotbar_slot": 0,
+                "attack_power": 10.0,
+                "stamina": 100.0,
+            },
+            "p2": {
+                "pos": [0.0, 1.0],
+                "inventory": [None] * 48,
+                "health": 100.0,
+            },
+        }
+        players["p2"]["inventory"][45] = [armor_id, 1, {"dur": armor_def["durability"], "dur_max": armor_def["durability"]}]
+        players["p2"]["inventory"][46] = [shoulder_id, 1, {"dur": shoulder_def["durability"], "dur_max": shoulder_def["durability"]}]
+        players["p2"]["inventory"][47] = [glove_id, 1, {"dur": glove_def["durability"], "dur_max": glove_def["durability"]}]
+
+        with mock.patch("server.network.combat.time.monotonic", return_value=10.0), \
+             mock.patch("server.game_state.game_sync.mark_inventory_dirty") as mark_dirty:
+            combat.handle_attack("p1", "down", [0.0, 0.0], players)
+
+        self.assertEqual(players["p2"]["inventory"][45][2]["dur"], armor_def["durability"] - 1)
+        self.assertEqual(players["p2"]["inventory"][46][2]["dur"], shoulder_def["durability"] - 1)
+        self.assertEqual(players["p2"]["inventory"][47][2]["dur"], glove_def["durability"] - 1)
+        mark_dirty.assert_any_call("p2")
+
+
+class SpellDurabilityTests(unittest.TestCase):
+    def test_fire_spell_drains_active_wand_durability(self):
+        wand_id, wand_def = find_item(
+            lambda iid, item: item.get("projectile") and item.get("durability")
+        )
+        players = {
+            "p1": {
+                "pos": [0.0, 0.0],
+                "inventory": [None] * 48,
+                "hotbar_slot": 0,
+                "attack_power": 10.0,
+            }
+        }
+        players["p1"]["inventory"][27] = [wand_id, 1, {"dur": wand_def["durability"], "dur_max": wand_def["durability"]}]
+
+        with mock.patch("server.network.tcp_state_handlers_v2.mark_inventory_dirty") as mark_dirty:
+            tcp_state_handlers_v2._handle_fire_spell(
+                {"type": "fire_spell", "dx": 1.0, "dy": 0.0},
+                "p1",
+                players,
+                mock.Mock(),
+                {},
+            )
+
+        self.assertEqual(players["p1"]["inventory"][27][2]["dur"], wand_def["durability"] - 1)
+        mark_dirty.assert_called_once_with("p1")
+
 
 class DeathRespawnTests(unittest.TestCase):
     def test_tick_player_deaths_marks_dead_and_respawns_after_delay(self):
@@ -238,6 +303,78 @@ class DeathRespawnTests(unittest.TestCase):
 
         self.assertEqual(players["p1"]["pos"], [0.0, 0.0])
         self.assertGreaterEqual(players["p1"]["health"], game_sync._RESPAWN_HP_MIN)
+
+
+class CommandTeleportTests(unittest.TestCase):
+    def setUp(self):
+        commands._pending_tp.clear()
+        commands.set_server_refs({})
+
+    def tearDown(self):
+        commands._pending_tp.clear()
+        commands.set_server_refs({})
+
+    def test_tp_updates_player_and_position_cache_and_sends_teleport_packet(self):
+        sent_packets = []
+        player_positions = {"admin": {"pos": [0.0, 0.0], "vel": [0, 0], "timestamp": 0.0, "seq": 0}}
+        commands.set_server_refs({
+            "send_to_player": lambda pid, packet: sent_packets.append((pid, packet)),
+            "player_positions": player_positions,
+        })
+        players = {
+            "admin": {"pos": [0.0, 0.0], "seq": 0},
+            "target": {"pos": [12.0, 18.0]},
+        }
+
+        with mock.patch("server.network.commands.is_op", return_value=True):
+            replies = commands.process_command("/tp target", "admin", players, mock.Mock())
+
+        self.assertEqual(players["admin"]["pos"], [12.0, 18.0])
+        self.assertEqual(player_positions["admin"]["pos"], [12.0, 18.0])
+        self.assertEqual(sent_packets[0], ("admin", {"type": "teleport", "pos": [12.0, 18.0]}))
+        self.assertEqual(replies[0]["text"], "Teleported to target.")
+
+    def test_tprequest_accept_teleports_requester(self):
+        sent_packets = []
+        player_positions = {"alice": {"pos": [1.0, 1.0], "vel": [0, 0], "timestamp": 0.0, "seq": 0}}
+        commands.set_server_refs({
+            "send_to_player": lambda pid, packet: sent_packets.append((pid, packet)),
+            "player_positions": player_positions,
+        })
+        players = {
+            "alice": {"pos": [1.0, 1.0], "seq": 0},
+            "bob": {"pos": [20.0, 30.0], "seq": 0},
+        }
+
+        commands.process_command("/tprequest bob", "alice", players, mock.Mock())
+        replies = commands.process_command("/tpaccept", "bob", players, mock.Mock())
+
+        self.assertEqual(players["alice"]["pos"], [20.0, 30.0])
+        self.assertEqual(player_positions["alice"]["pos"], [20.0, 30.0])
+        self.assertIn(("alice", {"type": "teleport", "pos": [20.0, 30.0]}), sent_packets)
+        self.assertEqual(replies[0]["text"], "Teleported alice to you.")
+
+    def test_sethome_persists_and_home_teleports(self):
+        sent_packets = []
+        player_positions = {"p1": {"pos": [4.0, 9.0], "vel": [0, 0], "timestamp": 0.0, "seq": 0}}
+        commands.set_server_refs({
+            "send_to_player": lambda pid, packet: sent_packets.append((pid, packet)),
+            "player_positions": player_positions,
+        })
+        players = {"p1": {"pos": [4.0, 9.0], "seq": 0}}
+
+        with mock.patch("server.network.commands.save_player") as save_player_mock:
+            sethome_replies = commands.process_command("/sethome", "p1", players, mock.Mock())
+
+        players["p1"]["pos"] = [50.0, 60.0]
+        home_replies = commands.process_command("/home", "p1", players, mock.Mock())
+
+        self.assertEqual(players["p1"]["home_pos"], [4.0, 9.0])
+        save_player_mock.assert_called_once()
+        self.assertEqual(players["p1"]["pos"], [4.0, 9.0])
+        self.assertIn(("p1", {"type": "teleport", "pos": [4.0, 9.0]}), sent_packets)
+        self.assertEqual(sethome_replies[0]["text"], "Home set to (4.0, 9.0).")
+        self.assertEqual(home_replies[0]["text"], "Teleported home.")
 
 
 class DataRegistryTests(unittest.TestCase):

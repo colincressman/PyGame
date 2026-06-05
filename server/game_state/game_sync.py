@@ -31,6 +31,17 @@ import threading
 import time
 import math
 
+_debug_last_log: dict[str, float] = {}
+
+
+def _debug_log(key: str, message: str, interval: float = 2.0) -> None:
+    now = time.time()
+    last = _debug_last_log.get(key, 0.0)
+    if now - last < interval:
+        return
+    _debug_last_log[key] = now
+    print(message)
+
 # ---------------------------------------------------------------------------
 # World time  (0.0 = midnight, 12.0 = noon, 24.0 = midnight)
 # One full day takes _WORLD_DAY_SECONDS real seconds (from server.config).
@@ -110,6 +121,12 @@ _inventory_lock: threading.Lock = threading.Lock()
 _inventory_dirty: set = set()
 _inventory_sent:  set = set()  # players who have received at least one full inventory
 _node_snapshot_sent: set = set()  # players who have received the initial depleted-nodes snapshot
+_state_send_cache: dict[str, dict] = {}
+
+_DYNAMIC_INTERVAL = 0.08
+_WORLD_INTERVAL = 0.25
+_TIME_INTERVAL = 0.25
+_PLANTED_INTERVAL = 1.00
 
 
 def mark_inventory_dirty(player_id: str) -> None:
@@ -124,6 +141,12 @@ def invalidate_node_snapshot(player_id: str) -> None:
         _node_snapshot_sent.discard(player_id)
         _inventory_sent.discard(player_id)
         _inventory_dirty.discard(player_id)
+    _state_send_cache.pop(player_id, None)
+
+
+def invalidate_player_cache(player_id: str) -> None:
+    """Force the next game-state packet for this player to include all buckets."""
+    _state_send_cache.pop(player_id, None)
 
 
 def set_game_state_refs(refs):
@@ -168,14 +191,27 @@ def send_game_state(player_id, sock):
                 slot = inv[idx] if idx < len(inv) else None
                 if slot is not None:
                     item_id = slot[0] if isinstance(slot, (list, tuple)) else int(slot)
-                    result[idx] = item_id
+                    result[str(idx)] = item_id
             return result
+
+        def _held_item_id(pdata):
+            raw = pdata.get("inventory", [])
+            inv = list(raw) + [None] * max(0, _INVENTORY_SIZE - len(raw))
+            hotbar_slot = pdata.get("hotbar_slot", 0)
+            if not isinstance(hotbar_slot, int) or not 0 <= hotbar_slot < 9:
+                hotbar_slot = 0
+            held_idx = 27 + hotbar_slot
+            slot = inv[held_idx] if held_idx < len(inv) else None
+            if slot is None:
+                return None
+            return slot[0] if isinstance(slot, (list, tuple)) else int(slot)
 
         others = {
             pid: {
                 "pos":        list(pdata.get("pos", [0, 0])),
                 "health":     pdata.get("health", 100),
                 "equip":      _equip_ids(pdata),
+                "held_item":  _held_item_id(pdata),
                 "appearance": pdata.get("appearance", {}),
             }
             for pid, pdata in _players.items()
@@ -223,7 +259,6 @@ def send_game_state(player_id, sock):
     if is_dirty:
         self_data["inventory"] = inventory
 
-    # Include world items within render range (~50 tiles)
     my_pos = me.get("pos", [0, 0])
     px, py = my_pos[0], my_pos[1]
 
@@ -240,45 +275,72 @@ def send_game_state(player_id, sock):
         with _mobs_lock:
             for _dpos in _triggers:
                 _spawn_boss_at(_dpos)
-    RENDER_DIST_SQ = 50 * 50
-    with world_items_lock:
-        nearby_items = [
-            {"uid": uid, "item_id": item["item_id"], "pos": item["pos"], "qty": item["qty"]}
-            for uid, item in world_items.items()
-            if (item["pos"][0] - px) ** 2 + (item["pos"][1] - py) ** 2 <= RENDER_DIST_SQ
-        ]
-
-    # Include mobs within render range
-    with mobs_lock:
-        nearby_mobs = [
-            {"id": mid, "type": mob["type"], "pos": list(mob["pos"]),
-             "health": mob["health"], "health_max": mob["health_max"],
-             "level": mob.get("level", 1),
-             "hit_flash": mob.get("hit_flash", 0.0),
-             "state": mob.get("state", "wander"),
-             "facing": mob.get("facing", "down")}
-            for mid, mob in mobs.items()
-            if (mob["pos"][0] - px) ** 2 + (mob["pos"][1] - py) ** 2 <= RENDER_DIST_SQ
-        ]
-
     _elapsed    = (time.time() - _world_time_epoch) % _WORLD_DAY_SECONDS
     _world_time = round(_elapsed / _WORLD_DAY_SECONDS * 24.0, 2)
 
     from server.game_state.weather import get_weather as _get_weather
     from server.network.projectiles import get_snapshot as _proj_snapshot
+    RENDER_DIST_SQ = 50 * 50
+    weather = _get_weather()
+    cache = _state_send_cache.setdefault(
+        player_id,
+        {
+            "dynamic_at": 0.0,
+            "world_at": 0.0,
+            "time_at": 0.0,
+            "planted_at": 0.0,
+            "last_weather": None,
+            "last_world_time": None,
+        },
+    )
+    first_send = cache["world_at"] == 0.0
+    include_dynamic = first_send or (now - cache["dynamic_at"] >= _DYNAMIC_INTERVAL)
+    include_world = first_send or (now - cache["world_at"] >= _WORLD_INTERVAL)
+    include_time = (
+        first_send
+        or weather != cache["last_weather"]
+        or cache["last_world_time"] is None
+        or abs(_world_time - cache["last_world_time"]) >= 0.05
+        or (now - cache["time_at"] >= _TIME_INTERVAL)
+    )
+    include_planted = first_send or (now - cache["planted_at"] >= _PLANTED_INTERVAL)
+
     payload = {
         "type": "game_state",
         "self": self_data,
-        "players": others,
-        "world_items": nearby_items,
-        "mobs": nearby_mobs,
-        "placed_objects": _get_nearby_placed(px, py),
-        "npcs": _get_npcs_near(px, py),
-        "dungeons": _get_dungeons_near(px, py),
-        "world_time": _world_time,
-        "weather": _get_weather(),
-        "projectiles": _proj_snapshot(),
     }
+    if include_world:
+        payload["players"] = others
+        payload["placed_objects"] = _get_nearby_placed(px, py)
+        payload["npcs"] = _get_npcs_near(px, py)
+        payload["dungeons"] = _get_dungeons_near(px, py)
+        cache["world_at"] = now
+    if include_dynamic:
+        with world_items_lock:
+            payload["world_items"] = [
+                {"uid": uid, "item_id": item["item_id"], "pos": item["pos"], "qty": item["qty"]}
+                for uid, item in world_items.items()
+                if (item["pos"][0] - px) ** 2 + (item["pos"][1] - py) ** 2 <= RENDER_DIST_SQ
+            ]
+        with mobs_lock:
+            payload["mobs"] = [
+                {"id": mid, "type": mob["type"], "pos": list(mob["pos"]),
+                 "health": mob["health"], "health_max": mob["health_max"],
+                 "level": mob.get("level", 1),
+                 "hit_flash": mob.get("hit_flash", 0.0),
+                 "state": mob.get("state", "wander"),
+                 "facing": mob.get("facing", "down")}
+                for mid, mob in mobs.items()
+                if (mob["pos"][0] - px) ** 2 + (mob["pos"][1] - py) ** 2 <= RENDER_DIST_SQ
+            ]
+        payload["projectiles"] = _proj_snapshot()
+        cache["dynamic_at"] = now
+    if include_time:
+        payload["world_time"] = _world_time
+        payload["weather"] = weather
+        cache["time_at"] = now
+        cache["last_weather"] = weather
+        cache["last_world_time"] = _world_time
     node_updates = _get_node_updates()
     if node_updates:
         payload["node_updates"] = node_updates
@@ -290,7 +352,33 @@ def send_game_state(player_id, sock):
             _node_snapshot_sent.add(player_id)
     if needs_node_snapshot:
         payload["depleted_snapshot"] = _get_depleted_snapshot()
-    payload["planted_nodes"] = _get_planted_snapshot()
+    if include_planted:
+        payload["planted_nodes"] = _get_planted_snapshot()
+        cache["planted_at"] = now
+    _debug_log(
+        f"send_game_state:{player_id}",
+        (
+            f"[GAME SYNC DEBUG] to={player_id} "
+            f"self_pos=({px:.1f},{py:.1f}) "
+            f"players={'yes' if 'players' in payload else 'no'} "
+            f"placed={len(payload.get('placed_objects', []))} "
+            f"items={len(payload.get('world_items', []))} mobs={len(payload.get('mobs', []))} "
+            f"npcs={len(payload.get('npcs', []))} dungeons={len(payload.get('dungeons', []))} "
+            f"time={'yes' if 'world_time' in payload else 'no'} "
+            f"weather={payload.get('weather', '-')} "
+            f"inv={'yes' if 'inventory' in self_data else 'no'}"
+        ),
+    )
+    if "players" in payload and others:
+        _sample_pid, _sample = next(iter(others.items()))
+        _debug_log(
+            f"send_game_state_sample:{player_id}",
+            (
+                f"[GAME SYNC DEBUG] to={player_id} sample_remote={_sample_pid} "
+                f"body={_sample.get('appearance', {}).get('body', 'missing')} "
+                f"equip_slots={sorted(_sample.get('equip', {}).keys())}"
+            ),
+        )
     try:
         send_json(sock, payload)
     except OSError as e:

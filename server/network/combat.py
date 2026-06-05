@@ -5,7 +5,13 @@ import time
 from server.game_state.gem_data import get_gem_effect
 from server.game_state.status_effects import apply_status_effect
 from server.shared_lock import players_lock
-from server.item_data import get_equip_bonuses, get_hotbar_bonus, get_effective_health_max, drain_durability
+from server.item_data import (
+    drain_active_hotbar_durability,
+    drain_defensive_gear_durability,
+    get_equip_bonuses,
+    get_effective_health_max,
+    get_hotbar_bonus,
+)
 from server.config import KNOCKBACK_DECAY as _KB_DECAY
 
 
@@ -69,6 +75,11 @@ _DIR_VEC = {
 _COS45 = math.cos(math.radians(45))   # 90° cone half-angle threshold
 
 
+def _mark_inventory_dirty(player_id: str) -> None:
+    from server.game_state.game_sync import mark_inventory_dirty
+    mark_inventory_dirty(player_id)
+
+
 def handle_attack(attacker_id: str, direction: str, pos: list, players: dict, mobs: dict | None = None):
     """Apply damage + knockback to all targets in the attack cone.
 
@@ -90,6 +101,7 @@ def handle_attack(attacker_id: str, direction: str, pos: list, players: dict, mo
 
     vx, vy = _DIR_VEC[direction]
     now = time.monotonic()
+    dirty_players: set[str] = set()
 
     with players_lock:
         attacker = players.get(attacker_id)
@@ -161,9 +173,9 @@ def handle_attack(attacker_id: str, direction: str, pos: list, players: dict, mo
             if damage_taken <= 0.0:
                 continue
             pdata["health"] = max(0.0, pdata["health"] - damage_taken)
-            # Drain 1 durability from each equipped armor piece
-            for eq_idx in range(36, 45):
-                drain_durability(pdata.get("inventory", []), eq_idx)
+            # Drain durability from all equipped defensive gear, including offhand.
+            drain_defensive_gear_durability(pdata.get("inventory", []))
+            dirty_players.add(pid)
             # Apply knockback
             if dist > 0:
                 pdata["pos"][0] += (tx / dist) * KNOCKBACK
@@ -185,9 +197,8 @@ def handle_attack(attacker_id: str, direction: str, pos: list, players: dict, mo
 
         if hit_any:
             attacker["attack_power"] = min(atk_power + ATK_GAIN, MAX_ATK_POWER)
-            # Drain 1 durability from the equipped weapon (active hotbar slot)
-            weapon_idx = 27 + attacker.get("hotbar_slot", 0)
-            drain_durability(attacker.get("inventory", []), weapon_idx)
+            drain_active_hotbar_durability(attacker)
+            dirty_players.add(attacker_id)
 
         # Mob targets — separate lock to avoid AB/BA deadlock with mob_manager
     if mobs is not None:
@@ -257,5 +268,7 @@ def handle_attack(attacker_id: str, direction: str, pos: list, players: dict, mo
                 with players_lock:
                     _wp = players.get(attacker_id)
                     if _wp:
-                        _wi = 27 + _wp.get("hotbar_slot", 0)
-                        drain_durability(_wp.get("inventory", []), _wi)
+                        drain_active_hotbar_durability(_wp)
+                        dirty_players.add(attacker_id)
+    for dirty_player_id in dirty_players:
+        _mark_inventory_dirty(dirty_player_id)

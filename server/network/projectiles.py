@@ -7,7 +7,11 @@ import time
 import uuid
 
 from server.game_state.status_effects import apply_status_effect
-from server.item_data import get_effective_health_max
+from server.item_data import (
+    drain_defensive_gear_durability,
+    get_effective_health_max,
+    get_equip_bonuses,
+)
 from server.network.projectile_data import PROJECTILE_ELEMENTS, PROJECTILE_GLOBALS
 
 # ---------------------------------------------------------------------------
@@ -29,6 +33,11 @@ _player_last_cast: dict[str, float] = {}
 _cooldown_lock = threading.Lock()
 
 
+def _mark_inventory_dirty(player_id: str) -> None:
+    from server.game_state.game_sync import mark_inventory_dirty
+    mark_inventory_dirty(player_id)
+
+
 def can_fire(player_id: str) -> bool:
     """Return True when the player's wand cooldown has expired."""
     with _cooldown_lock:
@@ -43,16 +52,16 @@ def fire_projectile(
     dy: float,
     element: str,
     damage: float,
-) -> None:
+) -> bool:
     """Spawn a new projectile if the player is not on cooldown."""
     mag = math.sqrt(dx * dx + dy * dy)
     if mag < 0.001:
-        return
+        return False
 
     with _cooldown_lock:
         now = time.time()
         if now < _player_last_cast.get(player_id, 0.0):
-            return
+            return False
         _player_last_cast[player_id] = now + _WAND_COOLDOWN
 
     vx = dx / mag * _PROJ_SPEED
@@ -69,6 +78,7 @@ def fire_projectile(
     }
     with _proj_lock:
         _projectiles.append(proj)
+    return True
 
 
 def tick_projectiles(dt: float, players: dict, mobs: dict) -> None:
@@ -97,6 +107,78 @@ def tick_projectiles(dt: float, players: dict, mobs: dict) -> None:
         px, py = proj["pos"]
         elem = proj["element"]
         edata = PROJECTILE_ELEMENTS.get(elem, PROJECTILE_ELEMENTS.get("arcane", {}))
+
+        with _players_lock:
+            hit_player_id: str | None = None
+            hit_player: dict | None = None
+
+            for pid, pdata in players.items():
+                if pid == proj["owner"]:
+                    continue
+                if pdata.get("health", 0) <= 0:
+                    continue
+                if pdata.get("creative", False) or pdata.get("invulnerable", False):
+                    continue
+                ppos = pdata.get("pos", [0.0, 0.0])
+                tx = float(ppos[0]) + 0.5
+                ty = float(ppos[1]) + 0.5
+                if (tx - px) ** 2 + (ty - py) ** 2 < _PROJ_HIT_R_SQ:
+                    hit_player_id = pid
+                    hit_player = pdata
+                    break
+
+            if hit_player is not None:
+                dead_uids.add(proj["uid"])
+                dmg = proj["damage"] * edata.get("damage_mult", 1.0)
+
+                if elem == "shadow" and random.random() < edata.get("crit_chance", 0.0):
+                    dmg *= edata.get("crit_mult", 2.0)
+
+                defense = get_equip_bonuses(hit_player.get("inventory", []))["defense"]
+                damage_taken = max(1.0, dmg - defense)
+
+                if hit_player.get("blocking", False):
+                    _block_age = time.time() - hit_player.get("block_start", 0.0)
+                    if _block_age < 0.15:
+                        continue
+                    damage_taken = max(0.0, damage_taken * 0.4)
+
+                if damage_taken <= 0.0:
+                    continue
+
+                hit_player["health"] = max(0.0, hit_player.get("health", 100.0) - damage_taken)
+                drain_defensive_gear_durability(hit_player.get("inventory", []))
+                _mark_inventory_dirty(hit_player_id)
+
+                if elem == "fire":
+                    apply_status_effect(
+                        hit_player,
+                        "burn",
+                        duration=edata.get("status_duration"),
+                        potency=edata.get("status_dps"),
+                    )
+                elif elem == "ice":
+                    apply_status_effect(
+                        hit_player,
+                        "slow",
+                        duration=edata.get("status_duration"),
+                    )
+                elif elem == "nature":
+                    heal_amt = damage_taken * float(edata.get("lifesteal", 0.5))
+                    owner = players.get(proj["owner"])
+                    if owner:
+                        owner["health"] = min(
+                            owner.get("health", 0.0) + heal_amt,
+                            get_effective_health_max(owner),
+                        )
+                elif elem == "poison":
+                    apply_status_effect(
+                        hit_player,
+                        "poison",
+                        duration=edata.get("status_duration"),
+                        potency=edata.get("status_dps", 3.0),
+                    )
+                continue
 
         with _mobs_lock:
             hit_mob_id: str | None = None

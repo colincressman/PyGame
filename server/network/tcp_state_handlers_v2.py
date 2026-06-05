@@ -13,6 +13,18 @@ from server.game_state.crafting import handle_craft
 
 # Injected clients reference for chat broadcast
 _clients: dict | None = None
+_debug_last_log: dict[str, float] = {}
+
+
+def _debug_log(key: str, message: str, interval: float = 1.0) -> None:
+    import time as _time
+
+    now = _time.time()
+    last = _debug_last_log.get(key, 0.0)
+    if now - last < interval:
+        return
+    _debug_last_log[key] = now
+    print(message)
 
 
 def _is_slot(value, limit: int = 48) -> bool:
@@ -104,6 +116,10 @@ def _handle_craft(data, player_id: str, players: dict, _give_item, _world_items:
     if recipe_id is not None and not isinstance(recipe_id, (str, int)):
         return
     stations = _safe_stations(data.get("nearby_stations"))
+    _debug_log(
+        f"craft:{player_id}",
+        f"[STATE DEBUG] craft pid={player_id} recipe={recipe_id} nearby_stations={stations}",
+    )
     if handle_craft(player_id, recipe_id, players, stations):
         mark_inventory_dirty(player_id)
 
@@ -156,6 +172,10 @@ def _handle_place_object(data, player_id: str, players: dict, _give_item, _world
     with players_lock:
         if player_id in players:
             ok, _result = _place_object(player_id, obj_type, [int(pos[0]), int(pos[1])], players[player_id]["inventory"])
+            print(
+                f"[STATE DEBUG] place_object pid={player_id} type={obj_type} "
+                f"pos=({int(pos[0])},{int(pos[1])}) ok={ok} result={_result}"
+            )
             if ok:
                 mark_inventory_dirty(player_id)
 
@@ -167,6 +187,7 @@ def _handle_remove_object(data, player_id: str, players: dict, _give_item, _worl
     with players_lock:
         if player_id in players:
             ok = _remove_object(uid, players[player_id]["inventory"], player_id)
+            print(f"[STATE DEBUG] remove_object pid={player_id} uid={uid} ok={ok}")
             if ok:
                 mark_inventory_dirty(player_id)
 
@@ -580,7 +601,12 @@ def _handle_fire_spell(data, player_id: str, players: dict, _give_item, _world_i
         return
 
     from server.network.projectiles import fire_projectile, can_fire
-    from server.item_data import get_item as _get_item, get_equip_bonuses, get_hotbar_bonus
+    from server.item_data import (
+        drain_active_hotbar_durability,
+        get_equip_bonuses,
+        get_hotbar_bonus,
+        get_item as _get_item,
+    )
 
     with players_lock:
         player = players.get(player_id)
@@ -607,10 +633,21 @@ def _handle_fire_spell(data, player_id: str, players: dict, _give_item, _world_i
         pos = player.get("pos", [0.0, 0.0])
         if not _is_vec2(pos):
             return
-        ox  = float(pos[0]) + 0.5   # fire from player centre
-        oy  = float(pos[1]) + 0.5
+        mag = (dx * dx + dy * dy) ** 0.5
+        if mag < 0.001:
+            return
+        nx = dx / mag
+        ny = dy / mag
+        # Spawn slightly in front of the caster's centre so the projectile reads from the hand.
+        ox  = float(pos[0]) + 0.5 + nx * 0.22
+        oy  = float(pos[1]) + 0.5 + ny * 0.22
 
-    fire_projectile(player_id, ox, oy, dx, dy, element, atk)
+    if fire_projectile(player_id, ox, oy, dx, dy, element, atk):
+        with players_lock:
+            player = players.get(player_id)
+            if player is not None:
+                drain_active_hotbar_durability(player)
+        mark_inventory_dirty(player_id)
 
 
 def _handle_forget_chunks(data, player_id: str, players: dict, _give_item, _world_items: dict) -> None:

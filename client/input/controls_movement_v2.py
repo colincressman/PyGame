@@ -71,7 +71,7 @@ def _node_collisions(px, py, dt):
     global _cactus_timer
     in_cactus = False
     feet_py = py + _PLAYER_FEET_Y
-    for node in config.world_nodes.values():
+    for _node_id, node in config.iter_world_nodes_near(px, feet_py, 1.0):
         ntype = node.get("type", "")
         if ntype not in BLOCKING_NODES:
             continue
@@ -100,7 +100,7 @@ def _node_collisions(px, py, dt):
     # The hitbox is shifted 0.5 tiles (32 px) down to sit at the player's feet.
     _PO_FEET_Y = 0.5
     fpy = py + _PO_FEET_Y          # shifted probe y; px unchanged
-    for obj in config.placed_objects.values():
+    for _uid, obj in config.iter_placed_objects_near(px, fpy, 1.0):
         otype = obj.get("type", "")
         if otype in _WALKABLE_PLACEABLE_TYPES:
             continue

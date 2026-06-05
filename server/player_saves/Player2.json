@@ -1,24 +1,30 @@
 {
   "pos": [
-    -65.0996132133932,
-    -611.0249322592501
+    847.68,
+    900.0758327274115
   ],
-  "health": 30.0,
+  "health": 40.08,
   "health_max": 100,
   "stamina": 100.0,
   "stamina_max": 100.0,
-  "attack_power": 10.0,
+  "attack_power": 291.4070000000001,
   "speed_bonus": 0.0,
   "hp_regen": 0.0,
-  "sp_regen_bonus": 0.0,
-  "level": 1,
-  "exp": 0,
-  "exp_next": 100,
+  "sp_regen_bonus": 6.0,
+  "level": 4,
+  "exp": 800,
+  "exp_next": 1000,
   "stat_points": 0,
-  "coins": 26,
+  "coins": 85,
   "inventory": [
-    null,
-    null,
+    [
+      61,
+      2
+    ],
+    [
+      59,
+      2
+    ],
     null,
     null,
     null,
@@ -52,7 +58,7 @@
         "stats": {
           "attack_power": 40.2
         },
-        "dur": 92,
+        "dur": 75,
         "dur_max": 120
       }
     ],
@@ -73,7 +79,7 @@
           "defense": 1,
           "health_max": 4
         },
-        "dur": 36,
+        "dur": 33,
         "dur_max": 40
       }
     ],
@@ -86,7 +92,7 @@
           "defense": 1,
           "health_max": 7
         },
-        "dur": 36,
+        "dur": 33,
         "dur_max": 40
       }
     ],
@@ -101,7 +107,7 @@
           "defense": 1,
           "health_max": 5
         },
-        "dur": 36,
+        "dur": 33,
         "dur_max": 40
       }
     ],
@@ -115,7 +121,7 @@
           "health_max": 17.6,
           "speed_bonus": 0.1
         },
-        "dur": 116,
+        "dur": 113,
         "dur_max": 120
       }
     ],
@@ -125,5 +131,14 @@
     null,
     null,
     null
-  ]
+  ],
+  "appearance": {
+    "body": "female",
+    "hair_style": "long",
+    "hair_color": "dark_brown",
+    "skin_tint": null,
+    "back_ext": null,
+    "back_ext_color": "white",
+    "aura": null
+  }
 }

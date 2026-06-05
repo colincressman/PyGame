@@ -11,7 +11,7 @@ This project is no longer a small prototype. The active game already includes:
 - combat, block/parry, dodge roll, stamina, durability, and status effects
 - equipment, crafting, repair, gem embedding, and part combining
 - NPC towns, shops, beds, weather, minimap, chat, and character appearance
-- data-driven registries for mobs, tools, gems, progression, projectiles, status effects, repair costs, shops, and molds
+- data-driven registries for mobs, tools, resource nodes, placeables, gems, progression, projectiles, status effects, repair costs, shops, molds, and shared world-type constants
 
 ## Project Layout
 
@@ -30,7 +30,7 @@ High-signal areas:
 
 - `client/client.py`: launcher, session lifecycle, main render/update loop
 - `client/config.py`: client constants plus mutable session state
-- `client/input/controls.py`: large mixed UI/input handler
+- `client/input/controls.py`: main input router; inventory, chat, shop, and building handlers have been split into sibling modules under `client/input/`
 - `server/game_state/game_sync.py`: authoritative state packet assembly
 - `server/mobs/mob_manager.py`: mob lifecycle and AI
 - `server/world/dyn_chunk_gen.py`: chunk generation, load/save, cliff assignment
@@ -66,17 +66,20 @@ Recent modularization work moved several formerly hardcoded systems into JSON:
 - `data/status_effects.json`
 - `data/repair.json`
 - `data/molds.json`
+- `data/resource_nodes.json`
+- `data/placeables.json`
+- `data/world_types.json`
 - `data/shops/`
 
-The next big extraction targets are resource nodes, placeables/farming, and shared biome/cliff constants.
+Remaining larger extraction targets are still concentrated in oversized code modules rather than these core gameplay registries.
 
 ## Known Architectural Pressure Points
 
 The most important current cleanup opportunities are:
 
-- `client/input/controls.py` is still too large and cross-cutting
+- `client/rendering/item_art.py` is still very large and should be split by item domain
 - `client/config.py` still mixes constants with mutable session state
-- some client-side world interactions still scan `world_nodes` / `placed_objects` linearly
+- minimap/world-state paths still do avoidable rebuild and copy work
 - `server/world/visible.py` and `server/game_state/game_sync.py` still have avoidable repeated payload-building work
 
 See [todo_06022026.md](C:/Users/colin/OneDrive/Desktop/Projects/PyGame_Working/PyGame_M/todo_06022026.md:1) for the active roadmap and [codex_working_notes_06032026.md](C:/Users/colin/OneDrive/Desktop/Projects/PyGame_Working/PyGame_M/codex_working_notes_06032026.md:1) for the rolling architecture reference.
@@ -85,4 +88,4 @@ See [todo_06022026.md](C:/Users/colin/OneDrive/Desktop/Projects/PyGame_Working/P
 
 - World/chunk persistence currently uses the active chunk directory from server config.
 - Some tests are dependency-sensitive because the runtime must have `pygame` available.
-- Old planning docs exist, but `todo_06022026.md` should be treated as the main source of truth.
+- `todo_06022026.md` is the active roadmap / audit source of truth, and `codex_working_notes_06032026.md` is the rolling architecture reference.

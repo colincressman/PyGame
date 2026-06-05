@@ -1,21 +1,21 @@
 {
   "pos": [
-    939.3643833062016,
-    402.2561833205741
+    836.7789053560022,
+    897.7904879275789
   ],
   "health": 874,
   "health_max": 100,
   "stamina": 140.0,
   "stamina_max": 140.0,
-  "attack_power": 20.005000000000006,
+  "attack_power": 297.407,
   "speed_bonus": 0.5,
   "hp_regen": 1.0,
   "sp_regen_bonus": 26.0,
   "level": 16,
-  "exp": 3070,
+  "exp": 6746,
   "exp_next": 13600,
   "stat_points": 0,
-  "coins": 7880,
+  "coins": 8403,
   "inventory": [
     [
       53,
@@ -31,13 +31,36 @@
     ],
     [
       26,
+      5
+    ],
+    [
+      23,
+      1
+    ],
+    [
+      250,
       4
     ],
-    null,
-    null,
-    null,
-    null,
-    null,
+    [
+      10,
+      14
+    ],
+    [
+      11,
+      7
+    ],
+    [
+      1051,
+      1,
+      {
+        "quality": "Common",
+        "stats": {
+          "attack_power": 11
+        },
+        "dur": 65,
+        "dur_max": 65
+      }
+    ],
     [
       1855,
       1,
@@ -52,11 +75,11 @@
     ],
     [
       28,
-      5
+      7
     ],
     [
       58,
-      2
+      5
     ],
     [
       15,
@@ -70,21 +93,24 @@
       12,
       3
     ],
-    null,
-    null,
-    null,
     [
-      1350,
-      1,
-      {
-        "quality": "Common",
-        "stats": {
-          "attack_power": 100.8
-        },
-        "dur": 350,
-        "dur_max": 350
-      }
+      57,
+      2
     ],
+    [
+      59,
+      2
+    ],
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
     [
       1053,
       1,
@@ -97,43 +123,6 @@
         "dur_max": 90
       }
     ],
-    null,
-    null,
-    null,
-    null,
-    null,
-    null,
-    null,
-    [
-      1850,
-      1,
-      {
-        "stats": {
-          "attack_power": 80,
-          "speed_bonus": -0.2
-        },
-        "dur": 168,
-        "dur_max": 321,
-        "traits": [
-          "magical",
-          "heavy",
-          "papery",
-          "Light"
-        ],
-        "parts": [
-          199,
-          161,
-          290,
-          272
-        ],
-        "quality": "Common",
-        "gem_slots": 1,
-        "name": "Crystal Katana",
-        "material": "Crystal",
-        "gem": "Light Pearl",
-        "gem_trait": "Light"
-      }
-    ],
     [
       2101,
       1,
@@ -141,7 +130,7 @@
         "stats": {
           "speed_bonus": 0.05
         },
-        "dur": 238,
+        "dur": 224,
         "dur_max": 315,
         "traits": [
           "magical",
@@ -172,20 +161,20 @@
         "stats": {
           "attack_power": 81.9
         },
-        "dur": 280,
+        "dur": 274,
         "dur_max": 280
       }
     ],
     [
-      1800,
+      1805,
       1,
       {
-        "quality": "Common",
+        "quality": "Uncommon",
         "stats": {
-          "attack_power": 11.0
+          "attack_power": 100.1
         },
-        "dur": 50,
-        "dur_max": 50
+        "dur": 219,
+        "dur_max": 220
       }
     ],
     [
@@ -196,7 +185,7 @@
         "stats": {
           "attack_power": 49.1
         },
-        "dur": 150,
+        "dur": 110,
         "dur_max": 150
       }
     ],
@@ -208,7 +197,7 @@
         "stats": {
           "attack_power": 64.1
         },
-        "dur": 200,
+        "dur": 197,
         "dur_max": 200
       }
     ],
@@ -220,23 +209,52 @@
         "stats": {
           "attack_power": 43.1
         },
-        "dur": 180,
+        "dur": 172,
         "dur_max": 180
       }
     ],
     [
-      1805,
+      1350,
       1,
       {
-        "quality": "Uncommon",
+        "quality": "Common",
         "stats": {
-          "attack_power": 100.1
+          "attack_power": 100.8
         },
-        "dur": 220,
-        "dur_max": 220
+        "dur": 350,
+        "dur_max": 350
       }
     ],
-    null,
+    [
+      1850,
+      1,
+      {
+        "stats": {
+          "attack_power": 80,
+          "speed_bonus": -0.2
+        },
+        "dur": 151,
+        "dur_max": 321,
+        "traits": [
+          "magical",
+          "heavy",
+          "papery",
+          "Light"
+        ],
+        "parts": [
+          199,
+          161,
+          290,
+          272
+        ],
+        "quality": "Common",
+        "gem_slots": 1,
+        "name": "Crystal Katana",
+        "material": "Crystal",
+        "gem": "Light Pearl",
+        "gem_trait": "Light"
+      }
+    ],
     [
       3008,
       1,
@@ -246,7 +264,7 @@
           "defense": 16.3,
           "health_max": 99.4
         },
-        "dur": 308,
+        "dur": 269,
         "dur_max": 400
       }
     ],
@@ -259,34 +277,12 @@
           "defense": 42.6,
           "health_max": 248.3
         },
-        "dur": 308,
+        "dur": 269,
         "dur_max": 400
       }
     ],
-    [
-      3601,
-      1,
-      {
-        "quality": "Exquisite",
-        "stats": {
-          "hp_regen": 5.4
-        },
-        "dur": 8,
-        "dur_max": 100
-      }
-    ],
-    [
-      3600,
-      1,
-      {
-        "quality": "Rare",
-        "stats": {
-          "stamina_max": 35.9
-        },
-        "dur": 8,
-        "dur_max": 100
-      }
-    ],
+    null,
+    null,
     [
       3309,
       1,
@@ -296,7 +292,7 @@
           "defense": 24.9,
           "health_max": 147.7
         },
-        "dur": 308,
+        "dur": 269,
         "dur_max": 400
       }
     ],
@@ -310,7 +306,7 @@
           "health_max": 55.1,
           "speed_bonus": 0.0
         },
-        "dur": 308,
+        "dur": 269,
         "dur_max": 400
       }
     ],
@@ -324,22 +320,11 @@
           "defense": 13.7,
           "health_max": 56.7
         },
-        "dur": 308,
+        "dur": 269,
         "dur_max": 400
       }
     ],
-    [
-      3656,
-      1,
-      {
-        "quality": "Rare",
-        "stats": {
-          "stamina_max": 46.4
-        },
-        "dur": 12,
-        "dur_max": 100
-      }
-    ],
+    null,
     [
       3523,
       1,
@@ -348,7 +333,7 @@
         "stats": {
           "speed_bonus": 0.2
         },
-        "dur": 408,
+        "dur": 369,
         "dur_max": 500
       }
     ],
@@ -361,7 +346,7 @@
           "defense": 31.8,
           "health_max": 106.1
         },
-        "dur": 440,
+        "dur": 401,
         "dur_max": 440
       }
     ],
@@ -374,7 +359,7 @@
           "defense": 17.8,
           "health_max": 60.7
         },
-        "dur": 380,
+        "dur": 341,
         "dur_max": 380
       }
     ],
@@ -388,9 +373,13 @@
           "defense": 10.2,
           "speed_bonus": 0.9
         },
-        "dur": 350,
+        "dur": 311,
         "dur_max": 350
       }
     ]
+  ],
+  "home_pos": [
+    851.5134750374635,
+    901.1928147894457
   ]
 }

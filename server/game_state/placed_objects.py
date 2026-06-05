@@ -42,6 +42,16 @@ _FLUSH_INTERVAL = 10.0  # seconds between disk writes
 # Revision counter bumped whenever a solid/floor object is added, removed, or toggled.
 # mob_manager reads this to know when to rebuild its cached solid tile set.
 _solid_revision: int = 0
+_debug_last_log: dict[str, float] = {}
+
+
+def _debug_log(key: str, message: str, interval: float = 2.0) -> None:
+    now = time.time()
+    last = _debug_last_log.get(key, 0.0)
+    if now - last < interval:
+        return
+    _debug_last_log[key] = now
+    print(message)
 
 
 def get_solid_revision() -> int:
@@ -126,13 +136,36 @@ _autosave_thread.start()
 # ---------------------------------------------------------------------------
 
 def get_nearby(px: float, py: float, radius_sq: float = float(_RENDER_DIST_TILES ** 2)) -> list:
-    """Return list of placed objects within radius_sq tile-distance of (px, py)."""
+    """Return nearby placed objects using the tile indexes instead of a full scan."""
+    radius_tiles = int(radius_sq ** 0.5) + 1
+    min_tx = int(px) - radius_tiles
+    max_tx = int(px) + radius_tiles
+    min_ty = int(py) - radius_tiles
+    max_ty = int(py) + radius_tiles
     with placed_objects_lock:
-        return [
-            dict(obj, uid=uid)
-            for uid, obj in placed_objects.items()
-            if (obj["pos"][0] - px) ** 2 + (obj["pos"][1] - py) ** 2 <= radius_sq
-        ]
+        nearby: list = []
+        seen: set[str] = set()
+        for tx in range(min_tx, max_tx + 1):
+            for ty in range(min_ty, max_ty + 1):
+                for index in (_tile_index, _floor_index):
+                    uid = index.get((tx, ty))
+                    if uid is None or uid in seen:
+                        continue
+                    obj = placed_objects.get(uid)
+                    if obj is None:
+                        continue
+                    if (obj["pos"][0] - px) ** 2 + (obj["pos"][1] - py) ** 2 <= radius_sq:
+                        nearby.append(dict(obj, uid=uid))
+                        seen.add(uid)
+        _debug_log(
+            f"nearby:{int(px)}:{int(py)}",
+            (
+                f"[PLACED DEBUG] nearby pos=({px:.1f},{py:.1f}) "
+                f"result={len(nearby)} total={len(placed_objects)} "
+                f"solid_index={len(_tile_index)} floor_index={len(_floor_index)}"
+            ),
+        )
+        return nearby
 
 
 # ---------------------------------------------------------------------------
@@ -193,6 +226,10 @@ def place_object(pid: str, obj_type: str, pos: list, inventory: list) -> tuple:
             _tile_index[(tx, ty)] = uid
         _mark_dirty()
         _bump_solid_revision()
+        print(
+            f"[PLACED DEBUG] place pid={pid} type={obj_type} pos=({tx},{ty}) "
+            f"uid={uid} total={len(placed_objects)}"
+        )
 
     return True, uid
 
@@ -223,6 +260,10 @@ def inject_object(obj_type: str, tx: int, ty: int, placed_by: str = "town") -> b
             _tile_index[(tx, ty)] = uid
         _mark_dirty()
         _bump_solid_revision()
+        print(
+            f"[PLACED DEBUG] inject by={placed_by} type={obj_type} pos=({tx},{ty}) "
+            f"uid={uid} total={len(placed_objects)}"
+        )
     return True
 
 
@@ -253,6 +294,10 @@ def remove_object(uid: str, inventory: list, pid: str) -> bool:
             _tile_index.pop((tx, ty), None)
         _mark_dirty()
         _bump_solid_revision()
+        print(
+            f"[PLACED DEBUG] remove pid={pid} uid={uid} type={obj.get('type')} "
+            f"pos=({tx},{ty}) total={len(placed_objects)}"
+        )
 
     # Return item to inventory: stack with existing slot first, then find empty slot
     if item_id is not None:
