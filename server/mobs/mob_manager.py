@@ -291,6 +291,7 @@ def _build_spawned_mob(mob_type, pos, player_pos):
         "type":          mob_type,
         "behavior":      cfg.get("behavior", "melee"),
         "pos":           pos,
+        "vel":           [0.0, 0.0],
         "health":        hp,
         "health_max":    hp,
         "level":         level,
@@ -346,6 +347,7 @@ def spawn_boss_at(pos: list) -> bool:
         "type":          BOSS_MOB_TYPE,
         "behavior":      cfg.get("behavior", "melee"),
         "pos":           list(pos),
+        "vel":           [0.0, 0.0],
         "health":        cfg["hp"],
         "health_max":    cfg["hp"],
         "level":         cfg.get("fixed_level", 1),
@@ -405,6 +407,7 @@ def update_mobs(dt: float):
     pending_poison:  dict[str, tuple] = {}  # pid → (duration, dps) from scorpion hits
     pending_despawn: list = []        # mob_ids that despawned silently (no drops/exp)
     pending_spawns:  list = []        # callables deferred until after main mob-loop (dict-safe)
+    start_positions: dict[str, list[float]] = {}
 
     # Rebuild the solid-tile set only when placed_objects has changed (revision bump).
     # This avoids an O(n_placed × 120 Hz) scan each tick.
@@ -433,6 +436,10 @@ def update_mobs(dt: float):
         pass   # keep whatever was cached last tick
 
     with mobs_lock:
+        start_positions = {
+            mob_id: list(mob.get("pos", [0.0, 0.0]))
+            for mob_id, mob in mobs.items()
+        }
         # --- Spawn (cooldown-regulated to prevent burst spawning) ---
         _wt       = _get_world_time()
         _is_night = _wt < _DAY_START_HOUR or _wt > _DAY_END_HOUR
@@ -820,6 +827,20 @@ def update_mobs(dt: float):
             p = mob["pos"]
             p[0] = max(-WORLD_RADIUS, min(WORLD_RADIUS, p[0]))
             p[1] = max(-WORLD_RADIUS, min(WORLD_RADIUS, p[1]))
+
+        # --- Publish per-tick velocity for network smoothing ---
+        for mob_id in live_ids:
+            mob = mobs.get(mob_id)
+            if mob is None:
+                continue
+            start_pos = start_positions.get(mob_id)
+            if start_pos is None or dt <= 1e-6:
+                mob["vel"] = [0.0, 0.0]
+                continue
+            mob["vel"] = [
+                (mob["pos"][0] - start_pos[0]) / dt,
+                (mob["pos"][1] - start_pos[1]) / dt,
+            ]
 
         # --- Remove dead mobs and drop items ---
     global _boss_active, _boss_dungeon_pos
