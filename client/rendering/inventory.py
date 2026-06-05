@@ -302,12 +302,46 @@ def can_drop_in_slot(item_id: int, target_slot: int) -> bool:
     item_type = _ITEM_SLOT_TYPES.get(item_id)
     return required is not None and item_type == required
 
+def scale_preview_layer(layer):
+    """Scale preview layers relative to their source size.
+
+    Normal 64x64 LPC layers become 128x128.
+    Larger 128x128 weapon layers become 256x256, then are centered
+    """
+    from rendering.lpc import CELL
+
+    target_h    = _EQUIP_COLS_ROWS * (SLOT_SIZE + SLOT_PAD) - SLOT_PAD 
+    cell_scaled = int(CELL * (target_h / CELL))                           
+
+    if layer is None:
+        return None, (0, 0)
+
+    w, h = layer.get_size()
+
+    # Normal LPC frame: 64 -> 128
+    if (w, h) == (CELL, CELL):
+        scaled = pygame.transform.scale(layer, (cell_scaled, cell_scaled))
+        return scaled, (0, 0)
+
+    # Larger weapon frame: 128 -> 256
+    if (w, h) == (CELL * 2, CELL * 2):
+        scaled_size = cell_scaled * 2
+        scaled = pygame.transform.scale(layer, (scaled_size, scaled_size))
+
+        # Center oversized weapon around the preview character
+        offset = -cell_scaled // 2
+        return scaled, (offset, offset)
+
+    # Fallback: old behavior
+    scaled = pygame.transform.scale(layer, (cell_scaled, cell_scaled))
+    return scaled, (0, 0)
+
 def _get_preview():
     """Render a live LPC character preview (idle, facing down, frame 0).
     Called every frame the inventory is open — no persistent cache so it
     always reflects the current equipment and held item."""
     import config
-    from rendering.player import _get_cached, _BODY_FOLDER, _HEAD_FOLDER
+    from rendering.player import _get_cached, _weapon_carry_surf, _BODY_FOLDER, _HEAD_FOLDER
     from rendering.equipment_layers import get_layers, get_weapon_layer, get_wing_item
     from rendering.lpc import DIR_ROW, CELL
 
@@ -318,6 +352,7 @@ def _get_preview():
     dir_row = DIR_ROW["down"]   # face the player toward the camera
     anim    = "idle"
     frame   = 0
+    weapon_spec = get_weapon_layer(config.player_inventory)
 
     # Resolve wing layers (rendered bg-before-body, fg-after-equipment)
     wing_info   = get_wing_item(config.player_inventory)
@@ -333,6 +368,16 @@ def _get_preview():
         if wbg_frames and dir_row < len(wbg_frames) and frame < len(wbg_frames[dir_row]):
             f = pygame.transform.scale(wbg_frames[dir_row][frame], (cell_scaled, cell_scaled))
             surf.blit(f, (0, 0))
+
+    # Weapon behind layer mirrors the full player renderer for held weapons
+    if weapon_spec is not None and weapon_spec.behind != "none":
+        behind = _weapon_carry_surf(weapon_spec, "behind", dir_row, frame, anim)
+        if behind is not None:
+            behind, pos = scale_preview_layer(behind)
+            if weapon_spec.tint:
+                behind = behind.copy()
+                behind.fill(weapon_spec.tint, special_flags=pygame.BLEND_RGBA_MULT)
+            surf.blit(behind, pos)
 
     # Body + head base layers
     for base_folder in (_BODY_FOLDER, _HEAD_FOLDER):
@@ -363,20 +408,19 @@ def _get_preview():
             surf.blit(f, (0, 0))
 
     # Weapon / tool held in hotbar
-    weapon_spec = get_weapon_layer(config.player_inventory)
     if weapon_spec is not None:
-        w_frames = _get_cached(weapon_spec.folder, anim, weapon_spec.colour)
-        if w_frames is None:
-            w_frames = _get_cached(weapon_spec.folder, "walk", weapon_spec.colour)
-        if w_frames is None:
+        f = _weapon_carry_surf(weapon_spec, "front", dir_row, frame, anim)
+        if f is None:
             # Wand: slash sheet only — use frame 0 as static hold pose
             w_frames = _get_cached(weapon_spec.folder, "slash", weapon_spec.colour)
-        if w_frames and dir_row < len(w_frames) and w_frames[dir_row]:
-            f = pygame.transform.scale(w_frames[dir_row][0], (cell_scaled, cell_scaled))
+            if w_frames and dir_row < len(w_frames) and w_frames[dir_row]:
+                f = w_frames[dir_row][0]
+        if f is not None:
+            f, pos = scale_preview_layer(f)
             if weapon_spec.tint:
                 f = f.copy()
                 f.fill(weapon_spec.tint, special_flags=pygame.BLEND_RGBA_MULT)
-            surf.blit(f, (0, 0))
+            surf.blit(f, pos)
 
     return surf
 
