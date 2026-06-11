@@ -74,6 +74,8 @@
     "respawn": 180,
     "density": 0.028,
     "spawn_biomes": ["mountain", "tundra", "plains"],
+    "permanent": true,
+    "seed_drop": {"item_id": 49, "chance": 0.06},
     "render_scale": 1.5,
     "y_sorted": true,
     "blocking": true,

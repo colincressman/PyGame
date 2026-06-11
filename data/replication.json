@@ -1,0 +1,25 @@
+{
+  "server": {
+    "dynamic_interval": 0.08,
+    "world_interval": 0.25,
+    "time_interval": 0.25,
+    "mob_sync_interval": 0.04
+  },
+  "remote_player": {
+    "move_decay": 0.15,
+    "max_extrap_time": 0.03,
+    "interp_near_delay": 0.11,
+    "interp_mid_delay": 0.14,
+    "interp_far_delay": 0.17,
+    "combat_near_delay": 0.08,
+    "combat_mid_delay": 0.10,
+    "combat_near_dist_sq": 16.0,
+    "combat_mid_dist_sq": 64.0,
+    "near_dist_sq": 36.0,
+    "mid_dist_sq": 144.0
+  },
+  "remote_mob": {
+    "max_extrap_time": 0.03,
+    "interp_delay": 0.17
+  }
+}

@@ -42,19 +42,18 @@ def get_visible_chunk_keys_for_player(player_id):
 
 def get_visible_chunks(chunk_keys):
     visible_chunks = {}
-    with world_data_lock:
-        for chunk_key in chunk_keys:
-            origin_x = chunk_key[0] * CHUNK_SIZE
-            origin_y = chunk_key[1] * CHUNK_SIZE
-            tile_keys = [
-                (origin_x + ti, origin_y + tj)
-                for ti, tj in _TILE_OFFSETS
-            ]
-            chunk_tiles = {
-                k: world_data[k] for k in tile_keys if k in world_data
-            }
-            if chunk_tiles:
-                visible_chunks[chunk_key] = chunk_tiles
+    for chunk_key in chunk_keys:
+        origin_x = chunk_key[0] * CHUNK_SIZE
+        origin_y = chunk_key[1] * CHUNK_SIZE
+        chunk_tiles = {}
+        with world_data_lock:
+            for ti, tj in _TILE_OFFSETS:
+                key = (origin_x + ti, origin_y + tj)
+                tile = world_data.get(key)
+                if tile is not None:
+                    chunk_tiles[key] = tile
+        if chunk_tiles:
+            visible_chunks[chunk_key] = chunk_tiles
 
     return visible_chunks
 

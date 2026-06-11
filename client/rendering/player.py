@@ -43,6 +43,17 @@ _SMASH_CELL = 128   # smash tool sheets use 128×128 px cells (6 frames × 4 dir
 _BODY_FOLDER = "humanoid/body/bodies/male"
 _HEAD_FOLDER = "humanoid/head/heads/human/male"
 
+_HEAD_VARIANTS_BY_BODY = {
+    "male": "male",
+    "female": "female",
+    "muscular": "male",
+    "teen": "male_small",
+}
+
+_HAIR_STYLE_ALIASES = {
+    "messy": "messy1",
+}
+
 # Wing colour options that map to LPC colour variant filenames
 _WING_COLOURS = (
     "ash", "black", "blonde", "blue", "brown", "carrot", "chestnut",
@@ -101,6 +112,44 @@ def _get_attack_behind_cached(folder: str, colour: str | None) -> list | None:
         result = get_attack_behind_frames(folder, colour)
         _frame_cache[key] = result if result is not None else False
     return _frame_cache[key] or None
+
+
+def normalize_body_choice(body: str | None) -> str:
+    """Return a supported body key for appearance state."""
+    if isinstance(body, str) and body:
+        return body
+    return "male"
+
+
+def normalize_hair_style_choice(hair_style: str | None) -> str:
+    """Map legacy or UI aliases to actual LPC hair asset folders."""
+    if not isinstance(hair_style, str) or not hair_style:
+        return "plain"
+    return _HAIR_STYLE_ALIASES.get(hair_style, hair_style)
+
+
+def _body_folder_for(body: str | None) -> str:
+    resolved = normalize_body_choice(body)
+    return f"humanoid/body/bodies/{resolved}"
+
+
+def _head_folder_for(body: str | None) -> str:
+    resolved = normalize_body_choice(body)
+    head_variant = _HEAD_VARIANTS_BY_BODY.get(resolved, resolved)
+    return f"humanoid/head/heads/human/{head_variant}"
+
+
+def _hair_back_folders_for(hair_style: str | None) -> list[str]:
+    resolved = normalize_hair_style_choice(hair_style)
+    return [f"humanoid/hair/{resolved}/adult/bg"]
+
+
+def _hair_front_folders_for(hair_style: str | None) -> list[str]:
+    resolved = normalize_hair_style_choice(hair_style)
+    return [
+        f"humanoid/hair/{resolved}/adult",
+        f"humanoid/hair/{resolved}/adult/fg",
+    ]
 
 
 def _get_smash_frames(colour: str, layer: str = "foreground") -> list | None:
@@ -260,6 +309,43 @@ def get_sprite_feet_offset() -> float:
     return CELL / 2.0 / 32.0
 
 
+def draw_appearance_preview(
+    screen: pygame.Surface,
+    center_x: int,
+    center_y: int,
+    appearance: dict | None = None,
+) -> None:
+    """Draw a static preview of body/head/hair layers for the creator UI."""
+    app = appearance or {}
+    body_folder = _body_folder_for(app.get("body", "male"))
+    head_folder = _head_folder_for(app.get("body", "male"))
+    skin_tint = app.get("skin_tint")
+
+    sx = int(center_x - CELL // 2)
+    sy = int(center_y - CELL // 2)
+    dir_row = DIR_ROW["down"]
+    frame = 0
+
+    for hair_folder in _hair_back_folders_for(app.get("hair_style", "plain")):
+        hair_frames = _get_cached(hair_folder, "idle", None)
+        if hair_frames and dir_row < len(hair_frames) and frame < len(hair_frames[dir_row]):
+            screen.blit(hair_frames[dir_row][frame], (sx, sy))
+
+    for base_folder in (body_folder, head_folder):
+        base_frames = _get_cached(base_folder, "idle", None)
+        if base_frames and dir_row < len(base_frames) and frame < len(base_frames[dir_row]):
+            surf = base_frames[dir_row][frame]
+            if skin_tint:
+                surf = surf.copy()
+                surf.fill(skin_tint, special_flags=pygame.BLEND_RGBA_MULT)
+            screen.blit(surf, (sx, sy))
+
+    for hair_folder in _hair_front_folders_for(app.get("hair_style", "plain")):
+        hair_frames = _get_cached(hair_folder, "idle", None)
+        if hair_frames and dir_row < len(hair_frames) and frame < len(hair_frames[dir_row]):
+            screen.blit(hair_frames[dir_row][frame], (sx, sy))
+
+
 # ---------------------------------------------------------------------------
 # Public: local player draw
 # ---------------------------------------------------------------------------
@@ -288,11 +374,9 @@ def draw_player(screen: pygame.Surface, window_width: int, window_height: int) -
 
     # Appearance-based folders (dynamic)
     _app        = config.player_appearance
-    _sex        = _app.get("body", "male")
-    _body_fld   = f"humanoid/body/bodies/{_sex}"
-    _head_fld   = f"humanoid/head/heads/human/{_sex}"
+    _body_fld   = _body_folder_for(_app.get("body", "male"))
+    _head_fld   = _head_folder_for(_app.get("body", "male"))
     _hair_style = _app.get("hair_style", "plain")
-    _hair_fld   = f"humanoid/hair/{_hair_style}/adult"
     _wing_type  = _app.get("back_ext")            # None or e.g. "feathered"
     _wing_col   = _app.get("back_ext_color", "white")
     _wing_bg_fld: str | None = None
@@ -381,6 +465,15 @@ def draw_player(screen: pygame.Surface, window_width: int, window_height: int) -
         _blit_layer(target, _wing_bg, anim, dir_row, body_frame, lx, ly,
                     tint_override=effect_tint)
 
+    for _hair_bg_fld in _hair_back_folders_for(_hair_style):
+        _hair_bg_frames = _get_cached(_hair_bg_fld, anim, None)
+        if _hair_bg_frames and dir_row < len(_hair_bg_frames) and body_frame < len(_hair_bg_frames[dir_row]):
+            _bg_surf = _hair_bg_frames[dir_row][body_frame]
+            if effect_tint:
+                _bg_surf = _bg_surf.copy()
+                _bg_surf.fill(effect_tint, special_flags=pygame.BLEND_RGBA_MULT)
+            target.blit(_bg_surf, (lx, ly))
+
     # Body + head (permanent base layers, sex-aware)
     for base_folder in (_body_fld, _head_fld):
         base_frames = _get_cached(base_folder, anim, None)
@@ -393,13 +486,14 @@ def draw_player(screen: pygame.Surface, window_width: int, window_height: int) -
             target.blit(surf, (lx, ly))
 
     # Hair layer (rendered on top of body/head)
-    _hair_frames = _get_cached(_hair_fld, anim, None)
-    if _hair_frames and dir_row < len(_hair_frames) and body_frame < len(_hair_frames[dir_row]):
-        _hsurf = _hair_frames[dir_row][body_frame]
-        if effect_tint:
-            _hsurf = _hsurf.copy()
-            _hsurf.fill(effect_tint, special_flags=pygame.BLEND_RGBA_MULT)
-        target.blit(_hsurf, (lx, ly))
+    for _hair_fld in _hair_front_folders_for(_hair_style):
+        _hair_frames = _get_cached(_hair_fld, anim, None)
+        if _hair_frames and dir_row < len(_hair_frames) and body_frame < len(_hair_frames[dir_row]):
+            _hsurf = _hair_frames[dir_row][body_frame]
+            if effect_tint:
+                _hsurf = _hsurf.copy()
+                _hsurf.fill(effect_tint, special_flags=pygame.BLEND_RGBA_MULT)
+            target.blit(_hsurf, (lx, ly))
 
     # Equipment layers (bottom → top)
     layers = get_layers(config.player_inventory)
@@ -516,10 +610,9 @@ def draw_remote_player(
 
     # Resolve appearance
     _app       = appearance or {}
-    _sex       = _app.get("body", "male")
-    _body_fld  = f"humanoid/body/bodies/{_sex}"
-    _head_fld  = f"humanoid/head/heads/human/{_sex}"
-    _hair_fld  = f"humanoid/hair/{_app.get('hair_style', 'plain')}/adult"
+    _body_fld  = _body_folder_for(_app.get("body", "male"))
+    _head_fld  = _head_folder_for(_app.get("body", "male"))
+    _hair_style = _app.get("hair_style", "plain")
     _wing_type = _app.get("back_ext")
     _wing_col  = _app.get("back_ext_color", "white")
     _wing_bg_fld_r: str | None = None
@@ -566,6 +659,11 @@ def draw_remote_player(
         _blit_layer(screen, LayerSpec(_wing_bg_fld_r, colour=_wing_col),
                     anim, dir_row, frame, sx, sy)
 
+    for _hair_bg_fld in _hair_back_folders_for(_hair_style):
+        _hair_bg_frames = _get_cached(_hair_bg_fld, anim, None)
+        if _hair_bg_frames and dir_row < len(_hair_bg_frames) and frame < len(_hair_bg_frames[dir_row]):
+            screen.blit(_hair_bg_frames[dir_row][frame], (sx, sy))
+
     # Body + head (sex-aware)
     for base_folder in (_body_fld, _head_fld):
         base_frames = _get_cached(base_folder, anim, None)
@@ -577,9 +675,10 @@ def draw_remote_player(
             screen.blit(surf, (sx, sy))
 
     # Hair layer
-    _hair_frames = _get_cached(_hair_fld, anim, None)
-    if _hair_frames and dir_row < len(_hair_frames) and frame < len(_hair_frames[dir_row]):
-        screen.blit(_hair_frames[dir_row][frame], (sx, sy))
+    for _hair_fld in _hair_front_folders_for(_hair_style):
+        _hair_frames = _get_cached(_hair_fld, anim, None)
+        if _hair_frames and dir_row < len(_hair_frames) and frame < len(_hair_frames[dir_row]):
+            screen.blit(_hair_frames[dir_row][frame], (sx, sy))
 
     # Equipment layers
     if equip_ids:

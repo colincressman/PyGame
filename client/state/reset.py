@@ -5,6 +5,7 @@ from client_constants import DEFAULT_WINDOW_HEIGHT, DEFAULT_WINDOW_WIDTH
 def reset_client_state():
     # Persist the player's map exploration before any resets
     config.save_visited_chunks()
+    config.save_map_memory(force=True)
 
     # Mutate dicts/lists in-place so all modules holding a reference see the reset
     _player_module.player_data.clear()
@@ -15,6 +16,7 @@ def reset_client_state():
     config.mob_entities.clear()
     config.world_data.clear()
     # full_world_data intentionally kept — it's the player's map exploration history
+    config.faction_claims = []
     config.chunk_cache.clear()
 
     # Drain stale chunks so the next session's loading screen starts from 0%
@@ -45,6 +47,8 @@ def reset_client_state():
     config.menu_click_pos = None
     config.show_stats = False
     config.stat_click_pos = None
+    config.show_char_creator = False
+    config.first_join_setup_required = False
     config.player_coins = 0
     config.player_exp = 0
     config.player_exp_next = 100
@@ -53,6 +57,13 @@ def reset_client_state():
     config.player_hp_regen = 0.0
     config.player_sp_regen_bonus = 0.0
     config.player_slow_timer = 0.0
+    config.current_territory_owner = None
+    config.current_territory_tag = None
+    config.territory_state_ready = False
+    config.territory_banner_text = ""
+    config.territory_banner_started_at = 0.0
+    config.territory_banner_until = 0.0
+    config.debug_overlay_mode = 1 if config.DEBUG_MODE else 0
 
     # Clear world items so session 2 doesn't start with stale data
     config.world_items = {}
@@ -64,6 +75,7 @@ def reset_client_state():
     config.open_chest_uid   = None
     config.chest_drag_slot  = None
     config.chest_ui_hold_until = 0.0
+    config.pending_private_chest = False
 
     # Reset animation / combat state
     config.player_facing    = "down"

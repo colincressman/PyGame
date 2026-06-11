@@ -1,11 +1,19 @@
-import uuid
+import atexit
+import json
+import os
 import threading
-from server.shared_lock import players_lock, world_items_lock  # world_items_lock defined in shared_lock
+import time
+import uuid
+
+from server.config import CHUNK_DIR as _CHUNK_DIR
 from server.config import CHUNK_SIZE as _CHUNK_SIZE
+from server.config import WORLD_ITEM_DESPAWN_SECONDS as _WORLD_ITEM_DESPAWN_SECONDS
+from server.shared_lock import players_lock, world_items_lock
 
 world_items = {}        # {uid: {"item_id": int, "pos": [x, y], "qty": int}}
-# world_items_lock imported from server.shared_lock
 _item_cells: dict[tuple[int, int], set[str]] = {}
+_PERSIST_PATH = os.path.join(_CHUNK_DIR, "world_items.json")
+_persist_write_lock = threading.Lock()
 
 _PICKUP_RADIUS_SQ = 1.0
 
@@ -35,6 +43,107 @@ def _deindex_item(uid: str, item: dict | None) -> None:
     cell_items.discard(uid)
     if not cell_items:
         _item_cells.pop(cell, None)
+
+
+def _snapshot_world_items() -> dict[str, dict]:
+    with world_items_lock:
+        return {
+            uid: {
+                "item_id": int(item["item_id"]),
+                "pos": [float(item["pos"][0]), float(item["pos"][1])],
+                "qty": int(item["qty"]),
+                "spawned_at": float(item.get("spawned_at", time.time())),
+            }
+            for uid, item in world_items.items()
+        }
+
+
+def _replace_world_items(snapshot: dict[str, dict]) -> None:
+    with world_items_lock:
+        world_items.clear()
+        _item_cells.clear()
+        for uid, item in snapshot.items():
+            world_items[uid] = item
+            _index_item(uid, item)
+
+
+def load_persistence() -> None:
+    try:
+        with open(_PERSIST_PATH, "r", encoding="utf-8") as handle:
+            raw = json.load(handle)
+    except FileNotFoundError:
+        return
+    except Exception as exc:
+        print(f"[WORLD ITEMS] load error: {exc}")
+        return
+
+    snapshot: dict[str, dict] = {}
+    if isinstance(raw, dict):
+        entries = raw.items()
+    elif isinstance(raw, list):
+        entries = (
+            (entry.get("uid"), entry)
+            for entry in raw
+            if isinstance(entry, dict)
+        )
+    else:
+        entries = ()
+
+    for uid, entry in entries:
+        if not uid or not isinstance(entry, dict):
+            continue
+        pos = entry.get("pos")
+        if not isinstance(pos, list) or len(pos) != 2:
+            continue
+        try:
+            snapshot[str(uid)] = {
+                "item_id": int(entry["item_id"]),
+                "pos": [float(pos[0]), float(pos[1])],
+                "qty": max(1, int(entry.get("qty", 1))),
+                "spawned_at": float(entry.get("spawned_at", time.time())),
+            }
+        except (KeyError, TypeError, ValueError):
+            continue
+
+    _replace_world_items(snapshot)
+
+
+def save_persistence_sync() -> None:
+    snapshot = _snapshot_world_items()
+    tmp_path = _PERSIST_PATH + ".tmp"
+    try:
+        with _persist_write_lock:
+            os.makedirs(_CHUNK_DIR, exist_ok=True)
+            with open(tmp_path, "w", encoding="utf-8") as handle:
+                json.dump(snapshot, handle)
+            os.replace(tmp_path, _PERSIST_PATH)
+    except Exception as exc:
+        print(f"[WORLD ITEMS] save error: {exc}")
+        try:
+            os.remove(tmp_path)
+        except OSError:
+            pass
+
+
+def save_persistence_async() -> None:
+    snapshot = _snapshot_world_items()
+
+    def _write() -> None:
+        tmp_path = _PERSIST_PATH + ".tmp"
+        try:
+            with _persist_write_lock:
+                os.makedirs(_CHUNK_DIR, exist_ok=True)
+                with open(tmp_path, "w", encoding="utf-8") as handle:
+                    json.dump(snapshot, handle)
+                os.replace(tmp_path, _PERSIST_PATH)
+        except Exception as exc:
+            print(f"[WORLD ITEMS] save error: {exc}")
+            try:
+                os.remove(tmp_path)
+            except OSError:
+                pass
+
+    threading.Thread(target=_write, daemon=False, name="world-items-persist").start()
 
 
 def get_nearby_items(px: float, py: float, radius_sq: float) -> list[dict]:
@@ -68,10 +177,29 @@ def get_nearby_items(px: float, py: float, radius_sq: float) -> list[dict]:
 def spawn_world_item(item_id, pos, qty=1):
     """Add a dropped item to the world. Returns the assigned uid."""
     uid = str(uuid.uuid4())[:8]
+    now = time.time()
     with world_items_lock:
-        world_items[uid] = {"item_id": item_id, "pos": list(pos), "qty": qty}
+        world_items[uid] = {"item_id": item_id, "pos": list(pos), "qty": qty, "spawned_at": now}
         _index_item(uid, world_items[uid])
+    save_persistence_async()
     return uid
+
+
+def prune_expired_items(now: float | None = None, lifetime: float = _WORLD_ITEM_DESPAWN_SECONDS) -> list[str]:
+    if now is None:
+        now = time.time()
+    expired: list[str] = []
+    with world_items_lock:
+        for uid, item in list(world_items.items()):
+            spawned_at = float(item.get("spawned_at", now))
+            if now - spawned_at < lifetime:
+                continue
+            _deindex_item(uid, item)
+            world_items.pop(uid, None)
+            expired.append(uid)
+    if expired:
+        save_persistence_async()
+    return expired
 
 
 def _add_to_inventory(inventory, item_id, qty):
@@ -95,6 +223,9 @@ def _add_to_inventory(inventory, item_id, qty):
 def pickup_tick():
     """Check player positions against world items and award any pickups. Call once per game tick."""
     from server.game_state.game_sync import mark_inventory_dirty
+
+    prune_expired_items()
+
     with players_lock:
         player_list = [
             (pid, list(pdata.get("pos", [0, 0])))
@@ -120,9 +251,7 @@ def pickup_tick():
                         if dx * dx + dy * dy <= _PICKUP_RADIUS_SQ:
                             pickups.append((uid, pid, item["item_id"], item["qty"]))
                             claimed.add(uid)
-        # Remove collected items NOW while still holding the lock — eliminates the
-        # window where send_game_state could include a "claimed but not yet removed"
-        # item, which caused the client-side ghost/flicker effect.
+        # Remove collected items while holding the lock so clients never see a claimed-but-not-removed drop.
         for uid, _, _, _ in pickups:
             _deindex_item(uid, world_items.get(uid))
             world_items.pop(uid, None)
@@ -130,8 +259,10 @@ def pickup_tick():
     if not pickups:
         return
 
-    # Apply inventory / wallet changes (items already removed from world above)
+    save_persistence_async()
+
     _COIN_ITEM_ID = 1
+    dirty_players: set[str] = set()
     with players_lock:
         for uid, pid, item_id, qty in pickups:
             if pid in _players:
@@ -141,14 +272,17 @@ def pickup_tick():
                 else:
                     _add_to_inventory(_players[pid]["inventory"], item_id, qty)
                     print(f"[PICKUP] {pid} picked up {qty}x item {item_id}")
-                mark_inventory_dirty(pid)
+                dirty_players.add(pid)
+        for pid in dirty_players:
+            mark_inventory_dirty(pid)
 
 
 def handle_player_pickup(player_id: str, uid: str) -> bool:
     """Explicit pickup request from a client click/key-press.
     Returns True if the item was successfully picked up."""
     from server.game_state.game_sync import mark_inventory_dirty
-    _EXPLICIT_RADIUS_SQ = 2.5 * 2.5   # slightly more lenient than auto-pickup (1 tile)
+
+    _EXPLICIT_RADIUS_SQ = 2.5 * 2.5
 
     with players_lock:
         player = _players.get(player_id)
@@ -159,29 +293,34 @@ def handle_player_pickup(player_id: str, uid: str) -> bool:
     with world_items_lock:
         item = world_items.get(uid)
         if item is None:
-            return False   # already picked up by someone else
+            return False
         ix, iy = item["pos"]
         dx = pos[0] - ix
         dy = pos[1] - iy
         if dx * dx + dy * dy > _EXPLICIT_RADIUS_SQ:
-            return False   # too far away
-        # Remove immediately while holding the lock
+            return False
         item_id = item["item_id"]
-        qty     = item["qty"]
+        qty = item["qty"]
         _deindex_item(uid, item)
         del world_items[uid]
 
     _COIN_ITEM_ID = 1
     with players_lock:
         if player_id not in _players:
-            # Player disconnected between the two lock blocks — re-spawn the item
             with world_items_lock:
                 world_items[uid] = {"item_id": item_id, "pos": [ix, iy], "qty": qty}
                 _index_item(uid, world_items[uid])
+            save_persistence_async()
             return False
         if item_id == _COIN_ITEM_ID:
             _players[player_id]["coins"] = _players[player_id].get("coins", 0) + qty
         else:
             _add_to_inventory(_players[player_id]["inventory"], item_id, qty)
         mark_inventory_dirty(player_id)
+
+    save_persistence_async()
     return True
+
+
+load_persistence()
+atexit.register(save_persistence_sync)

@@ -1,7 +1,7 @@
 from server.world.chunk_utils import split_tiles_by_chunk
 from server.world.io import save_multiple_chunks
 from server.world.dyn_chunk_gen import queue_chunks_near_players, process_chunk_queue, prune_loaded_chunk_cache
-from server.world.resource_nodes import tick_respawns as _tick_node_respawns, register_planted_node as _register_planted_node
+from server.world.resource_nodes import tick_respawns as _tick_node_respawns
 from server.game_state.placed_objects import tick_growing_plants as _tick_growing_plants
 from server.game_state.game_sync import tick_player_deaths as _tick_deaths
 from server.shared_lock import players_lock, world_data_lock
@@ -40,11 +40,10 @@ def update_world(players, player_positions):
     # 4. Tick resource node respawns (broadcasts via resource_nodes._bcast_log)
     _tick_node_respawns()
 
-    # 4b. Tick growing plants; register any that have matured as planted nodes
+    # 4b. Tick growing plants; matured seeds/saplings register their grown nodes
+    # inside the transition so clients do not see a visible handoff gap.
     import time as _time
-    matured = _tick_growing_plants(_time.time())
-    for plant in matured:
-        _register_planted_node(plant["node_type"], plant["wx"], plant["wy"])
+    _tick_growing_plants(_time.time())
 
     # 5. Tick player death / respawn timers
     _tick_deaths(players)

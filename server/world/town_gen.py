@@ -58,6 +58,19 @@ def get_town_center_tile(cx: int, cy: int):
             cy * CHUNK_SIZE + CHUNK_SIZE // 2)
 
 
+def get_built_towns() -> list[dict]:
+    """Return summary data for all towns built during this server runtime."""
+    towns = []
+    for acx, acy in sorted(_built_towns):
+        tx, ty = get_town_center_tile(acx, acy)
+        towns.append({
+            "id": f"town_{acx}_{acy}",
+            "anchor": [acx, acy],
+            "pos": [tx, ty],
+        })
+    return towns
+
+
 def get_town_structure_tiles_in_chunk(cx: int, cy: int) -> set[tuple[int, int]]:
     """Return all deterministic town structure tiles that overlap chunk (cx, cy)."""
     min_tx = cx * CHUNK_SIZE

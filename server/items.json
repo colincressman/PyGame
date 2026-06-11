@@ -3733,6 +3733,12 @@
     "sell_price": 2,
     "stackable": true
   },
+  "49": {
+    "max_stack": 10,
+    "name": "Stone Seed",
+    "sell_price": 5,
+    "stackable": true
+  },
   "50": {
     "gem_trait": "Fire",
     "max_stack": 10,

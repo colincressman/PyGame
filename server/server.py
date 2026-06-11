@@ -7,6 +7,7 @@ import os
 from .config import PORT_WORLD, PORT_STATE, TICK_RATE, MAX_PLAYERS
 from server.world import visible
 from .shared_lock import clients_lock, players_lock
+from server.cleanup import cleanup_stale_players
 
 # === Global State ===
 clients = {
@@ -41,10 +42,19 @@ def game_loop():
     last_tick = _time.time()
     next_tick = last_tick
     tick_counter = 0
+    last_stale_cleanup = last_tick
     while True:
         now  = _time.time()
         dt   = now - last_tick
         last_tick = now
+
+        if now - last_stale_cleanup >= 1.0:
+            try:
+                cleanup_stale_players(now=now)
+            except Exception as e:
+                print(f"[STALE CLEANUP ERROR] {e}")
+                traceback.print_exc()
+            last_stale_cleanup = now
 
         try:
             pickup_tick()
@@ -243,6 +253,7 @@ if __name__ == "__main__":
     set_game_state_refs({
         "players": players,
         "player_positions": player_positions,
+        "send_to_player": send_to_player,
     })
 
     set_world_items_refs({

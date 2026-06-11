@@ -1,7 +1,7 @@
 {
   "pos": [
-    851.1894750374635,
-    901.1928147894457
+    846.171731856943,
+    896.5239
   ],
   "health": 874,
   "health_max": 100,
@@ -12,34 +12,36 @@
   "hp_regen": 1.0,
   "sp_regen_bonus": 26.0,
   "level": 17,
-  "exp": 3386,
+  "exp": 5696,
   "exp_next": 15300,
   "stat_points": 0,
-  "coins": 12448,
+  "coins": 12651,
+  "faction_power": 1.13,
+  "first_join_complete": true,
   "inventory": [
     [
-      53,
-      1
+      25,
+      2
     ],
     [
-      54,
-      1
+      59,
+      3
     ],
     [
-      56,
+      61,
       2
     ],
     [
       26,
-      5
+      26
     ],
     [
       23,
-      1
+      2
     ],
     [
-      250,
-      4
+      21,
+      1
     ],
     [
       10,
@@ -47,61 +49,49 @@
     ],
     [
       11,
-      10
+      43
     ],
     [
-      3510,
-      3
-    ],
-    [
-      51,
-      1
-    ],
-    [
-      28,
+      43,
       13
     ],
     [
-      58,
-      5
+      12,
+      4
+    ],
+    [
+      49,
+      2
+    ],
+    [
+      35,
+      1
     ],
     [
       15,
       3
     ],
     [
-      19,
+      24,
+      1
+    ],
+    [
+      22,
       2
     ],
     [
-      12,
-      12
-    ],
-    [
-      57,
-      9
-    ],
-    [
-      59,
-      13
-    ],
-    [
-      61,
-      4
-    ],
-    [
-      52,
-      1
-    ],
-    [
-      25,
-      1
-    ],
-    [
-      43,
-      8
+      20,
+      2
     ],
     null,
+    null,
+    null,
+    null,
+    null,
+    [
+      28,
+      1
+    ],
     null,
     null,
     null,
@@ -115,7 +105,7 @@
         "stats": {
           "attack_power": 155.7
         },
-        "dur": 367,
+        "dur": 357,
         "dur_max": 400
       }
     ],
@@ -126,7 +116,7 @@
         "stats": {
           "speed_bonus": 0.05
         },
-        "dur": 218,
+        "dur": 77,
         "dur_max": 315,
         "traits": [
           "magical",
@@ -165,7 +155,7 @@
       2400,
       1,
       {
-        "dur": 395,
+        "dur": 391,
         "dur_max": 400
       }
     ],
@@ -183,7 +173,7 @@
           "defense": 16.3,
           "health_max": 99.4
         },
-        "dur": 226,
+        "dur": 223,
         "dur_max": 400
       }
     ],
@@ -196,7 +186,7 @@
           "defense": 42.6,
           "health_max": 248.3
         },
-        "dur": 226,
+        "dur": 223,
         "dur_max": 400
       }
     ],
@@ -208,7 +198,7 @@
         "stats": {
           "hp_regen": 3.5
         },
-        "dur": 59,
+        "dur": 54,
         "dur_max": 100
       }
     ],
@@ -220,7 +210,7 @@
         "stats": {
           "stamina_max": 21.9
         },
-        "dur": 59,
+        "dur": 56,
         "dur_max": 100
       }
     ],
@@ -233,7 +223,7 @@
           "defense": 24.9,
           "health_max": 147.7
         },
-        "dur": 226,
+        "dur": 223,
         "dur_max": 400
       }
     ],
@@ -247,7 +237,7 @@
           "health_max": 55.1,
           "speed_bonus": 0.0
         },
-        "dur": 226,
+        "dur": 223,
         "dur_max": 400
       }
     ],
@@ -261,7 +251,7 @@
           "defense": 13.7,
           "health_max": 56.7
         },
-        "dur": 226,
+        "dur": 223,
         "dur_max": 400
       }
     ],
@@ -274,7 +264,7 @@
           "attack_power": 7.4,
           "defense": 2.8
         },
-        "dur": 59,
+        "dur": 49,
         "dur_max": 100
       }
     ],
@@ -286,7 +276,7 @@
         "stats": {
           "speed_bonus": 0.2
         },
-        "dur": 326,
+        "dur": 323,
         "dur_max": 500
       }
     ],
@@ -299,7 +289,7 @@
           "defense": 31.8,
           "health_max": 106.1
         },
-        "dur": 358,
+        "dur": 355,
         "dur_max": 440
       }
     ],
@@ -312,7 +302,7 @@
           "defense": 17.8,
           "health_max": 60.7
         },
-        "dur": 298,
+        "dur": 295,
         "dur_max": 380
       }
     ],
@@ -326,13 +316,24 @@
           "defense": 10.2,
           "speed_bonus": 0.9
         },
-        "dur": 268,
+        "dur": 265,
         "dur_max": 350
       }
     ]
   ],
+  "last_seen": 1781213277.7241116,
   "home_pos": [
-    851.5134750374635,
-    901.1928147894457
-  ]
+    846.171731856943,
+    896.5239
+  ],
+  "appearance": {
+    "body": "male",
+    "hair_style": "plain",
+    "hair_color": "dark_brown",
+    "skin_tint": null,
+    "back_ext": null,
+    "back_ext_color": "white",
+    "aura": null
+  },
+  "faction": "fuckoff"
 }

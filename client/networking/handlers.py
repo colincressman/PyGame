@@ -26,6 +26,53 @@ def _debug_log(key: str, message: str, interval: float = 2.0) -> None:
     _debug_last_log[key] = now
     log_info(message)
 
+
+def _territory_banner_text(owner: str | None, tag: str | None) -> str:
+    if owner:
+        label = f"[{tag}] {owner}" if tag else owner
+        return f"Entering {label} Territory"
+    return "Entering Wilderness"
+
+
+def _handle_territory_transition(self_data: dict) -> None:
+    new_owner = self_data.get("territory_owner")
+    new_tag = self_data.get("territory_tag")
+    old_owner = getattr(config, "current_territory_owner", None)
+    old_tag = getattr(config, "current_territory_tag", None)
+    state_ready = bool(getattr(config, "territory_state_ready", False))
+
+    changed = new_owner != old_owner or new_tag != old_tag
+    if state_ready and changed:
+        from rendering.hud import show_territory_banner
+        show_territory_banner(_territory_banner_text(new_owner, new_tag))
+
+    config.current_territory_owner = new_owner
+    config.current_territory_tag = new_tag
+    config.territory_state_ready = True
+
+
+def _apply_authoritative_self_pos(self_data: dict, player_data: dict, was_dead: bool) -> None:
+    """Accept a server position correction for respawns or large desyncs."""
+    pos = self_data.get("pos")
+    if not (isinstance(pos, list) and len(pos) == 2):
+        return
+    try:
+        server_x = float(pos[0])
+        server_y = float(pos[1])
+    except (TypeError, ValueError):
+        return
+
+    local_pos = player_data.get("pos")
+    if not (isinstance(local_pos, list) and len(local_pos) == 2):
+        player_data["pos"] = [server_x, server_y]
+        return
+
+    dx = float(local_pos[0]) - server_x
+    dy = float(local_pos[1]) - server_y
+    if (was_dead and not self_data.get("dead", False)) or (dx * dx + dy * dy > 16.0):
+        player_data["pos"] = [server_x, server_y]
+        player_data.pop("knockback_vel", None)
+
 def handle_world(HOST, PORT_WORLD, chunk_queue, player_id):
     _my_session = config.session_id
     sock = connect_with_retry(HOST, PORT_WORLD)
@@ -40,8 +87,10 @@ def handle_world(HOST, PORT_WORLD, chunk_queue, player_id):
             try:
                 data = recv_json(sock)
                 if data and data.get("type") == "world_chunks":
+                    _recv_started = time.perf_counter()
                     chunks    = data.get("data", {})
                     node_data = data.get("node_data", {})
+                    _chunk_count = 0
                     for chunk_key_str, tiles in chunks.items():
                         cx, cy = map(int, chunk_key_str.strip("()").split(","))
                         converted_tiles = {
@@ -49,23 +98,30 @@ def handle_world(HOST, PORT_WORLD, chunk_queue, player_id):
                             for key, val in tiles.items()
                         }
                         chunk_queue.put(((cx, cy), converted_tiles))
+                        _chunk_count += 1
                     # Populate world_nodes with static node definitions
+                    _node_count = 0
+                    _pending_nodes: dict[str, dict] = {}
                     for chunk_key_str, nodes_list in node_data.items():
                         cx, cy = map(int, chunk_key_str.strip("()").split(","))
-                        _new_nodes = dict(config.world_nodes)
                         for node in nodes_list:
                             nid = node["id"]
                             ntype = node["type"]
                             wx = cx * 16 + node["lx"]
                             wy = cy * 16 + node["ly"]
                             max_hp = node.get("max_hp") or NODE_MAX_HP.get(ntype, 1)
-                            if nid not in _new_nodes:
+                            _node_count += 1
+                            if nid not in config.world_nodes and nid not in _pending_nodes:
                                 _node_base_cache[nid] = {"type": ntype, "wx": wx, "wy": wy, "max_hp": max_hp}
-                                _new_nodes[nid] = {
+                                _pending_nodes[nid] = {
                                     "type": ntype, "wx": wx, "wy": wy,
                                     "max_hp": max_hp, "hits": 0,
                                 }
-                        config.set_world_nodes(_new_nodes)
+                    if _pending_nodes:
+                        config.add_world_nodes_bulk(_pending_nodes)
+                    config.debug_world_recv_ms = (time.perf_counter() - _recv_started) * 1000.0
+                    config.debug_world_recv_chunks = _chunk_count
+                    config.debug_world_recv_nodes = _node_count
 
             except socket.timeout:
                 continue  # allow frequent checks
@@ -108,6 +164,14 @@ def handle_state(HOST, PORT_STATE, player_id):
                         ),
                     )
                     self_data = data.get("self", {})
+                    _handle_territory_transition(self_data)
+                    _new_nodes = None
+
+                    def _ensure_nodes_copy():
+                        nonlocal _new_nodes
+                        if _new_nodes is None:
+                            _new_nodes = dict(config.world_nodes)
+                        return _new_nodes
                     # Store velocity knockback — applied smoothly in the game loop over 0.25 s
                     kb = self_data.get("knockback_vel")
                     if kb:
@@ -117,6 +181,7 @@ def handle_state(HOST, PORT_STATE, player_id):
                         from rendering.particles import emit_hit
                         emit_hit(_kbpos[0], _kbpos[1])
                     _old_level = config.player_level
+                    _was_dead = bool(config.player_dead)
                     config.player_health          = self_data.get("health",          config.player_health)
                     config.player_health_max      = self_data.get("health_max",      config.player_health_max)
                     config.player_stamina_max     = self_data.get("stamina_max",     config.player_stamina_max)
@@ -132,17 +197,27 @@ def handle_state(HOST, PORT_STATE, player_id):
                     config.player_slow_timer      = self_data.get("slow_timer",      0.0)
                     config.player_dead            = self_data.get("dead",            False)
                     config.player_respawn_in      = self_data.get("respawn_in",      0.0)
+                    _prev_setup_required = config.first_join_setup_required
+                    config.first_join_setup_required = bool(self_data.get("setup_required", config.first_join_setup_required))
                     config.player_defense         = self_data.get("defense",         0)
                     config.world_time             = data.get("world_time",           config.world_time)
                     config.sleeping               = self_data.get("sleeping",          False)
-                    config.weather                = data.get("weather",               "clear")
+                    if "weather" in data:
+                        config.weather = data["weather"]
                     config.poison_timer           = self_data.get("poison_timer",      0.0)
                     config.burn_timer             = self_data.get("burn_timer",        0.0)
                     config.player_creative        = self_data.get("creative",        False)
+                    _apply_authoritative_self_pos(self_data, player_data, _was_dead)
                     # Sync appearance from server (e.g. after server restarts and reloads save)
                     _srv_appearance = self_data.get("appearance")
-                    if isinstance(_srv_appearance, dict) and _srv_appearance:
+                    if isinstance(_srv_appearance, dict) and _srv_appearance and not config.show_char_creator:
                         config.player_appearance.update(_srv_appearance)
+                    if config.first_join_setup_required:
+                        from rendering.char_creator import open_char_creator
+                        open_char_creator(reset_scroll=False)
+                    elif _prev_setup_required and config.show_char_creator:
+                        from rendering.char_creator import close_char_creator
+                        close_char_creator(reset_scroll=False)
                     # If creative was revoked and creative tab is open, fall back to bag
                     if not config.player_creative and config.inventory_tab == "creative":
                         config.inventory_tab = "bag"
@@ -196,6 +271,9 @@ def handle_state(HOST, PORT_STATE, player_id):
                         # Mirror item drops as tool-less gather nodes so both the
                         # F-key and left-click paths pick them up via the proven
                         # gather message route ("item:<uid>" prefix).
+                        nodes_copy = _ensure_nodes_copy()
+                        for node_id in [k for k in nodes_copy if k.startswith("item:")]:
+                            del nodes_copy[node_id]
                         _item_nodes = {
                             f"item:{uid}": {
                                 "type": "item_drop",
@@ -207,18 +285,23 @@ def handle_state(HOST, PORT_STATE, player_id):
                             }
                             for uid, item in new_wi.items()
                         }
-                        config.set_world_nodes({
-                            k: v for k, v in config.world_nodes.items()
-                            if not k.startswith("item:")
-                        })
-                        for node_id, node in _item_nodes.items():
-                            config.upsert_world_node(node_id, node)
+                        nodes_copy.update(_item_nodes)
                     npcs_list = data.get("npcs")
                     if npcs_list is not None:
                         config.npcs = npcs_list
                     dungeons_list = data.get("dungeons")
                     if dungeons_list is not None:
                         config.dungeons = dungeons_list
+                        config.merge_known_dungeons(dungeons_list)
+                    map_dungeons = data.get("map_dungeons")
+                    if map_dungeons is not None:
+                        config.merge_known_dungeons(map_dungeons)
+                    towns_list = data.get("towns")
+                    if towns_list is not None:
+                        config.merge_known_towns(towns_list)
+                    claims_list = data.get("faction_claims")
+                    if claims_list is not None:
+                        config.faction_claims = claims_list
                     placed_list = data.get("placed_objects")
                     if placed_list is not None:
                         new_placed = {obj["uid"]: obj for obj in placed_list}
@@ -243,36 +326,34 @@ def handle_state(HOST, PORT_STATE, player_id):
                         config.projectiles = proj_list
                     node_updates = data.get("node_updates")
                     if node_updates:
-                        _new_nodes = dict(config.world_nodes)
+                        nodes_copy = _ensure_nodes_copy()
                         for u in node_updates:
                             nid = u.get("node_id")
                             if not nid or nid.startswith("planted:"):
                                 continue
                             if u.get("depleted", False):
                                 # Node destroyed — remove it entirely
-                                _new_nodes.pop(nid, None)
+                                nodes_copy.pop(nid, None)
                             else:
                                 # Node respawned — re-add from base cache
-                                if nid not in _new_nodes and nid in _node_base_cache:
-                                    _new_nodes[nid] = dict(_node_base_cache[nid], hits=0)
-                        config.set_world_nodes(_new_nodes)
+                                if nid not in nodes_copy and nid in _node_base_cache:
+                                    nodes_copy[nid] = dict(_node_base_cache[nid], hits=0)
                     depleted_snapshot = data.get("depleted_snapshot")
                     if depleted_snapshot:
-                        _new_nodes = dict(config.world_nodes)
+                        nodes_copy = _ensure_nodes_copy()
                         for nid in depleted_snapshot:
-                            _new_nodes.pop(nid, None)
-                        config.set_world_nodes(_new_nodes)
+                            nodes_copy.pop(nid, None)
                     planted_list = data.get("planted_snapshot")
                     if planted_list is None:
                         planted_list = data.get("planted_nodes")
                     if planted_list is not None:
-                        _new_nodes = dict(config.world_nodes)
+                        nodes_copy = _ensure_nodes_copy()
                         reported_ids = {pn["node_id"] for pn in planted_list}
                         for pn in planted_list:
                             nid = pn["node_id"]
-                            if nid not in _new_nodes:
+                            if nid not in nodes_copy:
                                 ntype = pn["node_type"]
-                                _new_nodes[nid] = {
+                                nodes_copy[nid] = {
                                     "type":    ntype,
                                     "wx":      pn["wx"],
                                     "wy":      pn["wy"],
@@ -281,23 +362,22 @@ def handle_state(HOST, PORT_STATE, player_id):
                                     "hits":    0,
                                 }
                         # Remove planted nodes that are no longer active on the server
-                        for nid in [k for k in _new_nodes if k.startswith("planted:") and k not in reported_ids]:
-                            del _new_nodes[nid]
-                        config.set_world_nodes(_new_nodes)
+                        for nid in [k for k in nodes_copy if k.startswith("planted:") and k not in reported_ids]:
+                            del nodes_copy[nid]
                     planted_updates = data.get("planted_updates")
                     if planted_updates:
-                        _new_nodes = dict(config.world_nodes)
+                        nodes_copy = _ensure_nodes_copy()
                         for upd in planted_updates:
                             nid = upd.get("node_id")
                             if not nid:
                                 continue
                             if upd.get("action") == "remove":
-                                _new_nodes.pop(nid, None)
+                                nodes_copy.pop(nid, None)
                                 continue
                             ntype = upd.get("node_type")
                             if not isinstance(ntype, str):
                                 continue
-                            _new_nodes[nid] = {
+                            nodes_copy[nid] = {
                                 "type": ntype,
                                 "wx": upd["wx"],
                                 "wy": upd["wy"],
@@ -305,6 +385,7 @@ def handle_state(HOST, PORT_STATE, player_id):
                                 "depleted": False,
                                 "hits": 0,
                             }
+                    if _new_nodes is not None:
                         config.set_world_nodes(_new_nodes)
                 elif data and data.get("type") == "shop_update":
                     config.shop_items = data.get("items", [])
@@ -342,13 +423,24 @@ def handle_state(HOST, PORT_STATE, player_id):
                     import time as _time
                     _msgs = config.chat_messages
                     _msgs.append({
-                        "sender": data.get("sender", ""),
+                        "sender": data.get("sender_label", data.get("sender", "")),
                         "text":   data.get("text",   ""),
                         "ts":     _time.time(),
                     })
                     # Trim history
                     if len(_msgs) > config.CHAT_MAX_MESSAGES:
                         del _msgs[:-config.CHAT_MAX_MESSAGES]
+                elif data and data.get("type") == "toast":
+                    text = data.get("text")
+                    if isinstance(text, str) and text:
+                        from rendering.hud import show_toast
+                        show_toast(text)
+                elif data and data.get("type") == "private_chest_mode":
+                    config.pending_private_chest = bool(data.get("enabled"))
+                    text = data.get("text")
+                    if isinstance(text, str) and text:
+                        from rendering.hud import show_toast
+                        show_toast(text)
             except socket.timeout:
                 pass
             except Exception as e:
@@ -399,6 +491,10 @@ def send_and_receive_udp():
         if not config.session_token:
             print("[UDP INIT ERROR] Server did not provide a session token")
             return
+        config.first_join_setup_required = bool(payload.get("setup_required", False))
+        if config.first_join_setup_required:
+            from rendering.char_creator import open_char_creator
+            open_char_creator()
         # Use server-provided spawn position (may be saved location on rejoin)
         assigned_pos = payload.get("pos", [PLAYER_START_X, PLAYER_START_Y])
         player_data["pos"] = [assigned_pos[0], assigned_pos[1]]

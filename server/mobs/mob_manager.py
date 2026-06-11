@@ -110,9 +110,16 @@ _world_data       = None    # injected reference to server world tile dict
 # _cached_solid_rev: last seen _solid_revision from placed_objects.py
 _solid_tile_set:    set       = set()
 _floor_positions:   frozenset = frozenset()
+_light_sources:     tuple      = tuple()
 _cached_solid_rev:  int       = -1  # -1 forces rebuild on first tick
 _mob_query_cells: dict[tuple[int, int], set[str]] = {}
 _MOB_QUERY_CELL_SIZE = 16.0
+_LIGHT_EMITTER_RADIUS = {
+    "campfire": 5,
+    "torch": 4,
+    "lantern": 7,
+    "furnace": 3,
+}
 
 
 def set_mob_refs(refs: dict):
@@ -245,10 +252,30 @@ def _is_obj_blocked(x, y, solid_tile_set):
     return False
 
 
+def _is_lit_spawn_tile(pos, light_sources):
+    if not light_sources:
+        return False
+    px = float(pos[0])
+    py = float(pos[1])
+    for lx, ly, radius_sq in light_sources:
+        dx = px - lx
+        dy = py - ly
+        if dx * dx + dy * dy <= radius_sq:
+            return True
+    return False
+
+
 
 def _spawn_mob_near(mob_type, player_pos, floor_positions: frozenset = frozenset()):
     cfg = _mob_cfg(mob_type)
-    pos = _find_spawn_pos(player_pos, cfg, floor_positions, _is_water, _biome_at)
+    pos = _find_spawn_pos(
+        player_pos,
+        cfg,
+        floor_positions,
+        _is_water,
+        _biome_at,
+        lambda spawn_pos: _is_lit_spawn_tile(spawn_pos, _light_sources),
+    )
     if pos is None:
         return
     mobs[str(uuid.uuid4())[:8]] = _build_spawned_mob(mob_type, pos, player_pos)
@@ -311,7 +338,7 @@ def update_mobs(dt: float):
 
     # Rebuild the solid-tile set only when placed_objects has changed (revision bump).
     # This avoids an O(n_placed × 120 Hz) scan each tick.
-    global _solid_tile_set, _floor_positions, _cached_solid_rev
+    global _solid_tile_set, _floor_positions, _light_sources, _cached_solid_rev
     try:
         from server.game_state.placed_objects import (
             placed_objects as _po_dict, placed_objects_lock as _po_lock,
@@ -330,6 +357,15 @@ def update_mobs(dt: float):
                     (obj["pos"][0], obj["pos"][1])
                     for obj in _po_dict.values()
                     if obj["type"] == "stone_brick_floor"
+                )
+                _light_sources = tuple(
+                    (
+                        float(obj["pos"][0]) + 0.5,
+                        float(obj["pos"][1]) + 0.5,
+                        float(_LIGHT_EMITTER_RADIUS[obj["type"]] ** 2),
+                    )
+                    for obj in _po_dict.values()
+                    if obj["type"] in _LIGHT_EMITTER_RADIUS
                 )
             _cached_solid_rev = _cur_rev
     except Exception:

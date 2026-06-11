@@ -31,6 +31,16 @@ _INTERP_DELAY  = 3.0 / 60   # seconds
 _BUFFER_MAXLEN = 12          # ~200 ms of history at 60 Hz
 
 _mob_sprites: dict = {}  # {mob_type: {dir: [Surface, ...]}}
+_MOB_MOVING_STATES = frozenset({
+    "wander",
+    "aggro",
+    "chase",
+    "flee",
+    "lunge",
+    "return_to_origin",
+    "patrol",
+    "follow",
+})
 
 _scorpion_surf: pygame.Surface | None = None   # procedural, direction-agnostic
 _yeti_surf:     pygame.Surface | None = None
@@ -354,7 +364,10 @@ def get_mob_drawables(screen: pygame.Surface, mobs: list, player_pos: list,
             cfg = _MOB_SPRITE_CFG.get(mob_type, {})
             fps = cfg.get("fps", 8.0)
             frames_list = sprite_data.get(facing) or sprite_data.get("down", [])
-            frame_idx = int(_mob_timers[mid] * fps) % max(len(frames_list), 1)
+            if mob_state in _MOB_MOVING_STATES:
+                frame_idx = int(_mob_timers[mid] * fps) % max(len(frames_list), 1)
+            else:
+                frame_idx = 0
             img = frames_list[frame_idx]
         elif mob_type == "scorpion" and _scorpion_surf is not None:
             img = _scorpion_surf

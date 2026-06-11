@@ -9,6 +9,8 @@ PORT_UDP = 6002
 # Networking
 BUFFER_SIZE = 4096  # Adjust if needed for large world updates
 TICK_RATE = 120     # Main game loop update frequency (Hz)
+PLAYER_STALE_TIMEOUT = 15.0  # seconds without movement/keepalive before forced cleanup
+WORLD_ITEM_DESPAWN_SECONDS = 300.0  # runtime lifetime for dropped world items before auto-unload
 
 # World Generation / Chunking
 CHUNK_DIR    = "world_chunks_v3"  # active chunk storage directory (bump version to force regen)
@@ -37,6 +39,8 @@ DAY_END_HOUR      = 18.0    # dusk — night begins
 RESPAWN_DELAY       = 3.0   # seconds between death and respawn
 RESPAWN_HP_FRACTION = 0.3   # fraction of max HP restored on respawn
 RESPAWN_HP_MIN      = 20.0  # absolute minimum HP on respawn
+DEATH_DROP_SLOT_CHANCE = 0.35  # chance an occupied backpack slot drops some contents on death
+DEATH_DROP_STACK_FRACTION = 0.5  # fraction of a stack dropped from a chosen slot on death
 
 # ---------------------------------------------------------------------------
 # Inventory

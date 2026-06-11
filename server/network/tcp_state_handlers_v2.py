@@ -3,14 +3,17 @@ from server.game_state.progression_data import STAT_UPGRADES
 from server.game_state.placed_objects import (
     place_object as _place_object,
     remove_object as _remove_object,
-    toggle_door as _toggle_door,
+    toggle_door_for_player as _toggle_door_for_player,
     use_bed as _use_bed,
     chest_swap as _chest_swap,
+    set_private_chest as _set_private_chest,
 )
 from server.game_state.game_sync import mark_inventory_dirty, set_player_sleeping as _set_player_sleeping
 from server.item_data import drain_durability, get_effective_health_max, get_item, get_sell_price, is_valid_equip_placement
 from server.game_state.crafting import handle_craft
+from server.factions import get_player_faction_tag, player_chat_label
 import os
+from server.player_save import save_player
 
 # Injected clients reference for chat broadcast
 _clients: dict | None = None
@@ -82,6 +85,11 @@ def dispatch_message(data, player_id: str, players: dict, give_item, world_items
     if handler is None:
         print(f"[DISPATCH] unknown type={msg_type!r} from {player_id}")
         return False
+    if msg_type != "update_appearance":
+        with players_lock:
+            player = players.get(player_id)
+            if player is not None and not player.get("first_join_complete", True):
+                return False
     _debug_log(f"dispatch:{player_id}:{msg_type}", f"[DISPATCH] {player_id} -> {msg_type}", interval=2.0)
     handler(data, player_id, players, give_item, world_items)
     return True
@@ -199,7 +207,7 @@ def _handle_remove_object(data, player_id: str, players: dict, _give_item, _worl
 def _handle_toggle_door(data, player_id: str, players: dict, _give_item, _world_items: dict) -> None:
     uid = data.get("uid", "")
     if isinstance(uid, str) and uid:
-        _toggle_door(uid)
+        _toggle_door_for_player(uid, player_id)
 
 
 def _handle_use_bed(data, player_id: str, players: dict, _give_item, _world_items: dict) -> None:
@@ -233,9 +241,23 @@ def _handle_chest_swap(data, player_id: str, players: dict, _give_item, _world_i
         if player_id in players:
             player = players[player_id]
             player_pos = list(player.get("pos", [0, 0]))
-            ok = _chest_swap(uid, chest_slot, player["inventory"], player_slot, player_pos, merge_dest)
+            ok = _chest_swap(uid, chest_slot, player["inventory"], player_slot, player_pos, merge_dest, player_id=player_id)
     if ok:
         mark_inventory_dirty(player_id)
+
+
+def _handle_set_private_chest(data, player_id: str, players: dict, _give_item, _world_items: dict) -> None:
+    uid = data.get("uid", "")
+    if not isinstance(uid, str) or not uid:
+        return
+    with players_lock:
+        player = players.get(player_id)
+        if player is None:
+            return
+        player_pos = list(player.get("pos", [0, 0]))
+    ok, message = _set_private_chest(uid, player_id, player_pos)
+    send_to_player(player_id, {"type": "private_chest_mode", "enabled": False})
+    send_to_player(player_id, {"type": "toast", "text": message})
 
 
 def _handle_combine_parts(data, player_id: str, players: dict, give_item, world_items: dict) -> None:
@@ -375,7 +397,7 @@ def _handle_gather(data, player_id: str, players: dict, give_item, _world_items:
             return
 
         tool_damage = tool_mining_damage(hotbar_item)
-        loot = damage_node(node_id, node_def, tool_damage)
+        loot = damage_node(node_id, node_def, tool_damage, node_type=node_type)
         if loot is None:
             return
 
@@ -436,7 +458,7 @@ def _handle_gather(data, player_id: str, players: dict, give_item, _world_items:
         return
 
     tool_damage = tool_mining_damage(hotbar_item)
-    loot = damage_node(node_id, node_def, tool_damage)
+    loot = damage_node(node_id, node_def, tool_damage, node_type=node_type)
     if loot is None:
         print(f"[GATHER] loot=None for {node_id!r} (already depleted?)")
         # Re-broadcast depletion so any client still showing this node removes it
@@ -507,12 +529,24 @@ def _handle_chat(data, player_id: str, players: dict, give_item, _world_items: d
                 except Exception:
                     pass
         # Also broadcast the command text so other players see what was typed
-        _broadcast_chat({"type": "chat", "sender": player_id, "text": text})
+        _broadcast_chat({
+            "type": "chat",
+            "sender": player_id,
+            "sender_label": player_chat_label(player_id, players),
+            "faction_tag": get_player_faction_tag(player_id, players),
+            "text": text,
+        })
         return
 
     # Normal message — broadcast to all
     print(f"[CHAT] {player_id}: {text}")
-    _broadcast_chat({"type": "chat", "sender": player_id, "text": text})
+    _broadcast_chat({
+        "type": "chat",
+        "sender": player_id,
+        "sender_label": player_chat_label(player_id, players),
+        "faction_tag": get_player_faction_tag(player_id, players),
+        "text": text,
+    })
 
 
 def _handle_give_item(data, player_id: str, players: dict, give_item, _world_items: dict) -> None:
@@ -584,9 +618,14 @@ def _handle_update_appearance(data, player_id: str, players: dict, _give_item, _
         for k, v in appearance.items()
         if k in _ALLOWED_KEYS and isinstance(v, (str, int, float, bool, type(None)))
     }
+    snapshot = None
     with players_lock:
         if player_id in players:
             players[player_id]["appearance"] = safe
+            players[player_id]["first_join_complete"] = True
+            snapshot = dict(players[player_id])
+    if snapshot is not None:
+        save_player(player_id, snapshot)
     mark_inventory_dirty(player_id)
 
 
@@ -686,6 +725,7 @@ _HANDLERS = {
     "use_bed": _handle_use_bed,
     "wake_up": _handle_wake_up,
     "chest_swap": _handle_chest_swap,
+    "set_private_chest": _handle_set_private_chest,
     "combine_parts": _handle_combine_parts,
     "embed_gem": _handle_embed_gem,
     "repair_item": _handle_repair_item,

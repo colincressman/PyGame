@@ -27,6 +27,7 @@
     {"item_id": 39, "type": "silver_seed", "solid": false, "grow_time": 2400, "grows_into": "silver_ore"},
     {"item_id": 40, "type": "gold_seed", "solid": false, "grow_time": 3600, "grows_into": "gold_ore"},
     {"item_id": 41, "type": "crystal_seed", "solid": false, "grow_time": 5400, "grows_into": "crystal"},
-    {"item_id": 42, "type": "obsidian_seed", "solid": false, "grow_time": 7200, "grows_into": "obsidian"}
+    {"item_id": 42, "type": "obsidian_seed", "solid": false, "grow_time": 7200, "grows_into": "obsidian"},
+    {"item_id": 49, "type": "stone_seed", "solid": false, "grow_time": 900, "grows_into": "stone_deposit"}
   ]
 }

@@ -1,9 +1,11 @@
 import time
 from collections import deque
+from state.replication_config import REMOTE_MOB_CFG
 
 
 class RemoteMob:
-    _MAX_EXTRAP_TIME = 0.03
+    _MAX_EXTRAP_TIME = float(REMOTE_MOB_CFG.get("max_extrap_time", 0.03))
+    _INTERP_DELAY = float(REMOTE_MOB_CFG.get("interp_delay", 0.17))
 
     def __init__(self, snapshot: dict):
         now = time.time()
@@ -67,7 +69,9 @@ class RemoteMob:
         self.state = snapshot.get("state", self.state)
         self.facing = snapshot.get("facing", self.facing)
 
-    def get_render_pos(self, current_time: float, interp_delay: float = 0.17) -> list[float]:
+    def get_render_pos(self, current_time: float, interp_delay: float | None = None) -> list[float]:
+        if interp_delay is None:
+            interp_delay = self._INTERP_DELAY
         if len(self.pos_buffer) < 2:
             return list(self.pos_buffer[0]["pos"])
         target_time = current_time - interp_delay

@@ -4,6 +4,8 @@ from server.game_state.game_sync import invalidate_node_snapshot as _game_sync_i
 from server.network.net_utils import discard_socket as _discard_socket
 from server.player_save import save_player
 from server.session_auth import revoke_token
+from server.config import PLAYER_STALE_TIMEOUT
+import time
 
 # Persists last known position across disconnect/reconnect within the same server session
 last_positions = {}  # {player_id: [x, y]}
@@ -72,3 +74,20 @@ def cleanup_player(player_id):
         save_player(player_id, player_snapshot)
 
     print(f"[CLEANUP] Removed player: {player_id}")
+
+
+def cleanup_stale_players(now: float | None = None, timeout: float = PLAYER_STALE_TIMEOUT) -> list[str]:
+    if now is None:
+        now = time.time()
+
+    with players_lock:
+        stale_ids = [
+            player_id
+            for player_id, pdata in players.items()
+            if now - float(pdata.get("last_seen", now)) > timeout
+        ]
+
+    for player_id in stale_ids:
+        cleanup_player(player_id)
+
+    return stale_ids

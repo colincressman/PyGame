@@ -11,6 +11,7 @@ import os
 import threading
 import time
 import uuid
+import atexit
 
 from server.shared_lock import placed_objects_lock
 from server.item_data import get_effective_health_max, get_item as _get_item
@@ -23,6 +24,7 @@ from server.game_state.placeable_data import (
     PLACEABLE_ITEMS,
     SOLID_TYPES,
 )
+from server.factions import can_build_at as _can_build_at
 
 # {uid: {"type": str, "pos": [tx, ty], "placed_by": pid}}
 placed_objects: dict = {}
@@ -67,6 +69,24 @@ def _bump_solid_revision() -> None:
     _solid_revision += 1
 
 
+def _claim_access_allowed(obj: dict, player_id: str | None) -> bool:
+    if player_id is None:
+        return True
+    return _can_build_at(player_id, int(obj["pos"][0]), int(obj["pos"][1]), {})
+
+
+def _chest_access_allowed(obj: dict, player_id: str | None) -> bool:
+    if not _claim_access_allowed(obj, player_id):
+        return False
+    owner = obj.get("private_owner")
+    if not owner:
+        return True
+    if player_id == owner:
+        return True
+    shared_with = obj.get("shared_with", [])
+    return isinstance(shared_with, list) and player_id in shared_with
+
+
 # ---------------------------------------------------------------------------
 # Persistence
 # ---------------------------------------------------------------------------
@@ -101,13 +121,19 @@ def _load():
 
 def _save():
     global _dirty
+    tmp_path = _SAVE_PATH + ".tmp"
     try:
         os.makedirs(os.path.dirname(_SAVE_PATH), exist_ok=True)
-        with open(_SAVE_PATH, "w") as f:
+        with open(tmp_path, "w") as f:
             json.dump(placed_objects, f)
+        os.replace(tmp_path, _SAVE_PATH)
         _dirty = False
     except Exception as e:
         print(f"[PLACED] Save error: {e}")
+        try:
+            os.remove(tmp_path)
+        except OSError:
+            pass
 
 
 def _mark_dirty() -> None:
@@ -116,8 +142,14 @@ def _mark_dirty() -> None:
     _dirty = True
 
 
-def flush_now() -> None:
-    """Force an immediate disk write regardless of the dirty flag (e.g. on shutdown)."""
+def flush_now(force: bool = True) -> None:
+    """Persist placed objects immediately.
+
+    When *force* is False, skip the write if nothing is dirty. This keeps test
+    imports from flushing fixture state back into the live world save on exit.
+    """
+    if not force and not _dirty:
+        return
     with placed_objects_lock:
         _save()
 
@@ -132,13 +164,14 @@ def _autosave_loop() -> None:
 
 _autosave_thread = threading.Thread(target=_autosave_loop, daemon=True, name="placed-autosave")
 _autosave_thread.start()
+atexit.register(lambda: flush_now(force=False))
 
 
 # ---------------------------------------------------------------------------
 # Queries
 # ---------------------------------------------------------------------------
 
-def get_nearby(px: float, py: float, radius_sq: float = float(_RENDER_DIST_TILES ** 2)) -> list:
+def get_nearby(px: float, py: float, radius_sq: float = float(_RENDER_DIST_TILES ** 2), viewer_id: str | None = None) -> list:
     """Return nearby placed objects using the tile indexes instead of a full scan."""
     radius_tiles = int(radius_sq ** 0.5) + 1
     min_tx = int(px) - radius_tiles
@@ -158,7 +191,13 @@ def get_nearby(px: float, py: float, radius_sq: float = float(_RENDER_DIST_TILES
                     if obj is None:
                         continue
                     if (obj["pos"][0] - px) ** 2 + (obj["pos"][1] - py) ** 2 <= radius_sq:
-                        nearby.append(dict(obj, uid=uid))
+                        payload_obj = dict(obj, uid=uid)
+                        if (
+                            payload_obj.get("type") == "chest"
+                            and not _chest_access_allowed(payload_obj, viewer_id)
+                        ):
+                            payload_obj.pop("chest_inv", None)
+                        nearby.append(payload_obj)
                         seen.add(uid)
         _debug_log(
             f"nearby:{int(px)}:{int(py)}",
@@ -195,6 +234,8 @@ def place_object(pid: str, obj_type: str, pos: list, inventory: list) -> tuple:
         return False, "no item in inventory"
 
     tx, ty = int(pos[0]), int(pos[1])
+    if not _can_build_at(pid, tx, ty, {}):
+        return False, "claimed land"
 
     # O(1) occupancy check via tile index (floors and objects use separate layers)
     with placed_objects_lock:
@@ -270,6 +311,31 @@ def inject_object(obj_type: str, tx: int, ty: int, placed_by: str = "town") -> b
     return True
 
 
+def inject_growing_object(obj_type: str, tx: int, ty: int, placed_by: str = "nature") -> bool:
+    """Directly inject a growing placeable (seed/sapling) with a fresh timer."""
+    with placed_objects_lock:
+        is_floor = (obj_type in _FLOOR_TYPES)
+        if is_floor:
+            if (tx, ty) in _floor_index:
+                return False
+        else:
+            if (tx, ty) in _tile_index:
+                return False
+        uid = str(uuid.uuid4())[:8]
+        entry = {"type": obj_type, "pos": [tx, ty], "placed_by": placed_by}
+        if obj_type in GROW_TIMES:
+            entry["planted_at"] = time.time()
+            entry["grow_time"] = GROW_TIMES[obj_type]
+        placed_objects[uid] = entry
+        if is_floor:
+            _floor_index[(tx, ty)] = uid
+        else:
+            _tile_index[(tx, ty)] = uid
+        _mark_dirty()
+        _bump_solid_revision()
+    return True
+
+
 def remove_object(uid: str, inventory: list, pid: str) -> bool:
     """Remove a placed object and return its item to the owner's inventory.
 
@@ -279,6 +345,8 @@ def remove_object(uid: str, inventory: list, pid: str) -> bool:
     with placed_objects_lock:
         obj = placed_objects.get(uid)
         if obj is None:
+            return False
+        if not _can_build_at(pid, int(obj["pos"][0]), int(obj["pos"][1]), {}):
             return False
         if obj["placed_by"] != pid:
             return False
@@ -324,13 +392,14 @@ _load()
 # Farming tick
 # ---------------------------------------------------------------------------
 
-def tick_growing_plants(now: float) -> list[dict]:
-    """Check all placed seeds/saplings; remove those that have matured.
+def tick_growing_plants(now: float) -> int:
+    """Advance placed seeds/saplings that have finished growing.
 
-    Returns a list of dicts: [{"node_type": str, "wx": int, "wy": int}]
-    for each plant that just matured so the caller can register a planted node.
+    Matured plants are converted straight into planted resource nodes so the
+    client does not see a "seed removed now, node appears later" transition.
+    Returns the number of plants that matured this tick.
     """
-    matured = []
+    matured: list[dict] = []
     with placed_objects_lock:
         for uid, obj in list(placed_objects.items()):
             gt = obj.get("grow_time")
@@ -346,14 +415,21 @@ def tick_growing_plants(now: float) -> list[dict]:
                 _tile_index.pop((obj["pos"][0], obj["pos"][1]), None)
         if matured:
             _mark_dirty()
-    return matured
+    if not matured:
+        return 0
+
+    from server.world.resource_nodes import register_planted_node as _register_planted_node
+
+    for plant in matured:
+        _register_planted_node(plant["node_type"], plant["wx"], plant["wy"])
+    return len(matured)
 
 
 # ---------------------------------------------------------------------------
 # Interactive helpers
 # ---------------------------------------------------------------------------
 
-def chest_swap(uid: str, chest_slot: int, player_inv: list, player_slot: int, player_pos: list, merge_dest: str | None = None) -> bool:
+def chest_swap(uid: str, chest_slot: int, player_inv: list, player_slot: int, player_pos: list, merge_dest: str | None = None, player_id: str | None = None) -> bool:
     """Swap (or merge) item between a chest slot and a player inventory slot.
 
     merge_dest: "player" → merge result into player_slot; "chest" → into chest_slot.
@@ -367,6 +443,10 @@ def chest_swap(uid: str, chest_slot: int, player_inv: list, player_slot: int, pl
     with placed_objects_lock:
         obj = placed_objects.get(uid)
         if obj is None or obj.get("type") != "chest":
+            return False
+        if player_id is not None and not _can_build_at(player_id, int(obj["pos"][0]), int(obj["pos"][1]), {}):
+            return False
+        if not _chest_access_allowed(obj, player_id):
             return False
         dx = obj["pos"][0] - px
         dy = obj["pos"][1] - py
@@ -407,11 +487,62 @@ def chest_swap(uid: str, chest_slot: int, player_inv: list, player_slot: int, pl
         _mark_dirty()
     return True
 
+
+def set_private_chest(uid: str, pid: str, player_pos: list) -> tuple[bool, str]:
+    """Mark a nearby player-owned chest private."""
+    if not isinstance(player_pos, list) or len(player_pos) != 2:
+        return False, "Invalid player position."
+    px, py = player_pos
+    with placed_objects_lock:
+        obj = placed_objects.get(uid)
+        if obj is None or obj.get("type") != "chest":
+            return False, "That is not a chest."
+        if not _can_build_at(pid, int(obj["pos"][0]), int(obj["pos"][1]), {}):
+            return False, "You cannot manage chests in enemy land."
+        dx = obj["pos"][0] - px
+        dy = obj["pos"][1] - py
+        if dx * dx + dy * dy > 25.0:
+            return False, "Move closer to that chest first."
+        if obj.get("placed_by") != pid and obj.get("private_owner") != pid:
+            return False, "You can only privatize your own chest."
+        if obj.get("private_owner") == pid:
+            return False, "That chest is already private."
+        obj["private_owner"] = pid
+        obj.setdefault("shared_with", [])
+        _mark_dirty()
+    return True, "Chest is now private."
+
+
+def can_access_chest(uid: str, pid: str, player_pos: list | None = None) -> bool:
+    if player_pos is not None:
+        if not isinstance(player_pos, list) or len(player_pos) != 2:
+            return False
+        px, py = player_pos
+    with placed_objects_lock:
+        obj = placed_objects.get(uid)
+        if obj is None or obj.get("type") != "chest":
+            return False
+        if not _can_build_at(pid, int(obj["pos"][0]), int(obj["pos"][1]), {}):
+            return False
+        if player_pos is not None:
+            dx = obj["pos"][0] - px
+            dy = obj["pos"][1] - py
+            if dx * dx + dy * dy > 25.0:
+                return False
+        return _chest_access_allowed(obj, pid)
+
 def toggle_door(uid: str) -> str | None:
     """Toggle a door between open and closed. Returns new state, or None if not found."""
+    return toggle_door_for_player(uid, None)
+
+
+def toggle_door_for_player(uid: str, pid: str | None) -> str | None:
+    """Toggle a door for a player, respecting claim ownership when pid is given."""
     with placed_objects_lock:
         obj = placed_objects.get(uid)
         if obj is None or obj.get("type") != "door":
+            return None
+        if pid is not None and not _can_build_at(pid, int(obj["pos"][0]), int(obj["pos"][1]), {}):
             return None
         new_state = "open" if obj.get("state", "closed") == "closed" else "closed"
         obj["state"] = new_state
@@ -422,14 +553,19 @@ def toggle_door(uid: str) -> str | None:
 
 def use_bed(uid: str, pid: str, players: dict) -> bool:
     """Set the player's bed_spawn and restore full health. Returns True on success."""
+    from server.player_save import save_player
+
     with placed_objects_lock:
         obj = placed_objects.get(uid)
         if obj is None or obj.get("type") != "bed":
+            return False
+        if not _can_build_at(pid, int(obj["pos"][0]), int(obj["pos"][1]), {}):
             return False
         pos = list(obj["pos"])
     # Update player outside placed_objects_lock to avoid lock inversion
     if pid in players:
         players[pid]["bed_spawn"] = pos
         players[pid]["health"] = get_effective_health_max(players[pid])
+        save_player(pid, dict(players[pid]))
         return True
     return False
