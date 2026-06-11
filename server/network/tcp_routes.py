@@ -2,6 +2,7 @@
 import struct
 import time
 import socket
+import select
 import orjson
 from server.shared_lock import clients_lock, players_lock, world_items_lock
 from server.player_save import _SAFE_ID
@@ -128,11 +129,17 @@ def handle_state(sock, addr):
         print(f"[STATE CONNECT] {player_id} at {addr}")
         send_json(sock, {"status": "connected", "type": "game_state"})
 
-        sock.settimeout(0.5)
+        sock.settimeout(None)
         while True:
             # ── Receive one framed message ──────────────────────────────────
             msg_bytes = None
             try:
+                ready, _, _ = select.select([sock], [], [], 0.5)
+                if not ready:
+                    with clients_lock:
+                        if player_id not in clients["game_state"] or sock.fileno() == -1:
+                            break
+                    continue
                 size_bytes = sock.recv(4)
                 if not size_bytes:
                     break   # client disconnected cleanly

@@ -67,10 +67,11 @@ def spawn_biome_allowed(pos, cfg, biome_at):
     return biome_at(pos) in biome_ids
 
 
-def find_spawn_pos(player_pos, cfg, floor_positions, is_water, biome_at):
+def find_spawn_pos(player_pos, cfg, floor_positions, is_water, biome_at, is_lit=None):
     attempts = int(cfg.get("spawn_attempts", cfg.get("spawn_attempts_near_player", 15)))
     avoid_water = cfg.get("spawn_avoid_water", True)
     avoid_floor = cfg.get("spawn_avoid_floor", True)
+    avoid_lit = is_lit is not None and not is_passive_mob(cfg)
 
     for _ in range(attempts):
         angle = random.uniform(0, 2 * math.pi)
@@ -85,6 +86,8 @@ def find_spawn_pos(player_pos, cfg, floor_positions, is_water, biome_at):
         if not spawn_biome_allowed(pos, cfg, biome_at):
             continue
         if avoid_floor and (int(pos[0]), int(pos[1])) in floor_positions:
+            continue
+        if avoid_lit and is_lit(pos):
             continue
         return pos
 

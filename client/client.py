@@ -4,26 +4,25 @@ import pygame
 import threading
 import time
 import math
-import queue
 import traceback
 
 import config
 from config import (
     WINDOW_WIDTH, WINDOW_HEIGHT, HOST, PORT_WORLD, PORT_STATE,
-    chunk_queue, world_data, full_world_data, TILE_SIZE, CHUNK_SIZE,
+    chunk_queue, world_data, TILE_SIZE, CHUNK_SIZE,
     tile_paths, render_queue, scheduled_chunk_renders, chunk_cache,
     players_data,
 )
 from input.controls import handle_events, handle_movement
 from networking.handlers import send_and_receive_udp, handle_world, handle_state
 from rendering.display import (
-    generate_minimap_surface, render_chunk, draw_info_overlay, get_biome_name,
-    resolve_biome_name, run_minimap_renderer, run_chunk_renderer, draw_world_items,
+    render_chunk, draw_info_overlay, get_biome_name,
+    resolve_biome_name, run_chunk_renderer, draw_world_items,
     draw_placed_object, draw_placed_objects, draw_placement_ghost, get_node_drawables,
     draw_day_night_overlay, draw_sleep_overlay, draw_projectiles,
 )
 from rendering.item_art import draw_item
-from rendering.hud import draw_hud, draw_level_bar, draw_death_overlay, draw_toasts
+from rendering.hud import draw_hud, draw_level_bar, draw_death_overlay, draw_toasts, draw_territory_banner
 from rendering.inventory import draw_hotbar, draw_inventory_grid
 from rendering.chest import draw_chest_ui
 from rendering.player import draw_player, update as update_animation, draw_remote_player, get_sprite_feet_offset
@@ -32,7 +31,7 @@ from rendering.npcs import get_npc_drawables
 from rendering.particles import update as update_particles, draw as draw_particles
 from rendering.cache import clear_distant_cache
 from rendering.chat import draw_chat
-from rendering.minimap import draw_minimap
+from rendering.minimap import draw_minimap, draw_world_map
 from rendering.weather import draw_weather
 from rendering.status_effects import draw_status_effects
 from state.world import get_radial_sorted_chunks
@@ -67,6 +66,7 @@ def _apply_launcher_settings() -> None:
     config.WINDOW_WIDTH      = _launcher["width"]
     config.WINDOW_HEIGHT     = _launcher["height"]
     config.DEBUG_MODE        = _launcher["debug"]
+    config.debug_overlay_mode = 1 if config.DEBUG_MODE else 0
 
 
 class _TextInput:
@@ -304,6 +304,8 @@ def start_game_client(screen: pygame.Surface) -> None:
         daemon=True
     ).start()
 
+    threading.Thread(target=config.run_map_memory_saver, daemon=True).start()
+
     # Load tile images
     def load_tile_images(paths):
         images = {}
@@ -315,10 +317,6 @@ def start_game_client(screen: pygame.Surface) -> None:
         return images
 
     tile_images = load_tile_images(tile_paths)
-    minimap_queue = queue.Queue()
-
-    threading.Thread(target=run_minimap_renderer, args=(minimap_queue, tile_images, state), daemon=True).start()
-
     for _ in range(3):
         threading.Thread(
             target=run_chunk_renderer,
@@ -360,20 +358,25 @@ def start_game_client(screen: pygame.Surface) -> None:
     # Suppress Python GC during the game loop; collect manually every 120 frames
     import gc as _gc
     _gc.disable()
-    _gc_frame_counter = 0
+    _last_manual_gc_at = time.time()
 
 
     # â”€â”€ teardown: called when the game session ends â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     fps_cap = _launcher.get("fps_cap", 60)
 
     def game_tick():
-        nonlocal _gc_frame_counter, _sorted_chunks_last_key
+        nonlocal _last_manual_gc_at, _sorted_chunks_last_key
         dt = clock.tick(fps_cap if fps_cap else 0) / 1000.0
 
-        # Manual GC every 120 frames to avoid unpredictable mid-frame pauses
-        _gc_frame_counter += 1
-        if _gc_frame_counter >= 120:
-            _gc_frame_counter = 0
+        # Only force GC during calmer moments so exploration/chunk streaming
+        # doesn't hitch on a predictable cadence every few seconds.
+        if (
+            time.time() - _last_manual_gc_at >= 12.0
+            and chunk_queue.qsize() == 0
+            and render_queue.qsize() <= 2
+            and not state["show_map"]
+        ):
+            _last_manual_gc_at = time.time()
             _gc.collect()
 
         # Compute mouse tile BEFORE handle_events
@@ -426,7 +429,7 @@ def start_game_client(screen: pygame.Surface) -> None:
             config.nearby_stations = nearby
 
         keys = pygame.key.get_pressed()
-        if not state["show_map"] and not config.show_inventory and not config.show_menu and not config.show_stats and not config.show_controls and config.show_station_popup is None and config.open_chest_uid is None:
+        if not state["show_map"] and not config.show_inventory and not config.show_menu and not config.show_stats and not config.show_controls and not config.show_char_creator and config.show_station_popup is None and config.open_chest_uid is None:
             handle_movement(state, keys, dt)
         else:
             config.is_blocking = False  # clear block when any UI is open
@@ -455,7 +458,14 @@ def start_game_client(screen: pygame.Surface) -> None:
             )
 
             if current_chunk != config.last_player_chunk:
-                clear_distant_cache(current_chunk[0], current_chunk[1])
+                last_cleanup_chunk = getattr(config, "last_cache_cleanup_chunk", None)
+                if (
+                    last_cleanup_chunk is None
+                    or abs(current_chunk[0] - last_cleanup_chunk[0]) >= 2
+                    or abs(current_chunk[1] - last_cleanup_chunk[1]) >= 2
+                ):
+                    clear_distant_cache(current_chunk[0], current_chunk[1])
+                    config.last_cache_cleanup_chunk = current_chunk
                 config.last_player_chunk = current_chunk
 
             state["camera_x"] += (player_x * TILE_SIZE - state["camera_x"]) * min(1.0, dt * 15.0)
@@ -468,25 +478,26 @@ def start_game_client(screen: pygame.Surface) -> None:
             config.camera_offset_x = offset_x
             config.camera_offset_y = offset_y
 
-            while not chunk_queue.empty():
-                chunk_key, tiles = chunk_queue.get()
+            _chunk_apply_started = time.perf_counter()
+            _chunk_apply_count = 0
+            for _ in range(8):
+                try:
+                    chunk_key, tiles = chunk_queue.get_nowait()
+                except Exception:
+                    break
                 world_data.update(tiles)
-                full_world_data.update(tiles)
+                config.remember_world_tiles(tiles)
                 config.world_data_loaded_chunks.add(chunk_key)
                 chunk_queue.task_done()
+                _chunk_apply_count += 1
+                if time.perf_counter() - _chunk_apply_started >= 0.0015:
+                    break
+            config.debug_chunk_apply_ms = (time.perf_counter() - _chunk_apply_started) * 1000.0
+            config.debug_chunk_apply_count = _chunk_apply_count
 
             if world_data:
-                if state["show_map"] and full_world_data:
-                    # Always submit so player dot stays current
-                    if minimap_queue.empty():
-                        items_copy = list(full_world_data.items())
-                        minimap_queue.put((items_copy, player_x, player_y,
-                                           (state["WINDOW_WIDTH"], state["WINDOW_HEIGHT"]), CHUNK_SIZE))
-
-                    if state["map_surface_cache"]:
-                        state["screen"].blit(state["map_surface_cache"], (0, 0))
-                        _hint = font.render("M  -  close map", True, (200, 200, 200))
-                        state["screen"].blit(_hint, (8, state["WINDOW_HEIGHT"] - 26))
+                if state["show_map"]:
+                    draw_world_map(state["screen"], state["WINDOW_WIDTH"], state["WINDOW_HEIGHT"])
                 else:
                     # Recompute sorted chunk list only when the player enters a new chunk
                     if current_chunk != _sorted_chunks_last_key:
@@ -542,6 +553,7 @@ def start_game_client(screen: pygame.Surface) -> None:
                     )))
 
                 _mob_now = time.time()
+                _mob_entities_snapshot = list(config.mob_entities.values())
                 _mob_draw_state = [
                     {
                         "id": mob.mob_id,
@@ -555,7 +567,7 @@ def start_game_client(screen: pygame.Surface) -> None:
                         "state": mob.state,
                         "facing": mob.facing,
                     }
-                    for mob in config.mob_entities.values()
+                    for mob in _mob_entities_snapshot
                 ]
                 for _world_y, _fn in get_mob_drawables(
                     state["screen"], _mob_draw_state,
@@ -612,7 +624,8 @@ def start_game_client(screen: pygame.Surface) -> None:
                 _aura = config.player_appearance.get("aura")
                 if _aura:
                     from rendering.particles import emit_aura as _emit_aura
-                    _emit_aura(player_x, player_y, _aura)
+                    # Anchor aura/trail effects near the player's lower body instead of the head.
+                    _emit_aura(player_x + 0.5, player_y + 0.85, _aura)
                 draw_particles(state["screen"])
                 draw_projectiles(state["screen"])
 
@@ -634,16 +647,17 @@ def start_game_client(screen: pygame.Surface) -> None:
             draw_day_night_overlay(state["screen"], state["WINDOW_WIDTH"], state["WINDOW_HEIGHT"])
             draw_sleep_overlay(state["screen"], state["WINDOW_WIDTH"], state["WINDOW_HEIGHT"])
             draw_weather(state["screen"], state["WINDOW_WIDTH"], state["WINDOW_HEIGHT"], dt)
-            draw_status_effects(state["screen"], state["WINDOW_WIDTH"], state["WINDOW_HEIGHT"])
-            draw_hud(state["screen"], state["WINDOW_WIDTH"], state["WINDOW_HEIGHT"])
-            draw_level_bar(state["screen"], state["WINDOW_WIDTH"], state["WINDOW_HEIGHT"])
-            draw_hotbar(state["screen"], state["WINDOW_WIDTH"], state["WINDOW_HEIGHT"])
-            if config.show_inventory and config.open_chest_uid is None:
+            if not state["show_map"]:
+                draw_status_effects(state["screen"], state["WINDOW_WIDTH"], state["WINDOW_HEIGHT"])
+                draw_hud(state["screen"], state["WINDOW_WIDTH"], state["WINDOW_HEIGHT"])
+                draw_level_bar(state["screen"], state["WINDOW_WIDTH"], state["WINDOW_HEIGHT"])
+                draw_hotbar(state["screen"], state["WINDOW_WIDTH"], state["WINDOW_HEIGHT"])
+            if not state["show_map"] and config.show_inventory and config.open_chest_uid is None:
                 draw_inventory_grid(state["screen"], state["WINDOW_WIDTH"], state["WINDOW_HEIGHT"])
-            if config.open_chest_uid is not None:
+            if not state["show_map"] and config.open_chest_uid is not None:
                 draw_chest_ui(state["screen"], state["WINDOW_WIDTH"], state["WINDOW_HEIGHT"])
 
-            if config.show_station_popup:
+            if not state["show_map"] and config.show_station_popup:
                 if config.show_station_popup == "part_combiner":
                     from rendering.combiner import draw_combiner_popup
                     draw_combiner_popup(state["screen"],
@@ -657,15 +671,15 @@ def start_game_client(screen: pygame.Surface) -> None:
                     draw_station_popup(state["screen"], config.show_station_popup,
                                        state["WINDOW_WIDTH"], state["WINDOW_HEIGHT"])
 
-            if config.show_shop:
+            if not state["show_map"] and config.show_shop:
                 from rendering.npc_shop import draw_shop
                 draw_shop(state["screen"])
 
-            if config.show_char_creator:
+            if not state["show_map"] and config.show_char_creator:
                 from rendering.char_creator import draw_char_creator
                 draw_char_creator(state["screen"])
 
-            if config.show_menu:
+            if not state["show_map"] and config.show_menu:
                 from rendering.menu import draw_menu
                 action = draw_menu(state["screen"], state["WINDOW_WIDTH"], state["WINDOW_HEIGHT"],
                                    config.menu_click_pos)
@@ -681,7 +695,7 @@ def start_game_client(screen: pygame.Surface) -> None:
                 elif action == "quit":
                     state["running"] = False
 
-            if config.show_controls:
+            if not state["show_map"] and config.show_controls:
                 from rendering.controls_settings import draw_controls
                 action = draw_controls(state["screen"], state["WINDOW_WIDTH"],
                                        state["WINDOW_HEIGHT"], config.controls_click_pos)
@@ -692,13 +706,16 @@ def start_game_client(screen: pygame.Surface) -> None:
                 elif action and action.startswith("listen:"):
                     config.controls_listen = action.split(":", 1)[1]
 
-            draw_death_overlay(state["screen"], state["WINDOW_WIDTH"], state["WINDOW_HEIGHT"])
-            draw_toasts(state["screen"], state["WINDOW_WIDTH"], state["WINDOW_HEIGHT"])
-            draw_chat(state["screen"], state["WINDOW_WIDTH"], state["WINDOW_HEIGHT"])
+            if not state["show_map"]:
+                draw_death_overlay(state["screen"], state["WINDOW_WIDTH"], state["WINDOW_HEIGHT"])
+                draw_territory_banner(state["screen"], state["WINDOW_WIDTH"], state["WINDOW_HEIGHT"])
+                draw_toasts(state["screen"], state["WINDOW_WIDTH"], state["WINDOW_HEIGHT"])
+                draw_chat(state["screen"], state["WINDOW_WIDTH"], state["WINDOW_HEIGHT"])
             config.player_pos = state["player_data"]["pos"]
-            draw_minimap(state["screen"], state["WINDOW_WIDTH"], state["WINDOW_HEIGHT"])
+            if not state["show_map"]:
+                draw_minimap(state["screen"], state["WINDOW_WIDTH"], state["WINDOW_HEIGHT"])
 
-            if config.show_stats:
+            if not state["show_map"] and config.show_stats:
                 from rendering.stat_screen import draw_stat_screen
                 action = draw_stat_screen(state["screen"], state["WINDOW_WIDTH"], state["WINDOW_HEIGHT"],
                                           config.stat_click_pos)
@@ -723,7 +740,6 @@ def start_game_client(screen: pygame.Surface) -> None:
         while not chunk_queue.empty():
             chunk_key, tiles = chunk_queue.get()
             world_data.update(tiles)
-            full_world_data.update(tiles)
             config.world_data_loaded_chunks.add(chunk_key)
             chunk_queue.task_done()
         state["screen"].fill((0, 0, 0))

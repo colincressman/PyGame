@@ -8,6 +8,7 @@ from input.resource_node_data import NODE_RENDER_SCALE, NODE_SIZE_DEFAULT, Y_SOR
 from shared_lock import data_lock
 from rendering.light_sources import apply_light_holes as _apply_light_holes
 from rendering.projectile_data import PROJECTILE_COLORS, PROJECTILE_GLOBALS
+from rendering.minimap import get_minimap_debug_stats
 
 _MISSING_TILE_SURFACE = None
 
@@ -622,10 +623,47 @@ def draw_projectiles(screen: pygame.Surface) -> None:
 
 
 def draw_info_overlay(screen, font, fps, ping, biome, elevation, player_x, player_y):
-    """Top-left FPS / Ping overlay only — biome/coords live on the minimap HUD."""
-    for i, line in enumerate([f"FPS: {int(fps)}", f"Ping: {ping} ms"]):
+    """Top-left debug overlay toggled by F3; Shift+F3 shows fuller perf stats."""
+    mode = int(getattr(_config, "debug_overlay_mode", 0) or 0)
+    if mode <= 0:
+        return
+
+    lines = [f"FPS: {int(fps)}", f"Ping: {ping} ms"]
+    if mode >= 2:
+        minimap_stats = get_minimap_debug_stats()
+        lines.extend([
+            f"Pos: {player_x:.1f}, {player_y:.1f}",
+            f"Biome: {biome}",
+            f"Elevation: {elevation:.2f}",
+            f"Time: {_config.world_time:.2f}",
+            f"Weather: {_config.weather}",
+            f"Players: {len(_config.players_data)} remote",
+            f"Mobs: {len(_config.mob_entities)}",
+            f"Nodes: {len(_config.world_nodes)}",
+            f"Placed: {len(_config.placed_objects)}",
+            f"Items: {len(_config.world_items)}",
+            f"Chunks loaded: {len(_config.world_data_loaded_chunks)}",
+            f"Chunk cache: {len(_config.chunk_cache)}",
+            f"Queued renders: {_config.render_queue.qsize()}",
+            f"Chunk queue: {_config.chunk_queue.qsize()}",
+            f"Chunk apply: {_config.debug_chunk_apply_ms:.2f} ms / {_config.debug_chunk_apply_count}",
+            f"World recv: {_config.debug_world_recv_ms:.2f} ms / {_config.debug_world_recv_chunks} chunks / {_config.debug_world_recv_nodes} nodes",
+            f"World tiles: {len(_config.world_data)}",
+            f"Map memory: {int(minimap_stats['explored_tiles'])} tiles / {int(minimap_stats['visited_chunks'])} chunks",
+            f"Map cache: corner={'yes' if minimap_stats['corner_ready'] else 'no'} world={'yes' if minimap_stats['world_bg_ready'] else 'no'}",
+        ])
+
+    line_h = font.get_height() + 3
+    width = max(font.size(line)[0] for line in lines) + 16
+    height = len(lines) * line_h + 12
+    panel = pygame.Surface((width, height), pygame.SRCALPHA)
+    panel.fill((0, 0, 0, 155 if mode == 1 else 185))
+    screen.blit(panel, (8, 8))
+    pygame.draw.rect(screen, (80, 110, 150), (8, 8, width, height), 1, border_radius=4)
+
+    for i, line in enumerate(lines):
         text = font.render(line, True, (255, 255, 255))
-        screen.blit(text, (10, 10 + i * 20))
+        screen.blit(text, (16, 14 + i * line_h))
 
 def get_biome_name(tile_type):
     names = {

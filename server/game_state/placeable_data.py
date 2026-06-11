@@ -2,7 +2,7 @@ import json
 import os
 
 
-def _load() -> tuple[dict[int, str], frozenset[str], frozenset[str], dict[str, int], dict[str, str], frozenset[str]]:
+def _load() -> tuple[dict[int, str], frozenset[str], frozenset[str], dict[str, int], dict[str, str], dict[str, str], frozenset[str]]:
     path = os.path.join(
         os.path.dirname(os.path.abspath(__file__)),
         "..",
@@ -18,6 +18,7 @@ def _load() -> tuple[dict[int, str], frozenset[str], frozenset[str], dict[str, i
     solid_types: set[str] = set()
     grow_times: dict[str, int] = {}
     grows_into: dict[str, str] = {}
+    grown_from: dict[str, str] = {}
     nonsolid_types: set[str] = set()
 
     for entry in raw.get("placeables", []):
@@ -33,7 +34,9 @@ def _load() -> tuple[dict[int, str], frozenset[str], frozenset[str], dict[str, i
         if "grow_time" in entry:
             grow_times[obj_type] = int(entry["grow_time"])
         if "grows_into" in entry:
-            grows_into[obj_type] = str(entry["grows_into"])
+            grown_type = str(entry["grows_into"])
+            grows_into[obj_type] = grown_type
+            grown_from[grown_type] = obj_type
 
     return (
         placeable_items,
@@ -41,6 +44,7 @@ def _load() -> tuple[dict[int, str], frozenset[str], frozenset[str], dict[str, i
         frozenset(solid_types),
         grow_times,
         grows_into,
+        grown_from,
         frozenset(nonsolid_types),
     )
 
@@ -51,7 +55,7 @@ def _load() -> tuple[dict[int, str], frozenset[str], frozenset[str], dict[str, i
     SOLID_TYPES,
     GROW_TIMES,
     GROWS_INTO,
+    GROWN_FROM,
     NONSOLID_TYPES,
 ) = _load()
 ITEM_FOR_TYPE = {v: k for k, v in PLACEABLE_ITEMS.items()}
-

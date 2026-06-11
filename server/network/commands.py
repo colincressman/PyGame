@@ -8,6 +8,8 @@ All commands start with '/'.
   /help                         list available commands
   /sethome                      set your personal home point
   /home                         teleport to your saved home point
+  /f ...                        faction commands
+  /private                      click/interact with your next chest to make it private
   /tprequest <player>           request to teleport to a player
   /tpaccept                     accept an incoming tp request
   /tpdeny                       deny an incoming tp request
@@ -37,6 +39,19 @@ from server.ops import (
     is_op, add_op, remove_op,
     ban_player, unban_player,
     op_count, list_ops, list_bans,
+)
+from server.factions import (
+    accept_invite as _accept_faction_invite,
+    claim_chunk_for_player as _claim_faction_chunk,
+    create_faction as _create_faction,
+    get_faction_info as _get_faction_info,
+    get_pending_invite as _get_pending_faction_invite,
+    get_player_faction as _get_player_faction,
+    get_player_power as _get_player_power,
+    invite_player as _invite_to_faction,
+    leave_faction as _leave_faction,
+    get_chunk_owner_for_tile as _get_chunk_owner_for_tile,
+    unclaim_chunk_for_player as _unclaim_faction_chunk,
 )
 
 # Max item ID guard for /give
@@ -137,6 +152,16 @@ def process_command(
             "== General ==",
             "  /sethome            — set your personal home point",
             "  /home               — teleport to your saved home point",
+            "  /f create <name> <tag> — create a faction",
+            "  /f invite <player>  — invite a player to your faction",
+            "  /f join             — accept your pending faction invite",
+            "  /f leave            — leave your faction",
+            "  /f claim            — claim your current chunk",
+            "  /f unclaim          — unclaim your current chunk",
+            "  /f where            — show who owns this chunk",
+            "  /f info [name]      — show faction power and members",
+            "  /f power [player]   — show faction power contribution",
+            "  /private            — make your next targeted chest private",
             "  /tprequest <player> — request to teleport to a player",
             "  /tpaccept          — accept an incoming tp request",
             "  /tpdeny            — deny an incoming tp request",
@@ -184,6 +209,122 @@ def process_command(
         if not _teleport_player(player_id, home_pos, players):
             return []
         return [_reply("Teleported home.")]
+
+    # —— /f ——————————————————————————————————————————————————————————————————————
+    elif cmd == "/f":
+        if not args:
+            pending = _get_pending_faction_invite(player_id)
+            mine = _get_player_faction(player_id, players)
+            lines = [
+                "Faction commands:",
+                "  /f create <name> <tag>",
+                "  /f invite <player>",
+                "  /f join",
+                "  /f leave",
+                "  /f claim",
+                "  /f unclaim",
+                "  /f where",
+                "  /f info [name]",
+                "  /f power [player]",
+            ]
+            if mine:
+                lines.append(f"You are in {mine}.")
+            if pending:
+                lines.append(f"Pending invite: {pending} — use /f join.")
+            return [_reply(line) for line in lines]
+        sub = args[0].lower()
+        if sub == "create":
+            if len(args) < 3:
+                return [_reply("Usage: /f create <name> <tag>")]
+            ok, msg = _create_faction(player_id, args[1], args[2], players)
+            return [_reply(msg)]
+        if sub == "invite":
+            if len(args) < 2:
+                return [_reply("Usage: /f invite <player>")]
+            target = args[1]
+            ok, msg = _invite_to_faction(player_id, target, players)
+            if ok:
+                inviter_faction = _get_player_faction(player_id, players) or "your faction"
+                _notify_player(target, _reply(f"You were invited to {inviter_faction}. Use /f join to accept."))
+            return [_reply(msg)]
+        if sub == "join":
+            ok, msg = _accept_faction_invite(player_id, players)
+            return [_reply(msg)]
+        if sub == "leave":
+            ok, msg = _leave_faction(player_id, players)
+            return [_reply(msg)]
+        if sub == "claim":
+            with players_lock:
+                player = players.get(player_id)
+                if player is None:
+                    return []
+                pos = list(player.get("pos", [0, 0]))
+            ok, msg = _claim_faction_chunk(player_id, int(pos[0]), int(pos[1]), players)
+            return [_reply(msg)]
+        if sub == "unclaim":
+            with players_lock:
+                player = players.get(player_id)
+                if player is None:
+                    return []
+                pos = list(player.get("pos", [0, 0]))
+            ok, msg = _unclaim_faction_chunk(player_id, int(pos[0]), int(pos[1]), players)
+            return [_reply(msg)]
+        if sub == "where":
+            with players_lock:
+                player = players.get(player_id)
+                if player is None:
+                    return []
+                pos = list(player.get("pos", [0, 0]))
+            owner = _get_chunk_owner_for_tile(int(pos[0]), int(pos[1]))
+            if owner is None:
+                return [_reply("This chunk is wilderness.")]
+            info = _get_faction_info(owner, players)
+            if info is None:
+                return [_reply(f"This chunk belongs to {owner}.")]
+            return [_reply(
+                f"This chunk belongs to {owner} [{info.get('tag', '')}] "
+                f"- {len(info.get('claimed_chunks', []))} claimed / {info.get('claim_capacity', 0)} capacity."
+            )]
+        if sub == "info":
+            target_name = args[1] if len(args) > 1 else _get_player_faction(player_id, players)
+            if not target_name:
+                return [_reply("You are not in a faction. Use /f create first.")]
+            info = _get_faction_info(target_name, players)
+            if info is None:
+                return [_reply(f"Faction '{target_name}' does not exist.")]
+            members = ", ".join(info.get("members", [])) or "none"
+            return _reply_usage(
+                f"Faction {target_name} [{info.get('tag', '')}]",
+                f"Leader: {info.get('leader', '-')}",
+                f"Members ({len(info.get('members', []))}): {members}",
+                f"Power: {info.get('current_power', 0):.1f} current / {info.get('effective_power', 0):.1f} effective",
+                f"Claim capacity: {info.get('claim_capacity', 0)} chunks",
+                f"Claimed: {len(info.get('claimed_chunks', []))} chunks",
+                f"Overclaimed by: {info.get('overclaimed_by', 0)} chunks",
+            )
+        if sub == "power":
+            target = args[1] if len(args) > 1 else player_id
+            current, effective = _get_player_power(target, players)
+            faction_name = _get_player_faction(target, players)
+            label = f"{target} ({faction_name})" if faction_name else target
+            return [_reply(f"{label} power: {current:.1f} current / {effective:.1f} effective.")]
+        return [_reply("Unknown faction subcommand. Use /f for help.")]
+
+    # —— /private ————————————————————————————————————————————————————————————————
+    elif cmd == "/private":
+        if args and args[0].lower() in {"off", "cancel"}:
+            _notify_player(player_id, {
+                "type": "private_chest_mode",
+                "enabled": False,
+                "text": "Private chest targeting cancelled.",
+            })
+            return [_reply("Private chest targeting cancelled.")]
+        _notify_player(player_id, {
+            "type": "private_chest_mode",
+            "enabled": True,
+            "text": "Target one of your chests to make it private.",
+        })
+        return [_reply("Private chest mode armed. Click or interact with your chest.")]
 
     # ── /tprequest ─────────────────────────────────────────────────────────
     elif cmd == "/tprequest":

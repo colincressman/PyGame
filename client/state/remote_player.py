@@ -1,5 +1,6 @@
 import time
 from collections import deque
+from state.replication_config import REMOTE_PLAYER_CFG
 
 
 class RemotePlayer:
@@ -7,8 +8,17 @@ class RemotePlayer:
     _WALK_FRAMES = 9
     _ATK_FPS = 14.0
     _ATK_FRAMES = 6
-    _MOVE_DECAY = 0.15
-    _MAX_EXTRAP_TIME = 0.03
+    _MOVE_DECAY = float(REMOTE_PLAYER_CFG.get("move_decay", 0.15))
+    _MAX_EXTRAP_TIME = float(REMOTE_PLAYER_CFG.get("max_extrap_time", 0.03))
+    _INTERP_NEAR_DELAY = float(REMOTE_PLAYER_CFG.get("interp_near_delay", 0.11))
+    _INTERP_MID_DELAY = float(REMOTE_PLAYER_CFG.get("interp_mid_delay", 0.14))
+    _INTERP_FAR_DELAY = float(REMOTE_PLAYER_CFG.get("interp_far_delay", 0.17))
+    _COMBAT_NEAR_DELAY = float(REMOTE_PLAYER_CFG.get("combat_near_delay", 0.08))
+    _COMBAT_MID_DELAY = float(REMOTE_PLAYER_CFG.get("combat_mid_delay", 0.10))
+    _COMBAT_NEAR_DIST_SQ = float(REMOTE_PLAYER_CFG.get("combat_near_dist_sq", 16.0))
+    _COMBAT_MID_DIST_SQ = float(REMOTE_PLAYER_CFG.get("combat_mid_dist_sq", 64.0))
+    _NEAR_DIST_SQ = float(REMOTE_PLAYER_CFG.get("near_dist_sq", 36.0))
+    _MID_DIST_SQ = float(REMOTE_PLAYER_CFG.get("mid_dist_sq", 144.0))
 
     def __init__(self, pos):
         self._time_offset = 0.0
@@ -96,7 +106,9 @@ class RemotePlayer:
             self.walk_frame = 0
             self.walk_timer = 0.0
 
-    def get_render_pos(self, current_time, interp_delay=0.17):
+    def get_render_pos(self, current_time, interp_delay=None):
+        if interp_delay is None:
+            interp_delay = self._INTERP_FAR_DELAY
         if len(self.pos_buffer) < 2:
             return self.pos_buffer[0]["pos"]
         target_time = current_time - interp_delay
@@ -122,13 +134,13 @@ class RemotePlayer:
         dist_sq = dx * dx + dy * dy
 
         if combat_active or self.is_attacking:
-            if dist_sq <= 16.0:
-                return 0.08
-            if dist_sq <= 64.0:
-                return 0.10
+            if dist_sq <= self._COMBAT_NEAR_DIST_SQ:
+                return self._COMBAT_NEAR_DELAY
+            if dist_sq <= self._COMBAT_MID_DIST_SQ:
+                return self._COMBAT_MID_DELAY
 
-        if dist_sq <= 36.0:
-            return 0.11
-        if dist_sq <= 144.0:
-            return 0.14
-        return 0.17
+        if dist_sq <= self._NEAR_DIST_SQ:
+            return self._INTERP_NEAR_DELAY
+        if dist_sq <= self._MID_DIST_SQ:
+            return self._INTERP_MID_DELAY
+        return self._INTERP_FAR_DELAY

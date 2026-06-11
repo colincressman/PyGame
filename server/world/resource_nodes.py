@@ -19,6 +19,7 @@ import threading
 import atexit
 from server.world.tool_data import TOOL_ITEMS, TOOL_DAMAGE, PICK_TIER_RANK
 from server.world.resource_node_data import NODE_TYPES
+from server.game_state.placeable_data import GROWN_FROM
 from server.world.town_gen import get_town_structure_tiles_in_chunk
 from server.world.dungeon_gen import get_dungeon_structure_tiles_in_chunk
 
@@ -183,7 +184,7 @@ def is_depleted(node_id: str) -> bool:
     return False
 
 
-def damage_node(node_id: str, node_def: dict, damage: int = 1) -> list[tuple] | None:
+def damage_node(node_id: str, node_def: dict, damage: int = 1, node_type: str | None = None) -> list[tuple] | None:
     """Deal `damage` points of damage to a node.
 
     Returns:
@@ -197,6 +198,8 @@ def damage_node(node_id: str, node_def: dict, damage: int = 1) -> list[tuple] | 
         and node_def.get("permanent", False)
         and str(node_def.get("tool") or "").startswith("pickaxe")
     )
+    replant_seed_type = GROWN_FROM.get(node_type or "")
+    replant_info: tuple[str, int, int] | None = None
     null_cache_slot = False   # set True when we need to zero the chunk cache entry
     restore_data    = None    # original node dict to save for timed-respawn restoration
 
@@ -218,7 +221,10 @@ def damage_node(node_id: str, node_def: dict, damage: int = 1) -> list[tuple] | 
             destroyed = True
             if is_planted:
                 if planted_persists:
-                    _node_respawn[node_id] = time.time() + node_def["respawn"]
+                    planted = _planted_nodes.get(node_id)
+                    if planted is not None and replant_seed_type:
+                        replant_info = (replant_seed_type, int(planted["wx"]), int(planted["wy"]))
+                    del _planted_nodes[node_id]
                 else:
                     del _planted_nodes[node_id]
             elif node_def.get("permanent"):
@@ -256,10 +262,13 @@ def damage_node(node_id: str, node_def: dict, damage: int = 1) -> list[tuple] | 
 
     _record_update(node_id, depleted=destroyed)
     if is_planted and destroyed:
-        if planted_persists:
-            _record_planted_update(node_id, action="remove")
-        else:
-            _record_planted_update(node_id, action="remove")
+        _record_planted_update(node_id, action="remove")
+    if replant_info is not None:
+        try:
+            from server.game_state.placed_objects import inject_growing_object as _inject_growing_object
+            _inject_growing_object(replant_info[0], replant_info[1], replant_info[2], placed_by="regrowth")
+        except Exception as e:
+            print(f"[NODES] failed to replant {replant_info[0]} at {replant_info[1:]}: {e}")
     if destroyed:
         _save_persistence_async()
 

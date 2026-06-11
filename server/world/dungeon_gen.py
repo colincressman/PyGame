@@ -52,6 +52,19 @@ def get_dungeon_center_tile(acx: int, acy: int) -> tuple:
             acy * CHUNK_SIZE + CHUNK_SIZE // 2)
 
 
+def get_built_dungeons() -> list[dict]:
+    """Return summary data for all dungeons built during this server runtime."""
+    dungeons = []
+    for acx, acy in sorted(_built_dungeons):
+        tx, ty = get_dungeon_center_tile(acx, acy)
+        dungeons.append({
+            "id": f"{acx}_{acy}",
+            "anchor": [acx, acy],
+            "pos": [tx, ty],
+        })
+    return dungeons
+
+
 def get_dungeon_structure_tiles_in_chunk(cx: int, cy: int) -> set[tuple[int, int]]:
     """Return all deterministic dungeon structure tiles that overlap chunk (cx, cy)."""
     min_tx = cx * CHUNK_SIZE

@@ -87,3 +87,4 @@ DEFAULT_PLAYER_APPEARANCE = {
 SETTINGS_DIR = os.path.join(BASE_DIR, "config")
 KEYBINDS_FILE = os.path.join(SETTINGS_DIR, "keybinds.json")
 VISITED_FILE = os.path.join(SETTINGS_DIR, "visited_chunks.json")
+MAP_MEMORY_FILE = os.path.join(SETTINGS_DIR, "map_memory.json")

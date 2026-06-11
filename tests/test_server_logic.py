@@ -1,5 +1,9 @@
 import unittest
 from unittest import mock
+import tempfile
+import os
+import json
+from pathlib import Path
 
 from tests.test_support import find_item
 
@@ -12,6 +16,8 @@ from server.game_state import progression_data
 from server.game_state import placed_objects
 from server.game_state import repair
 from server import item_data
+from server import data_validation
+from server import cleanup
 from server.network import combat, tcp_routes, tcp_state_handlers_v2
 from server.network import commands
 from server import session_auth
@@ -19,6 +25,7 @@ from server.world import npc_shops
 from server.world import resource_node_data
 from server.world import tool_data
 from server.world import world_types
+from server import player_save
 
 
 class GiveItemTests(unittest.TestCase):
@@ -67,6 +74,55 @@ class WorldItemPickupTests(unittest.TestCase):
         mark_dirty.assert_called_once_with("p1")
         self.assertEqual(world_items.world_items, {})
 
+    def test_world_items_persist_and_reload(self):
+        item_id, _item_def = find_item(lambda iid, item: iid != 1 and item.get("stackable"))
+        with tempfile.TemporaryDirectory() as tmpdir:
+            persist_path = os.path.join(tmpdir, "world_items.json")
+            with mock.patch.object(world_items, "_PERSIST_PATH", persist_path), \
+                 mock.patch.object(world_items, "save_persistence_async"):
+                world_items.world_items.clear()
+                world_items._item_cells.clear()
+                world_items.spawn_world_item(item_id, [12.5, 7.25], qty=4)
+                world_items.save_persistence_sync()
+                world_items.world_items.clear()
+                world_items._item_cells.clear()
+
+                world_items.load_persistence()
+
+        self.assertEqual(len(world_items.world_items), 1)
+        restored = next(iter(world_items.world_items.values()))
+        self.assertEqual(restored["item_id"], item_id)
+        self.assertEqual(restored["qty"], 4)
+        self.assertEqual(restored["pos"], [12.5, 7.25])
+        self.assertIn("spawned_at", restored)
+
+    def test_prune_expired_items_unloads_old_drops(self):
+        item_id, _item_def = find_item(lambda iid, item: iid != 1 and item.get("stackable"))
+        with mock.patch.object(world_items, "save_persistence_async") as save_persistence:
+            uid = world_items.spawn_world_item(item_id, [3.0, 4.0], qty=2)
+            world_items.world_items[uid]["spawned_at"] = 10.0
+
+            expired = world_items.prune_expired_items(now=40.0, lifetime=20.0)
+
+        self.assertEqual(expired, [uid])
+        self.assertNotIn(uid, world_items.world_items)
+        self.assertFalse(any(uid in cell for cell in world_items._item_cells.values()))
+        self.assertGreaterEqual(save_persistence.call_count, 2)
+
+
+class CleanupTests(unittest.TestCase):
+    def test_cleanup_stale_players_removes_only_expired_entries(self):
+        cleanup.players = {
+            "fresh": {"last_seen": 95.0},
+            "stale": {"last_seen": 10.0},
+        }
+
+        with mock.patch("server.cleanup.cleanup_player") as cleanup_player:
+            stale_ids = cleanup.cleanup_stale_players(now=100.0, timeout=15.0)
+
+        self.assertEqual(stale_ids, ["stale"])
+        cleanup_player.assert_called_once_with("stale")
+
 
 class TcpStateDispatchTests(unittest.TestCase):
     def test_dispatch_message_returns_false_for_unknown_type(self):
@@ -108,6 +164,29 @@ class TcpStateDispatchTests(unittest.TestCase):
 
         give_item.assert_called_once_with(players["p1"], 2, 1)
         drain.assert_called_once_with(players["p1"]["inventory"], 27)
+        mark_dirty.assert_called_once_with("p1")
+
+    def test_update_appearance_completes_first_join_setup(self):
+        players = {
+            "p1": {
+                "inventory": [None] * 48,
+                "first_join_complete": False,
+            }
+        }
+
+        with mock.patch("server.network.tcp_state_handlers_v2.save_player") as save_player_mock, \
+             mock.patch("server.network.tcp_state_handlers_v2.mark_inventory_dirty") as mark_dirty:
+            tcp_state_handlers_v2._handle_update_appearance(
+                {"type": "update_appearance", "appearance": {"body": "female", "aura": "ice"}},
+                "p1",
+                players,
+                mock.Mock(),
+                {},
+            )
+
+        self.assertTrue(players["p1"]["first_join_complete"])
+        self.assertEqual(players["p1"]["appearance"]["body"], "female")
+        save_player_mock.assert_called_once()
         mark_dirty.assert_called_once_with("p1")
 
 
@@ -278,15 +357,25 @@ class DeathRespawnTests(unittest.TestCase):
                 "bed_spawn": [2.0, 3.0],
             }
         }
+        game_sync._player_positions = {"p1": {"pos": [5.0, 5.0], "vel": [1.0, 0.0], "timestamp": 90.0, "seq": 4}}
+        teleports = []
+        game_sync._send_to_player = lambda pid, packet: teleports.append((pid, packet))
 
         with mock.patch("server.game_state.game_sync.time.time", side_effect=[100.0, 100.0 + game_sync._RESPAWN_DELAY + 0.1]):
             game_sync.tick_player_deaths(players)
             self.assertIn("dead_since", players["p1"])
-            game_sync.tick_player_deaths(players)
+            with mock.patch("server.game_state.sync.invalidate_player") as invalidate_player, \
+                 mock.patch("server.game_state.game_sync.invalidate_player_cache") as invalidate_player_cache:
+                game_sync.tick_player_deaths(players)
+                invalidate_player.assert_called_once_with("p1")
+                invalidate_player_cache.assert_called_once_with("p1")
 
         self.assertEqual(players["p1"]["pos"], [2.0, 3.0])
+        self.assertEqual(game_sync._player_positions["p1"]["pos"], [2.0, 3.0])
+        self.assertEqual(game_sync._player_positions["p1"]["vel"], [0.0, 0.0])
         self.assertNotIn("dead_since", players["p1"])
         self.assertGreater(players["p1"]["health"], 0.0)
+        self.assertEqual(teleports, [("p1", {"type": "teleport", "pos": [2.0, 3.0]})])
 
     def test_tick_player_deaths_uses_origin_fallback_without_bed(self):
         players = {
@@ -303,6 +392,116 @@ class DeathRespawnTests(unittest.TestCase):
 
         self.assertEqual(players["p1"]["pos"], [0.0, 0.0])
         self.assertGreaterEqual(players["p1"]["health"], game_sync._RESPAWN_HP_MIN)
+
+    def test_tick_player_deaths_uses_home_when_bed_missing(self):
+        players = {
+            "p1": {
+                "pos": [5.0, 5.0],
+                "health": 0.0,
+                "health_max": 10.0,
+                "home_pos": [9.0, 11.0],
+            }
+        }
+
+        with mock.patch("server.game_state.game_sync.time.time", side_effect=[300.0, 300.0 + game_sync._RESPAWN_DELAY + 0.1]):
+            game_sync.tick_player_deaths(players)
+            game_sync.tick_player_deaths(players)
+
+        self.assertEqual(players["p1"]["pos"], [9.0, 11.0])
+
+    def test_send_game_state_includes_authoritative_self_position(self):
+        game_sync._players = {
+            "p1": {
+                "pos": [7.0, 13.0],
+                "health": 50.0,
+                "health_max": 100.0,
+                "inventory": [None] * 48,
+                "hotbar_slot": 0,
+                "level": 1,
+                "exp": 0,
+                "exp_next": 100,
+                "stat_points": 0,
+                "coins": 0,
+            }
+        }
+        game_sync._player_positions = {
+            "p1": {"pos": [7.0, 13.0], "vel": [0.0, 0.0], "timestamp": 10.0, "seq": 1}
+        }
+        game_sync._state_send_cache.clear()
+        game_sync._inventory_sent.clear()
+        game_sync._inventory_dirty.clear()
+        game_sync._node_snapshot_sent.clear()
+        game_sync._planted_snapshot_sent.clear()
+
+        sent_payloads = []
+
+        with mock.patch("server.game_state.game_sync.send_json", side_effect=lambda _sock, payload: sent_payloads.append(payload)), \
+             mock.patch("server.game_state.game_sync._get_nearby_placed", return_value=[]), \
+             mock.patch("server.game_state.game_sync._get_npcs_near", return_value=[]), \
+             mock.patch("server.game_state.game_sync._get_dungeons_near", return_value=[]), \
+             mock.patch("server.game_state.game_sync._get_built_dungeons", return_value=[]), \
+             mock.patch("server.game_state.game_sync._get_built_towns", return_value=[]), \
+             mock.patch("server.game_state.game_sync._get_claim_overlays", return_value=[]), \
+             mock.patch("server.game_state.game_sync.get_nearby_items", return_value=[]), \
+             mock.patch("server.game_state.game_sync.get_nearby_mobs", return_value={}), \
+             mock.patch("server.game_state.game_sync._get_node_updates", return_value=[]), \
+             mock.patch("server.game_state.game_sync._get_depleted_snapshot", return_value=[]), \
+             mock.patch("server.game_state.game_sync._get_planted_snapshot", return_value=[]), \
+             mock.patch("server.game_state.game_sync._get_planted_updates", return_value=[]), \
+             mock.patch("server.game_state.game_sync._ensure_towns_near"), \
+             mock.patch("server.game_state.game_sync._ensure_dungeons_near"), \
+             mock.patch("server.game_state.game_sync._check_boss_trigger", return_value=[]), \
+             mock.patch("server.game_state.game_sync._get_weather", return_value="clear", create=True), \
+             mock.patch("server.network.projectiles.get_snapshot", return_value=[]), \
+             mock.patch("server.game_state.game_sync.time.time", return_value=123.0):
+            game_sync.send_game_state("p1", mock.Mock())
+
+        self.assertEqual(sent_payloads[0]["self"]["pos"], [7.0, 13.0])
+
+    def test_tick_player_deaths_drops_partial_stackable_backpack_items(self):
+        players = {
+            "p1": {
+                "pos": [5.0, 6.0],
+                "health": 0.0,
+                "health_max": 100.0,
+                "inventory": [[1, 10], [1000, 1], [2, 1]] + [None] * 45,
+            }
+        }
+        game_sync._player_positions = {}
+
+        dropped = []
+        with mock.patch("server.game_state.game_sync.spawn_world_item", side_effect=lambda item_id, pos, qty=1: dropped.append((item_id, pos, qty))), \
+             mock.patch("server.game_state.game_sync.random.random", side_effect=[0.0, 0.99]), \
+             mock.patch("server.game_state.game_sync.random.uniform", side_effect=[0.1, -0.1]), \
+             mock.patch("server.game_state.game_sync.mark_inventory_dirty") as mark_dirty, \
+             mock.patch("server.game_state.game_sync.time.time", return_value=100.0):
+            game_sync.tick_player_deaths(players)
+
+        self.assertIn("dead_since", players["p1"])
+        self.assertEqual(players["p1"]["inventory"][0], [1, 5])
+        self.assertEqual(players["p1"]["inventory"][1], [1000, 1])
+        self.assertEqual(dropped, [(1, [5.1, 5.9], 5)])
+        mark_dirty.assert_called_once_with("p1")
+
+    def test_tick_player_deaths_keeps_hotbar_items(self):
+        inventory = [None] * 48
+        inventory[27] = [1, 20]
+        players = {
+            "p1": {
+                "pos": [5.0, 6.0],
+                "health": 0.0,
+                "health_max": 100.0,
+                "inventory": inventory,
+            }
+        }
+        game_sync._player_positions = {}
+
+        with mock.patch("server.game_state.game_sync.spawn_world_item") as spawn_drop, \
+             mock.patch("server.game_state.game_sync.time.time", return_value=100.0):
+            game_sync.tick_player_deaths(players)
+
+        self.assertEqual(players["p1"]["inventory"][27], [1, 20])
+        spawn_drop.assert_not_called()
 
 
 class CommandTeleportTests(unittest.TestCase):
@@ -426,12 +625,200 @@ class DataRegistryTests(unittest.TestCase):
         self.assertEqual(world_types.ID_TO_CLIFF[108], "cliff_tall_south")
         self.assertEqual(world_types.WATER_BIOMES, frozenset({0, 3}))
 
+    def test_data_validation_passes_for_live_registry_files(self):
+        self.assertEqual(data_validation.validate_game_data(), [])
+
+    def test_data_validation_reports_broken_cross_file_references(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            (root / "server").mkdir()
+            (root / "data").mkdir()
+            (root / "data" / "shops").mkdir()
+            (root / "data" / "mobs").mkdir()
+
+            (root / "server" / "items.json").write_text(
+                json.dumps({"1": {"name": "Stick", "stackable": True, "max_stack": 99}}),
+                encoding="utf-8",
+            )
+            (root / "server" / "recipes.json").write_text(
+                json.dumps(
+                    {
+                        "10": {
+                            "name": "Bad Recipe",
+                            "ingredients": [[999, 1]],
+                            "result": [1, 1],
+                        }
+                    }
+                ),
+                encoding="utf-8",
+            )
+            (root / "data" / "world_types.json").write_text(
+                json.dumps({"biomes": {"forest": 5}, "cliffs": {}, "water_biomes": []}),
+                encoding="utf-8",
+            )
+            (root / "data" / "tools.json").write_text(
+                json.dumps(
+                    {
+                        "tool_items": {"axe": [1]},
+                        "tool_damage": {"1": 2},
+                        "pick_tier_rank": {"pickaxe": 0},
+                    }
+                ),
+                encoding="utf-8",
+            )
+            (root / "data" / "placeables.json").write_text(
+                json.dumps(
+                    {
+                        "placeables": [
+                            {
+                                "item_id": 1,
+                                "type": "bad_sapling",
+                                "grow_time": 60,
+                                "grows_into": "missing_node",
+                            }
+                        ]
+                    }
+                ),
+                encoding="utf-8",
+            )
+            (root / "data" / "resource_nodes.json").write_text(
+                json.dumps(
+                    {
+                        "tree": {
+                            "yields": [{"item_id": 1234, "min": 1, "max": 1}],
+                            "spawn_biomes": ["unknown_biome"],
+                            "tool": "missing_tool",
+                        }
+                    }
+                ),
+                encoding="utf-8",
+            )
+            (root / "data" / "repair.json").write_text(
+                json.dumps(
+                    {
+                        "range_rules": [{"min_id": 1, "max_id": 10, "material_id": 4321, "qty": 1}],
+                        "part_rules": {"999": {"material_id": 1, "qty": 1}},
+                    }
+                ),
+                encoding="utf-8",
+            )
+            (root / "data" / "shops" / "merchant.json").write_text(
+                json.dumps([{"id": 777, "qty": 1}]),
+                encoding="utf-8",
+            )
+            (root / "data" / "mobs" / "slime.json").write_text(
+                json.dumps(
+                    {
+                        "drop_id": 888,
+                        "spawn_biomes": ["unknown_biome"],
+                        "sprite": {"type": "walk_strip"},
+                    }
+                ),
+                encoding="utf-8",
+            )
+
+            errors = data_validation.validate_game_data(root)
+
+        self.assertTrue(any("recipe 10 ingredient item 999" in error for error in errors))
+        self.assertTrue(any("shop merchant entry 0 item 777" in error for error in errors))
+        self.assertTrue(any("grows_into missing_node" in error for error in errors))
+        self.assertTrue(any("yield item 1234" in error for error in errors))
+        self.assertTrue(any("spawn biome unknown_biome" in error for error in errors))
+        self.assertTrue(any("tool missing_tool" in error for error in errors))
+        self.assertTrue(any("repair range rule 0 material 4321" in error for error in errors))
+        self.assertTrue(any("mob slime drop item 888" in error for error in errors))
+        self.assertTrue(any("mob slime sprite missing path" in error for error in errors))
+
+
+class PersistenceConsistencyTests(unittest.TestCase):
+    def setUp(self):
+        self.orig_objects = dict(placed_objects.placed_objects)
+        self.orig_tile_index = dict(placed_objects._tile_index)
+        self.orig_floor_index = dict(placed_objects._floor_index)
+        self.orig_dirty = placed_objects._dirty
+
+    def tearDown(self):
+        placed_objects.placed_objects.clear()
+        placed_objects.placed_objects.update(self.orig_objects)
+        placed_objects._tile_index.clear()
+        placed_objects._tile_index.update(self.orig_tile_index)
+        placed_objects._floor_index.clear()
+        placed_objects._floor_index.update(self.orig_floor_index)
+        placed_objects._dirty = self.orig_dirty
+
+    def test_load_player_treats_legacy_save_as_first_join_complete(self):
+        with tempfile.TemporaryDirectory() as tmpdir, \
+             mock.patch.object(player_save, "SAVE_DIR", tmpdir):
+            save_path = Path(tmpdir) / "legacy.json"
+            save_path.write_text(
+                json.dumps(
+                    {
+                        "pos": [4, 9],
+                        "inventory": [[10, 3]],
+                    }
+                ),
+                encoding="utf-8",
+            )
+
+            loaded = player_save.load_player("legacy")
+
+        self.assertIsNotNone(loaded)
+        self.assertTrue(loaded["first_join_complete"])
+        self.assertEqual(loaded["inventory"][0], [10, 3])
+        self.assertEqual(len(loaded["inventory"]), 48)
+
+    def test_use_bed_persists_bed_spawn_immediately(self):
+        placed_objects.placed_objects.clear()
+        placed_objects._tile_index.clear()
+        placed_objects._floor_index.clear()
+        placed_objects.placed_objects["bed-1"] = {
+            "type": "bed",
+            "pos": [12, 18],
+            "placed_by": "p1",
+        }
+        placed_objects._tile_index[(12, 18)] = "bed-1"
+        players = {
+            "p1": {
+                "health_max": 100.0,
+                "inventory": [None] * 48,
+                "pos": [12.0, 18.0],
+            }
+        }
+
+        with mock.patch("server.game_state.placed_objects._can_build_at", return_value=True), \
+             mock.patch("server.player_save.save_player") as save_player_mock:
+            ok = placed_objects.use_bed("bed-1", "p1", players)
+
+        self.assertTrue(ok)
+        self.assertEqual(players["p1"]["bed_spawn"], [12, 18])
+        save_player_mock.assert_called_once()
+
+    def test_flush_now_persists_placed_objects_snapshot(self):
+        with tempfile.TemporaryDirectory() as tmpdir, \
+             mock.patch.object(placed_objects, "_SAVE_PATH", os.path.join(tmpdir, "placed_objects.json")):
+            placed_objects.placed_objects.clear()
+            placed_objects._tile_index.clear()
+            placed_objects._floor_index.clear()
+            placed_objects.placed_objects["obj-1"] = {"type": "campfire", "pos": [3, 4], "placed_by": "p1"}
+            placed_objects._tile_index[(3, 4)] = "obj-1"
+            placed_objects._dirty = True
+
+            placed_objects.flush_now()
+
+            saved = json.loads(Path(placed_objects._SAVE_PATH).read_text(encoding="utf-8"))
+
+        self.assertIn("obj-1", saved)
+        self.assertFalse(placed_objects._dirty)
+
 
 class PlacedObjectIndexTests(unittest.TestCase):
     def setUp(self):
         self.orig_objects = dict(placed_objects.placed_objects)
         self.orig_tile_index = dict(placed_objects._tile_index)
         self.orig_floor_index = dict(placed_objects._floor_index)
+        placed_objects.placed_objects.clear()
+        placed_objects._tile_index.clear()
+        placed_objects._floor_index.clear()
 
     def tearDown(self):
         placed_objects.placed_objects.clear()
@@ -505,10 +892,46 @@ class EffectiveHealthTests(unittest.TestCase):
         }
         players["p1"]["inventory"][36] = [9002, 1, {"stats": {"health_max": 774.0}}]
 
-        result = commands.process_command("/heal", "p1", players, mock.Mock())
+        with mock.patch("server.network.commands.is_op", return_value=True):
+            result = commands.process_command("/heal", "p1", players, mock.Mock())
 
         self.assertEqual(players["p1"]["health"], 874.0)
         self.assertEqual(result[0]["text"], "You have been healed.")
+
+
+class PlantedOreRegrowthTests(unittest.TestCase):
+    def tearDown(self):
+        resource_node_data = __import__("server.world.resource_node_data", fromlist=["NODE_TYPES"])
+        resource_nodes = __import__("server.world.resource_nodes", fromlist=["_planted_nodes", "_node_hp", "_node_respawn"])
+        placed_objects.placed_objects.clear()
+        placed_objects._tile_index.clear()
+        placed_objects._floor_index.clear()
+        resource_nodes._planted_nodes.clear()
+        resource_nodes._node_hp.clear()
+        resource_nodes._node_respawn.clear()
+
+    def test_harvested_planted_iron_ore_replants_seed_object(self):
+        from server.world import resource_nodes
+
+        resource_nodes._planted_nodes["planted:test"] = {
+            "type": "iron_ore",
+            "wx": 12,
+            "wy": 18,
+        }
+        node_def = resource_node_data.NODE_TYPES["iron_ore"]
+
+        with mock.patch("server.world.resource_nodes._save_persistence_async"), \
+             mock.patch("server.world.resource_nodes.time.time", return_value=100.0):
+            loot = resource_nodes.damage_node("planted:test", node_def, damage=node_def["hp"], node_type="iron_ore")
+
+        self.assertIsNotNone(loot)
+        self.assertNotIn("planted:test", resource_nodes._planted_nodes)
+        seed_entry = next(
+            obj for obj in placed_objects.placed_objects.values()
+            if obj["type"] == "iron_seed" and obj["pos"] == [12, 18]
+        )
+        self.assertEqual(seed_entry["grow_time"], placed_objects.GROW_TIMES["iron_seed"])
+        self.assertEqual(seed_entry["planted_at"], 100.0)
 
 
 if __name__ == "__main__":

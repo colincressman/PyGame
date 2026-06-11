@@ -1,9 +1,15 @@
 # client/config.py
 import os
 import json
+import time
+import threading
 from queue import Queue
 import queue
 import pygame
+try:
+    import orjson as _fast_json
+except ImportError:
+    _fast_json = None
 from world_types import BIOME_ID_TO_NAME, CLIFF_ID_TO_NAME
 from client_constants import (
     BUFFER_SIZE,
@@ -26,6 +32,7 @@ from client_constants import (
     KEYBINDS_FILE,
     KNOCKBACK_DECAY,
     LOG_FILE,
+    MAP_MEMORY_FILE,
     MINIMAP_PADDING,
     MINIMAP_SIZE,
     MINIMAP_TILE_PX,
@@ -53,12 +60,21 @@ WINDOW_HEIGHT = DEFAULT_WINDOW_HEIGHT
 DEFAULT_PLAYER_ID = DEFAULT_PLAYER_ID_DEFAULT
 DEBUG_MODE = DEFAULT_DEBUG_MODE
 tile_paths = dict(TILE_PATHS)
+debug_overlay_mode = 1 if DEBUG_MODE else 0
+debug_chunk_apply_ms: float = 0.0
+debug_chunk_apply_count: int = 0
+debug_world_recv_ms: float = 0.0
+debug_world_recv_chunks: int = 0
+debug_world_recv_nodes: int = 0
 
 # Game State
 players_data = {}
 world_data = {}
 full_world_data = {}
 client_running = True
+map_memory_dirty: bool = False
+map_memory_last_save: float = 0.0
+_map_memory_lock = threading.Lock()
 
 # Ping tracking
 ping = 0
@@ -69,6 +85,7 @@ awaiting_ping = False
 chunk_cache = {}
 map_surface_cache = None
 last_player_chunk = None
+last_cache_cleanup_chunk = None
 world_data_loaded_chunks: set = set()  # tracks which (cx,cy) chunks have tile data in world_data
 is_fullscreen = False
 screen = None
@@ -109,6 +126,20 @@ sleeping   = False   # True while the server has this player marked as sleeping
 # Weather (server-authoritative): "clear" | "cloudy" | "rain" | "snow" | "fog"
 weather: str = "clear"
 
+# Territory / faction-claim HUD state
+current_territory_owner: str | None = None
+current_territory_tag: str | None = None
+territory_state_ready: bool = False
+territory_banner_text: str = ""
+territory_banner_started_at: float = 0.0
+territory_banner_until: float = 0.0
+
+# Shared map / POI state
+known_dungeons: dict = {}
+known_towns: dict = {}
+faction_claims: list = []
+waypoints: list = []
+
 # Minimap HUD info — updated every frame in client.py
 current_biome_name: str   = ""
 current_elevation: float  = 0.0
@@ -147,6 +178,7 @@ station_popup_tab: str = "weapon"   # active tab for crafting_table popup
 open_chest_uid: str | None = None   # uid of the chest currently open, or None
 chest_drag_slot: int | None = None  # chest-side slot being dragged from, or None
 chest_ui_hold_until: float = 0.0    # briefly preserve optimistic chest state across stale server snapshots
+pending_private_chest: bool = False
 
 # Part Combiner state
 combiner_slots: list = [None, None, None, None]  # inv slot indices for [Mold, Primary, Handle, Binding]
@@ -263,6 +295,7 @@ shop_tab: str                = "buy" # "buy" | "sell"
 # ---------------------------------------------------------------------------
 player_appearance: dict = dict(DEFAULT_PLAYER_APPEARANCE)
 show_char_creator: bool = False      # True while the character editor screen is open
+first_join_setup_required: bool = False
 
 # ---------------------------------------------------------------------------
 # Active projectiles (server-authoritative, rendered client-side)
@@ -274,6 +307,8 @@ projectiles: list = []   # list of {"uid", "pos": [x,y], "element"}
 # ---------------------------------------------------------------------------
 _SETTINGS_DIR = SETTINGS_DIR
 _KEYBINDS_FILE = KEYBINDS_FILE
+_MAP_MEMORY_FILE = MAP_MEMORY_FILE
+_MAP_MEMORY_SAVE_INTERVAL = 60.0
 
 
 def load_keybinds() -> None:
@@ -325,6 +360,194 @@ def save_visited_chunks() -> None:
         pass
 
 
+def _serialize_map_tile(tile):
+    if isinstance(tile, dict):
+        out = {}
+        for key in ("biome", "elevation", "cliff"):
+            if key in tile:
+                out[key] = tile[key]
+        return out
+    return tile
+
+
+def _deserialize_map_tile(tile):
+    if isinstance(tile, dict):
+        return dict(tile)
+    return tile
+
+
+def mark_map_memory_dirty() -> None:
+    global map_memory_dirty
+    with _map_memory_lock:
+        map_memory_dirty = True
+
+
+def remember_world_tiles(tiles: dict) -> None:
+    global map_memory_dirty
+    changed = False
+    with _map_memory_lock:
+        for key, value in tiles.items():
+            stored = _serialize_map_tile(value)
+            if full_world_data.get(key) != stored:
+                full_world_data[key] = stored
+                changed = True
+        if changed:
+            map_memory_dirty = True
+
+
+def save_map_memory(force: bool = False) -> None:
+    global map_memory_dirty, map_memory_last_save
+    now = time.time()
+    with _map_memory_lock:
+        if not force and (not map_memory_dirty or now - map_memory_last_save < _MAP_MEMORY_SAVE_INTERVAL):
+            return
+        tiles_snapshot = [
+            [tx, ty, _serialize_map_tile(tile)]
+            for (tx, ty), tile in full_world_data.items()
+        ]
+        dungeons_snapshot = list(known_dungeons.values())
+        towns_snapshot = list(known_towns.values())
+        waypoints_snapshot = list(waypoints)
+    try:
+        os.makedirs(_SETTINGS_DIR, exist_ok=True)
+        payload = {
+            "tiles": tiles_snapshot,
+            "dungeons": dungeons_snapshot,
+            "towns": towns_snapshot,
+            "waypoints": waypoints_snapshot,
+        }
+        if _fast_json is not None:
+            with open(_MAP_MEMORY_FILE, "wb") as _f:
+                _f.write(_fast_json.dumps(payload))
+        else:
+            with open(_MAP_MEMORY_FILE, "w", encoding="utf-8") as _f:
+                json.dump(payload, _f)
+        with _map_memory_lock:
+            map_memory_dirty = False
+            map_memory_last_save = now
+    except OSError:
+        pass
+
+
+def load_map_memory() -> None:
+    global map_memory_dirty, map_memory_last_save, waypoints
+    try:
+        with open(_MAP_MEMORY_FILE, "r", encoding="utf-8") as _f:
+            payload = json.load(_f)
+    except (FileNotFoundError, json.JSONDecodeError, OSError):
+        return
+
+    with _map_memory_lock:
+        tiles = payload.get("tiles", [])
+        if isinstance(tiles, list):
+            for entry in tiles:
+                if not isinstance(entry, list) or len(entry) != 3:
+                    continue
+                tx, ty, tile = entry
+                full_world_data[(int(tx), int(ty))] = _deserialize_map_tile(tile)
+
+        for dng in payload.get("dungeons", []):
+            if isinstance(dng, dict) and "id" in dng:
+                known_dungeons[str(dng["id"])] = dict(dng)
+        for town in payload.get("towns", []):
+            if isinstance(town, dict) and "id" in town:
+                known_towns[str(town["id"])] = dict(town)
+        loaded_waypoints = payload.get("waypoints", [])
+        if isinstance(loaded_waypoints, list):
+            waypoints = [dict(wp) for wp in loaded_waypoints if isinstance(wp, dict)]
+
+        map_memory_dirty = False
+        map_memory_last_save = time.time()
+
+
+def merge_known_dungeons(dungeons: list) -> None:
+    global map_memory_dirty
+    changed = False
+    with _map_memory_lock:
+        for dng in dungeons or []:
+            if not isinstance(dng, dict):
+                continue
+            dng_id = dng.get("id")
+            if not dng_id:
+                continue
+            entry = dict(dng)
+            if known_dungeons.get(dng_id) != entry:
+                known_dungeons[dng_id] = entry
+                changed = True
+        if changed:
+            map_memory_dirty = True
+
+
+def merge_known_towns(towns: list) -> None:
+    global map_memory_dirty
+    changed = False
+    with _map_memory_lock:
+        for town in towns or []:
+            if not isinstance(town, dict):
+                continue
+            town_id = town.get("id")
+            if not town_id:
+                continue
+            entry = dict(town)
+            if known_towns.get(town_id) != entry:
+                known_towns[town_id] = entry
+                changed = True
+        if changed:
+            map_memory_dirty = True
+
+
+def add_waypoint(tile_x: int, tile_y: int) -> dict:
+    global map_memory_dirty
+    with _map_memory_lock:
+        next_idx = 1
+        for wp in waypoints:
+            try:
+                next_idx = max(next_idx, int(str(wp.get("id", "wp-0")).split("-")[-1]) + 1)
+            except ValueError:
+                continue
+        waypoint = {
+            "id": f"wp-{next_idx}",
+            "name": f"Waypoint {next_idx}",
+            "pos": [int(tile_x), int(tile_y)],
+        }
+        waypoints.append(waypoint)
+        map_memory_dirty = True
+        return waypoint
+
+
+def remove_nearest_waypoint(tile_x: int, tile_y: int, max_dist: float = 10.0) -> dict | None:
+    global map_memory_dirty
+    with _map_memory_lock:
+        best_idx = None
+        best_dsq = max_dist * max_dist
+        for idx, wp in enumerate(waypoints):
+            pos = wp.get("pos")
+            if not isinstance(pos, list) or len(pos) != 2:
+                continue
+            dx = float(pos[0]) - float(tile_x)
+            dy = float(pos[1]) - float(tile_y)
+            dsq = dx * dx + dy * dy
+            if dsq <= best_dsq:
+                best_dsq = dsq
+                best_idx = idx
+        if best_idx is None:
+            return None
+        removed = waypoints.pop(best_idx)
+        map_memory_dirty = True
+        return removed
+
+
+def run_map_memory_saver() -> None:
+    """Background autosave loop for exploration memory so disk I/O never blocks rendering."""
+    my_session = session_id
+    while session_id == my_session and client_running:
+        try:
+            save_map_memory()
+        except Exception:
+            pass
+        time.sleep(1.0)
+
+
 def _tile_int_pair(pos_x, pos_y):
     return int(pos_x), int(pos_y)
 
@@ -360,6 +583,19 @@ def upsert_world_node(node_id: str, node: dict) -> None:
     world_nodes[node_id] = node
     tile = _tile_int_pair(node.get("wx", 0), node.get("wy", 0))
     node_by_tile.setdefault(tile, set()).add(node_id)
+
+
+def add_world_nodes_bulk(new_nodes: dict[str, dict]) -> int:
+    """Add only genuinely-new world nodes without rebuilding global indexes."""
+    added = 0
+    for node_id, node in new_nodes.items():
+        if node_id in world_nodes:
+            continue
+        world_nodes[node_id] = node
+        tile = _tile_int_pair(node.get("wx", 0), node.get("wy", 0))
+        node_by_tile.setdefault(tile, set()).add(node_id)
+        added += 1
+    return added
 
 
 def remove_world_node(node_id: str):
@@ -495,3 +731,5 @@ def iter_placed_objects_near(pos_x: float, pos_y: float, radius_tiles: float, in
 load_keybinds()
 # Load persisted map exploration history.
 load_visited_chunks()
+# Load persisted map memory / POIs.
+load_map_memory()

@@ -91,8 +91,16 @@ The next main workstream is `Priority 6` server/world performance:
 
 - visible-chunk payload construction
 - nearby entity/item query costs
-- mob separation scaling
 - chunk I/O / cache benchmarking
+- remaining network/persistence benchmarking
+- chunk I/O / cache benchmarking
+
+Recent `Priority 6` wins already landed:
+
+- server-side world chunk sync no longer rebuilds payloads for chunks already known by the client
+- server now keeps a bounded in-memory chunk cache instead of letting explored chunk residency grow forever
+- planted nodes now use snapshot-once plus delta sync, and planted ore deposits regrow after harvest instead of disappearing forever
+- default runtime debug spam is now much lower, with opt-in environment flags for verbose diagnostics
 
 ## Multiplayer Notes
 
@@ -107,6 +115,12 @@ Result:
 - multiplayer world state remains stable with multiple players online
 - mobs are now a high-quality reference implementation for entity smoothing
 - remote players remain smooth while feeling sharper in PvP range
+
+## Runtime Notes
+
+- Verbose runtime diagnostics are now quiet by default during normal play.
+- Set `PYGAME_M_DEBUG_LOGS=1` to restore verbose server/client debug diagnostics.
+- Set `PYGAME_M_CONSOLE_LOGS=1` to restore routine client info logs to the console.
 
 See [todo_06022026.md](C:/Users/colin/OneDrive/Desktop/Projects/PyGame_Working/PyGame_M/todo_06022026.md:1) for the active roadmap and [codex_working_notes_06032026.md](C:/Users/colin/OneDrive/Desktop/Projects/PyGame_Working/PyGame_M/codex_working_notes_06032026.md:1) for the rolling architecture reference.
 

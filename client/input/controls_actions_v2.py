@@ -8,6 +8,23 @@ import config
 _WAND_IDS = frozenset({1800, 1801, 1802, 1803, 1804, 1805})
 
 
+def _apply_optimistic_node_hit(node_id: str, damage: int) -> None:
+    """Advance the local node health bar without removing the node before server confirmation."""
+    node = config.world_nodes.get(node_id)
+    if node is None:
+        return
+    if node.get("type") == "item_drop":
+        uid = node_id[5:]
+        config.world_items = {k: v for k, v in config.world_items.items() if k != uid}
+        return
+    max_hp = max(1, int(node.get("max_hp", 1)))
+    current_hits = int(node.get("hits", 0))
+    next_hits = current_hits + max(1, int(damage))
+    # Leave the final removal to the server so tough nodes don't visually "break"
+    # early and then pop back in if one more validated hit is still required.
+    node["hits"] = min(next_hits, max_hp - 1) if max_hp > 1 else 0
+
+
 def handle_smart_action(is_consumable_fn, has_tool_fn, best_tool_damage_fn, hotbar_offset: int) -> None:
     active_slot = hotbar_offset + config.hotbar_slot
     item = config.player_inventory[active_slot]
@@ -50,15 +67,9 @@ def handle_smart_action(is_consumable_fn, has_tool_fn, best_tool_damage_fn, hotb
         if best_id is not None:
             config.state_outbox.put({"type": "gather", "node_id": best_id})
             node = config.world_nodes.get(best_id)
-            if node is not None:
-                if node.get("type") == "item_drop":
-                    uid = best_id[5:]
-                    config.world_items = {k: v for k, v in config.world_items.items() if k != uid}
-                required = node_tool.get(node.get("type", ""))
-                dmg = best_tool_damage_fn(required) if required else 1
-                node["hits"] = node.get("hits", 0) + dmg
-                if node["hits"] >= node.get("max_hp", 1):
-                    config.remove_world_node(best_id)
+            required = node_tool.get(node.get("type", "")) if node is not None else None
+            dmg = best_tool_damage_fn(required) if required else 1
+            _apply_optimistic_node_hit(best_id, dmg)
             config.is_attacking = True
         return
 

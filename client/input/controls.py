@@ -2,6 +2,7 @@ import pygame
 import time
 import config
 from input.controls_actions_v2 import handle_smart_action as _handle_smart_action_v2
+from input.controls_actions_v2 import _apply_optimistic_node_hit
 from input.controls_building import handle_world_left_click
 from input.controls_chat import handle_chat_keydown, handle_keybind_listen, try_open_chat
 from input.controls_inventory import (
@@ -64,10 +65,36 @@ def _best_tool_damage(tool_type: str) -> int:
     return 1
 
 
+def _can_access_chest(obj: dict) -> bool:
+    owner = obj.get("private_owner")
+    if not owner:
+        return True
+    from state.player import player_id_dict
+    player_id = player_id_dict.get("player_id")
+    if player_id == owner:
+        return True
+    shared_with = obj.get("shared_with", [])
+    return isinstance(shared_with, list) and player_id in shared_with
+
+
 def handle_events(state):
     for event in pygame.event.get():
         if handle_shop_event(event, state):
             continue
+        if state.get("show_map") and event.type == pygame.MOUSEBUTTONDOWN and event.button == 3:
+            from rendering.hud import show_toast
+            from rendering.minimap import world_map_tile_at_screen
+            tile = world_map_tile_at_screen(
+                state["WINDOW_WIDTH"], state["WINDOW_HEIGHT"], event.pos[0], event.pos[1]
+            )
+            if tile is not None:
+                if pygame.key.get_mods() & pygame.KMOD_SHIFT:
+                    removed = config.remove_nearest_waypoint(tile[0], tile[1])
+                    show_toast(f"Removed {removed['name']}" if removed else "No waypoint nearby.")
+                else:
+                    waypoint = config.add_waypoint(tile[0], tile[1])
+                    show_toast(f"Added {waypoint['name']}")
+                continue
         # ── Char creator: intercept mouse/scroll when creator is open ───────
         if config.show_char_creator:
             if event.type == pygame.MOUSEWHEEL:
@@ -93,12 +120,13 @@ def handle_events(state):
             if event.key == config.keybinds["map"]:
                 state["show_map"] = not state["show_map"]
                 state["map_needs_redraw"] = state["show_map"]
-            elif event.key == pygame.K_c and not config.chat_open:
-                # C = toggle character creator
+            elif event.key == pygame.K_c and (event.mod & pygame.KMOD_CTRL) and not config.chat_open:
+                # Ctrl+C = toggle character creator
                 if (not config.show_inventory and not config.show_menu
                         and not config.show_stats and not config.show_shop
                         and config.show_station_popup is None):
-                    config.show_char_creator = not config.show_char_creator
+                    from rendering.char_creator import toggle_char_creator
+                    toggle_char_creator()
             elif event.key == config.keybinds["roll"]:
                 # Space → dodge roll in the direction currently held
                 if (not config.show_inventory and not config.show_menu
@@ -152,7 +180,14 @@ def handle_events(state):
                         if dsq < best_ch_dsq:
                             best_ch_dsq, best_ch_uid = dsq, uid
                     if best_ch_uid is not None:
-                        config.open_chest_uid = best_ch_uid
+                        chest_obj = config.placed_objects.get(best_ch_uid, {})
+                        if config.pending_private_chest:
+                            config.state_outbox.put({"type": "set_private_chest", "uid": best_ch_uid})
+                        elif _can_access_chest(chest_obj):
+                            config.open_chest_uid = best_ch_uid
+                        else:
+                            from rendering.hud import show_toast
+                            show_toast("That chest is private.")
                     else:
                         # 1. Open nearby crafting station
                         best_st_uid, best_st_dsq = None, 2.25
@@ -194,13 +229,7 @@ def handle_events(state):
                                     config.state_outbox.put({"type": "gather", "node_id": best_id})
                                     node = config.world_nodes.get(best_id)
                                     if node is not None:
-                                        if node.get("type") == "item_drop":
-                                            # Optimistic removal of the item sprite too
-                                            uid = best_id[5:]
-                                            config.world_items = {k: v for k, v in config.world_items.items() if k != uid}
-                                        node["hits"] = node.get("hits", 0) + 1
-                                        if node["hits"] >= node.get("max_hp", 1):
-                                            config.remove_world_node(best_id)
+                                        _apply_optimistic_node_hit(best_id, 1)
             elif event.key == pygame.K_z:
                 # Z = toggle pickup mode (click placed objects to pick them up)
                 if (not config.show_inventory
@@ -238,6 +267,11 @@ def handle_events(state):
                             config.state_outbox.put({"type": "use_bed", "uid": best_uid})
             elif pygame.K_1 <= event.key <= pygame.K_9:
                 config.hotbar_slot = event.key - pygame.K_1
+            elif event.key == pygame.K_F3:
+                if pygame.key.get_mods() & pygame.KMOD_SHIFT:
+                    config.debug_overlay_mode = 0 if config.debug_overlay_mode == 2 else 2
+                else:
+                    config.debug_overlay_mode = 0 if config.debug_overlay_mode in (1, 2) else 1
             elif event.key == pygame.K_F11:
                 toggle_fullscreen(state)
             elif event.key == pygame.K_ESCAPE:
@@ -251,7 +285,8 @@ def handle_events(state):
                     _close_shop()
                     return
                 if config.show_char_creator:
-                    config.show_char_creator = False
+                    from rendering.char_creator import close_char_creator
+                    close_char_creator()
                     return
                 if config.show_station_popup is not None:
                     if config.show_station_popup == "part_combiner":
@@ -276,6 +311,9 @@ def handle_events(state):
                     return
                 elif config.show_controls:
                     config.show_controls = False
+                    return
+                elif config.pending_private_chest:
+                    config.pending_private_chest = False
                     return
                 else:
                     config.show_menu = not config.show_menu
@@ -563,6 +601,11 @@ def handle_events(state):
                         config.drag_item = list(config.player_inventory[idx])
                         config.player_inventory[idx] = None
             elif event.button == 1 and not (config.show_stats or config.show_menu):
+                if config.pending_private_chest:
+                    target_uid, target_obj = config.get_placed_object_at_tile(config.mouse_tile, include_floor=False)
+                    if target_uid is not None and target_obj is not None and target_obj.get("type") == "chest":
+                        config.state_outbox.put({"type": "set_private_chest", "uid": target_uid})
+                        continue
                 handle_world_left_click(
                     _is_consumable,
                     _has_tool,

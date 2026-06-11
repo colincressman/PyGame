@@ -13,6 +13,7 @@ from server.network.combat import handle_attack
 from server.ops import is_banned
 from server.session_auth import issue_token, verify_token
 from server.world.world_types import WATER_BIOMES
+from server.factions import refresh_online_player_power
 
 # Minimum interval between accepted movement packets per client (half the server tick period)
 _UDP_MIN_INTERVAL = 1.0 / (TICK_RATE * 2)
@@ -128,6 +129,7 @@ def udp_loop():
 
                     raw_pos   = (saved or {}).get("pos", last_positions.pop(new_id, [0, 0]))
                     spawn_pos = _safe_spawn_pos(raw_pos)
+                    is_new_player = saved is None
                     stats = {**default_player_stats(), **(saved or {})}
                     # Pad inventory to 48 slots (old saves may have fewer slots)
                     _inv = list(stats.get("inventory", []))
@@ -135,6 +137,7 @@ def udp_loop():
                         _inv += [None] * (48 - len(_inv))
                     stats["inventory"] = _inv
                     player_id = new_id
+                    faction_power = refresh_online_player_power(player_id, players)
                     players[player_id] = {
                         "pos":            spawn_pos,
                         "health":         stats["health"],
@@ -150,9 +153,13 @@ def udp_loop():
                         "exp_next":       stats.get("exp_next",       100),
                         "stat_points":    stats.get("stat_points",    0),
                         "coins":          stats.get("coins",          0),
+                        "faction_power":  faction_power,
                         "inventory":      stats["inventory"],
-                        "last_seen":      time.time()
+                        "last_seen":      time.time(),
+                        "first_join_complete": bool(stats.get("first_join_complete", not is_new_player)),
                     }
+                    if "faction" in stats:
+                        players[player_id]["faction"] = stats["faction"]
                     if "bed_spawn" in stats:
                         players[player_id]["bed_spawn"] = stats["bed_spawn"]
                     if "home_pos" in stats:
@@ -172,6 +179,7 @@ def udp_loop():
                     "player_id": player_id,
                     "pos": spawn_pos,
                     "session_token": assigned_token,
+                    "setup_required": not bool(stats.get("first_join_complete", not is_new_player)),
                 })
                 sock.sendto(struct.pack("!I", len(response)) + response, addr)
                 print(f"[UDP ASSIGN] {player_id} assigned to {addr}")
@@ -183,6 +191,9 @@ def udp_loop():
             elif payload.get("type") == "attack":
                 if not verify_token(player_id, session_token):
                     continue
+                with players_lock:
+                    if not players.get(player_id, {}).get("first_join_complete", True):
+                        continue
                 # Must be checked BEFORE `elif pos` — attack packets also carry a pos field.
                 from server.mobs.mob_manager import mobs
                 direction = payload.get("direction", "down")
@@ -237,6 +248,12 @@ def udp_loop():
                 with players_lock:
                     if player_id not in players:
                         continue  # stale update from a disconnected client
+                    if not players[player_id].get("first_join_complete", True):
+                        players[player_id]["last_seen"] = now_t
+                        continue
+                    if "dead_since" in players[player_id]:
+                        players[player_id]["last_seen"] = now_t
+                        continue
                     old_pos = players[player_id].get("old_pos", pos)
                     dx = pos[0] - old_pos[0]
                     dy = pos[1] - old_pos[1]

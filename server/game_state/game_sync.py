@@ -1,7 +1,7 @@
 from server.network.net_utils import send_json
 from server.shared_lock import players_lock
 from server.item_data import get_effective_health_max, get_equip_bonuses, get_hotbar_bonus
-from server.game_state.world_items import get_nearby_items
+from server.game_state.world_items import get_nearby_items, spawn_world_item
 from server.game_state.placed_objects import get_nearby as _get_nearby_placed
 from server.mobs.mob_manager import get_nearby_mobs
 from server.world.resource_nodes import (
@@ -10,7 +10,11 @@ from server.world.resource_nodes import (
     get_recent_planted_updates as _get_planted_updates,
     get_depleted_snapshot as _get_depleted_snapshot,
 )
-from server.world.town_gen import get_npcs_near as _get_npcs_near, ensure_towns_near as _ensure_towns_near
+from server.world.town_gen import (
+    get_built_towns as _get_built_towns,
+    get_npcs_near as _get_npcs_near,
+    ensure_towns_near as _ensure_towns_near,
+)
 from server.config import (
     CHUNK_SIZE as _CHUNK_SIZE,
     RESPAWN_DELAY as _RESPAWN_DELAY,
@@ -22,13 +26,24 @@ from server.config import (
     DAY_END_HOUR as _DAY_END_HOUR,
     INVENTORY_SIZE as _INVENTORY_SIZE,
     KNOCKBACK_DECAY as _KNOCKBACK_DECAY,
+    DEATH_DROP_SLOT_CHANCE as _DEATH_DROP_SLOT_CHANCE,
+    DEATH_DROP_STACK_FRACTION as _DEATH_DROP_STACK_FRACTION,
 )
 from server.world.dungeon_gen import (
+    get_built_dungeons as _get_built_dungeons,
     ensure_dungeons_near  as _ensure_dungeons_near,
     get_dungeons_near     as _get_dungeons_near,
     check_boss_trigger    as _check_boss_trigger,
 )
 from server.mobs.mob_manager import spawn_boss_at as _spawn_boss_at, mobs_lock as _mobs_lock
+from server.factions import apply_death_penalty as _apply_faction_death_penalty
+from server.factions import get_claim_overlays as _get_claim_overlays
+from server.factions import get_chunk_owner_for_tile as _get_chunk_owner_for_tile
+from server.factions import get_faction_info as _get_faction_info
+from server.factions import get_player_faction as _get_player_faction
+from server.factions import get_player_faction_tag as _get_player_faction_tag
+from server.factions import get_player_power as _get_player_power
+from server.game_state.replication_config import SERVER_REPLICATION_CFG
 
 # Track last chunk per player so we only trigger town builds on chunk transitions
 _player_last_build_chunk: dict = {}
@@ -36,6 +51,7 @@ import threading
 import time
 import math
 import os
+import random
 
 _debug_last_log: dict[str, float] = {}
 _VERBOSE_DEBUG = os.environ.get("PYGAME_M_DEBUG_LOGS", "").lower() in {"1", "true", "yes", "on"}
@@ -124,6 +140,7 @@ def _skip_to_morning() -> None:
 
 _players = None
 _player_positions = None
+_send_to_player = None
 
 # Dirty flag — set when inventory is mutated (swap/craft/sell); cleared after sending
 _inventory_lock: threading.Lock = threading.Lock()
@@ -133,10 +150,10 @@ _node_snapshot_sent: set = set()  # players who have received the initial deplet
 _planted_snapshot_sent: set = set()  # players who have received the initial planted-nodes snapshot
 _state_send_cache: dict[str, dict] = {}
 
-_DYNAMIC_INTERVAL = 0.08
-_WORLD_INTERVAL = 0.25
-_TIME_INTERVAL = 0.25
-_MOB_SYNC_INTERVAL = 0.04
+_DYNAMIC_INTERVAL = float(SERVER_REPLICATION_CFG.get("dynamic_interval", 0.08))
+_WORLD_INTERVAL = float(SERVER_REPLICATION_CFG.get("world_interval", 0.25))
+_TIME_INTERVAL = float(SERVER_REPLICATION_CFG.get("time_interval", 0.25))
+_MOB_SYNC_INTERVAL = float(SERVER_REPLICATION_CFG.get("mob_sync_interval", 0.04))
 
 
 def mark_inventory_dirty(player_id: str) -> None:
@@ -273,24 +290,82 @@ def send_mob_sync(player_id: str, sock) -> None:
 
 
 def set_game_state_refs(refs):
-    global _players, _player_positions
+    global _players, _player_positions, _send_to_player
     _players = refs["players"]
     _player_positions = refs["player_positions"]
+    _send_to_player = refs.get("send_to_player")
 
 
 def tick_player_deaths(players: dict) -> None:
     """Called once per world tick. Handles death detection and delayed respawn."""
     now = time.time()
+    respawned: list[tuple[str, list[float]]] = []
     with players_lock:
-        for p in players.values():
+        for pid, p in players.items():
             if p.get("health", 100) <= 0 and "dead_since" not in p:
+                _drop_items_on_death(pid, p)
                 p["dead_since"] = now
+                _apply_faction_death_penalty(pid, players, now=now)
             if "dead_since" in p and now - p["dead_since"] >= _RESPAWN_DELAY:
-                spawn = list(p.get("bed_spawn", [0.0, 0.0]))
+                raw_spawn = p.get("bed_spawn") or p.get("home_pos") or [0.0, 0.0]
+                spawn = list(raw_spawn)
                 p["pos"]        = spawn
+                p["old_pos"]    = list(spawn)
+                seq = int(p.get("seq", 0)) + 1
+                p["seq"]        = seq
                 p["health"]     = max(_RESPAWN_HP_MIN, get_effective_health_max(p) * _RESPAWN_HP_FRACTION)
                 p.pop("dead_since", None)
+                _player_positions[pid] = {
+                    "pos": list(spawn),
+                    "vel": [0.0, 0.0],
+                    "timestamp": now,
+                    "seq": seq,
+                }
+                respawned.append((pid, list(spawn)))
                 print(f"[RESPAWN] player respawned at {spawn}")
+    if not respawned:
+        return
+    from server.game_state.sync import invalidate_player
+    for pid, spawn in respawned:
+        invalidate_player(pid)
+        invalidate_player_cache(pid)
+        if _send_to_player is not None:
+            _send_to_player(pid, {"type": "teleport", "pos": list(spawn)})
+
+
+def _drop_items_on_death(player_id: str, player: dict) -> None:
+    """Drop some stackable backpack items into the world and remove them from inventory."""
+    from server.item_data import get_item
+
+    pos = list(player.get("pos", [0.0, 0.0]))
+    inventory = player.get("inventory", [])
+    dropped_any = False
+    for slot_idx in range(min(27, len(inventory))):
+        slot = inventory[slot_idx]
+        if slot is None or len(slot) < 2:
+            continue
+        item_id = int(slot[0])
+        qty = int(slot[1])
+        if qty <= 1:
+            continue
+        item_def = get_item(item_id)
+        if not item_def.get("stackable", False):
+            continue
+        if random.random() >= _DEATH_DROP_SLOT_CHANCE:
+            continue
+        drop_qty = max(1, int(math.floor(qty * _DEATH_DROP_STACK_FRACTION)))
+        if drop_qty >= qty:
+            drop_qty = qty - 1
+        if drop_qty <= 0:
+            continue
+        offset_x = random.uniform(-0.4, 0.4)
+        offset_y = random.uniform(-0.4, 0.4)
+        spawn_world_item(item_id, [pos[0] + offset_x, pos[1] + offset_y], qty=drop_qty)
+        inventory[slot_idx][1] = qty - drop_qty
+        dropped_any = True
+    if dropped_any:
+        player["inventory"] = inventory
+        mark_inventory_dirty(player_id)
 
 
 def send_game_state(player_id, sock):
@@ -340,6 +415,8 @@ def send_game_state(player_id, sock):
                 "timestamp":  pos_state.get("timestamp"),
                 "seq":        pos_state.get("seq", int(pdata.get("seq", 0))),
                 "health":     pdata.get("health", 100),
+                "faction":    _get_player_faction(pid, _players),
+                "faction_tag": _get_player_faction_tag(pid, _players),
                 "equip":      _equip_ids(pdata),
                 "held_item":  _held_item_id(pdata),
                 "appearance": pdata.get("appearance", {}),
@@ -347,8 +424,13 @@ def send_game_state(player_id, sock):
 
     equip  = get_equip_bonuses(inventory)
     hotbar = get_hotbar_bonus(inventory, me.get("hotbar_slot", 0))
+    faction_power, faction_effective_power = _get_player_power(player_id, _players)
+    territory_owner = _get_chunk_owner_for_tile(int(me.get("pos", [0, 0])[0]), int(me.get("pos", [0, 0])[1]))
+    territory_info = _get_faction_info(territory_owner, _players) if territory_owner else None
+    territory_tag = territory_info.get("tag") if territory_info else None
 
     self_data = {
+        "pos":            list(me.get("pos", [0.0, 0.0])),
         "health":         me.get("health",       100),
         "health_max":     me.get("health_max",   100) + int(equip["health_max"]),
         "stamina_max":    round(me.get("stamina_max",  100.0) + equip["stamina_max"],  2),
@@ -371,6 +453,13 @@ def send_game_state(player_id, sock):
         "poison_timer":   round(me.get("poison_timer", 0.0), 2),
         "burn_timer":     round(me.get("burn_timer",   0.0), 2),
         "appearance":     me.get("appearance", {}),
+        "setup_required": not bool(me.get("first_join_complete", True)),
+        "faction":        _get_player_faction(player_id, _players),
+        "faction_tag":    _get_player_faction_tag(player_id, _players),
+        "faction_power":  faction_power,
+        "faction_effective_power": faction_effective_power,
+        "territory_owner": territory_owner,
+        "territory_tag": territory_tag,
     }
     if knockback:
         # Encode as initial velocity for a client-side exponential decay.
@@ -439,9 +528,12 @@ def send_game_state(player_id, sock):
     }
     if include_world:
         payload["players"] = others
-        payload["placed_objects"] = _get_nearby_placed(px, py)
+        payload["placed_objects"] = _get_nearby_placed(px, py, viewer_id=player_id)
         payload["npcs"] = _get_npcs_near(px, py)
         payload["dungeons"] = _get_dungeons_near(px, py)
+        payload["map_dungeons"] = _get_built_dungeons()
+        payload["towns"] = _get_built_towns()
+        payload["faction_claims"] = _get_claim_overlays(_players)
         cache["world_at"] = now
     if include_dynamic:
         payload["world_items"] = get_nearby_items(px, py, RENDER_DIST_SQ)
@@ -468,7 +560,11 @@ def send_game_state(player_id, sock):
         needs_planted_snapshot = player_id not in _planted_snapshot_sent
         if needs_planted_snapshot:
             _planted_snapshot_sent.add(player_id)
-    if needs_planted_snapshot:
+    # Send the full planted snapshot on first sync and on regular world-sync
+    # ticks so growth that happens while a player is far away or outside the
+    # delta-retention window still appears when they return without needing a
+    # server restart/reconnect.
+    if needs_planted_snapshot or include_world:
         payload["planted_snapshot"] = _get_planted_snapshot()
     planted_updates = _get_planted_updates()
     if planted_updates:

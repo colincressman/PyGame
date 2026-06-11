@@ -23,6 +23,7 @@ _toasts: list[tuple[str, float]] = []   # (text, expiry_unix_time)
 _TOAST_DURATION = 3.5
 _TOAST_FADE     = 0.6   # seconds before expiry to start fading
 _MAX_TOASTS     = 5
+_TERRITORY_BANNER_DURATION = 3.0
 
 
 def show_toast(text: str, duration: float = _TOAST_DURATION) -> None:
@@ -60,6 +61,56 @@ def draw_toasts(screen: pygame.Surface, window_width: int, window_height: int) -
         surf.blit(txt, (tx, 5))
         screen.blit(surf, (0, y))
         y += fh + 12
+
+
+def show_territory_banner(text: str, duration: float = _TERRITORY_BANNER_DURATION) -> None:
+    """Display a location-style banner when crossing faction territory boundaries."""
+    now = time.time()
+    config.territory_banner_text = text
+    config.territory_banner_started_at = now
+    config.territory_banner_until = now + max(0.5, duration)
+
+
+def draw_territory_banner(screen: pygame.Surface, window_width: int, window_height: int) -> None:
+    """Draw a clean territory banner across the top of the screen."""
+    text = getattr(config, "territory_banner_text", "")
+    started_at = float(getattr(config, "territory_banner_started_at", 0.0))
+    until = float(getattr(config, "territory_banner_until", 0.0))
+    if not text or started_at <= 0.0 or until <= 0.0:
+        return
+
+    now = time.time()
+    if now >= until:
+        config.territory_banner_text = ""
+        config.territory_banner_started_at = 0.0
+        config.territory_banner_until = 0.0
+        return
+
+    total = max(0.001, until - started_at)
+    progress = max(0.0, min(1.0, (now - started_at) / total))
+    fade = 1.0
+    if progress < 0.16:
+        fade = progress / 0.16
+    elif progress > 0.82:
+        fade = max(0.0, (1.0 - progress) / 0.18)
+
+    font = _get_font()
+    txt = font.render(text, True, (255, 245, 210))
+    txt_alpha = int(255 * fade)
+    txt.set_alpha(txt_alpha)
+
+    bar_h = txt.get_height() + 14
+    y = 18
+    base = pygame.Surface((window_width, bar_h), pygame.SRCALPHA)
+    base.fill((18, 22, 30, int(120 * fade)))
+    screen.blit(base, (0, y))
+
+    edge = pygame.Surface((window_width, 2), pygame.SRCALPHA)
+    edge.fill((255, 225, 150, int(160 * fade)))
+    screen.blit(edge, (0, y + bar_h - 2))
+
+    tx = (window_width - txt.get_width()) // 2
+    screen.blit(txt, (tx, y + (bar_h - txt.get_height()) // 2))
 
 _font = None
 

@@ -91,4 +91,9 @@ def reset_client_config():
     config.mouse_tile = (0, 0)
     config.placement_blocked = False
     config.pickup_mode = False
+    config.player_dead = False
+    config.is_moving = False
+    config.is_running = False
+    config.is_stealthy = False
+    config.is_blocking = False
     return config

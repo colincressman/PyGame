@@ -1,7 +1,7 @@
 {
   "pos": [
-    828.8675212293916,
-    897.9268294237147
+    850.68,
+    895.82
   ],
   "health": 40.08,
   "health_max": 100,
@@ -16,6 +16,7 @@
   "exp_next": 1000,
   "stat_points": 0,
   "coins": 103,
+  "faction_power": 10.0,
   "inventory": [
     [
       61,
@@ -135,6 +136,7 @@
     null,
     null
   ],
+  "last_seen": 1781059421.2003055,
   "appearance": {
     "body": "female",
     "hair_style": "long",
@@ -143,5 +145,6 @@
     "back_ext": null,
     "back_ext_color": "white",
     "aura": null
-  }
+  },
+  "faction": "fuckoff"
 }

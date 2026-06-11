@@ -31,7 +31,7 @@ main maintenance pressure still lives.
 - `server/game_state/game_sync.py`
   - Builds authoritative game-state payloads.
   - Also owns dedicated mob replication state/cache (`mob_sync`) after the 2026-06-04 multiplayer overhaul.
-  - Hot path: nearby items, placed objects, projectiles, planted nodes, plus per-client mob replication cache.
+  - Hot path: nearby items, placed objects, projectiles, planted-node deltas, plus per-client mob replication cache.
 
 - `server/game_state/status_effects.py`
   - Shared status-effect application and ticking helpers.
@@ -42,10 +42,12 @@ main maintenance pressure still lives.
 
 - `server/world/dyn_chunk_gen.py`
   - Chunk generation, disk load/save, biome IDs, cliff IDs, node attachment.
+  - Now also tracks bounded server-side loaded chunk residency and evicts older distant chunks with an LRU-style last-touch policy.
 
 - `server/world/resource_nodes.py`
   - Deterministic node generation, node HP, respawn, planted nodes, depletion persistence.
-  - Runtime logic now reads shared node/world-type registries, but the module is still a useful hotspot for depletion/respawn behavior audits.
+  - Runtime logic now reads shared node/world-type registries, blocks natural nodes inside town/dungeon footprints, and uses planted-node delta updates.
+  - Planted permanent pickaxe nodes now regrow after harvest instead of being consumed forever.
 
 - `server/world/visible.py`
   - Visible-chunk payload builder.
@@ -77,7 +79,7 @@ main maintenance pressure still lives.
   - TCP/UDP receive handlers and client-side world/state application.
   - `RemotePlayer` has moved out to `client/state/remote_player.py`.
   - Applies `mob_sync` spawn/update/despawn packets into persistent `RemoteMob` entities.
-  - Still owns node respawn/base-cache logic.
+  - Still owns node respawn/base-cache logic, and now applies planted-node snapshot/delta updates separately.
 
 - `client/state/remote_player.py`
   - Remote-player interpolation and presentation state.
@@ -133,13 +135,12 @@ main maintenance pressure still lives.
   - Rebuilds per-call chunk tile key lists before assembling visible chunk payloads.
 
 - `server/game_state/game_sync.py`
-  - Still scans all world items per player for nearby-state payloads.
-  - Mob lifecycle sync is much healthier now, but world-item and some broader payload assembly still have obvious repeated work.
-  - Sends full planted-node snapshot on its slower planted cadence instead of every packet, but that path is still a likely future optimization target.
+  - Mob lifecycle sync is much healthier now, and planted nodes no longer resend full snapshots every interval.
+  - Remaining likely future work is broader payload benchmarking and any additional per-subsystem delta extraction that proves worth it.
 
 - `server/mobs/mob_manager.py`
-  - Mob separation remains O(n^2) over live mobs.
   - AI/state behavior is still monolithic even though the replication side is now much cleaner.
+  - Separation is no longer all-pairs, but the runtime AI/combat loop is still one of the bigger server-side files.
 
 ### Modularity
 
@@ -175,6 +176,11 @@ main maintenance pressure still lives.
 
 - README drift has been a recurring issue; keep `README.md` and `todo_06022026.md` aligned.
 
+- Runtime logging changed on 2026-06-05:
+  - hot-path debug prints are now quiet by default
+  - `PYGAME_M_DEBUG_LOGS=1` restores verbose debug diagnostics
+  - `PYGAME_M_CONSOLE_LOGS=1` restores routine client info logs to the console
+
 ## Useful Mental Model
 
 When debugging a gameplay bug:
@@ -196,7 +202,7 @@ When debugging a gameplay bug:
 ## Next Recommended Refactor Batches
 
 1. Optimize minimap/world-state hot paths
-2. Benchmark and reduce visible-chunk payload rebuild work
-3. Add spatial indexing for mob separation / nearby server queries
-4. Continue modularizing the runtime side of `server/mobs/mob_manager.py` if mob behavior work resumes
+2. Benchmark chunk I/O, serialization, and remaining world-state payload costs
+3. Continue modularizing the runtime side of `server/mobs/mob_manager.py` if mob behavior work resumes
+4. Add hostile-mob light avoidance if gameplay/base-safety tuning is the next design target
 5. If multiplayer tuning resumes, prefer extending the current replicated-entity model rather than reintroducing broad snapshot buckets

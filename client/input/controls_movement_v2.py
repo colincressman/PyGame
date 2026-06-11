@@ -64,6 +64,7 @@ _PLAYER_R = 0.32
 _PLAYER_FEET_Y = 0.75
 _cactus_timer = 0.0
 _CACTUS_HIT_INTERVAL = 1.0
+_MAX_MOVE_STEP = 0.12
 
 
 def _node_collisions(px, py, dt):
@@ -138,6 +139,26 @@ def _node_collisions(px, py, dt):
     return px, py, in_cactus
 
 
+def _move_with_collisions(px: float, py: float, move_x: float, move_y: float, dt: float) -> tuple[float, float, bool]:
+    """Apply movement in small per-axis steps to avoid tunneling through solids."""
+    in_cactus = False
+    distance = math.hypot(move_x, move_y)
+    steps = max(1, int(math.ceil(distance / _MAX_MOVE_STEP)))
+    step_x = move_x / steps
+    step_y = move_y / steps
+
+    for _ in range(steps):
+        if step_x:
+            px += step_x
+            px, py, step_cactus = _node_collisions(px, py, dt)
+            in_cactus = in_cactus or step_cactus
+        if step_y:
+            py += step_y
+            px, py, step_cactus = _node_collisions(px, py, dt)
+            in_cactus = in_cactus or step_cactus
+    return px, py, in_cactus
+
+
 def handle_movement(state, keys, dt):
     global _exhausted, _cactus_timer, _rolling, _roll_timer, _ghost_timer
 
@@ -153,21 +174,15 @@ def handle_movement(state, keys, dt):
             config.roll_cooldown = _ROLL_COOLDOWN
         else:
             # Move at fixed speed in locked direction; still resolve wall/object collisions
-            state["player_data"]["pos"][0] += _roll_dx * _ROLL_SPEED * dt
-            state["player_data"]["pos"][1] += _roll_dy * _ROLL_SPEED * dt
-            state["player_data"]["pos"][0] = max(
-                -WORLD_MAX_TILES, min(WORLD_MAX_TILES, state["player_data"]["pos"][0])
-            )
-            state["player_data"]["pos"][1] = max(
-                -WORLD_MAX_TILES, min(WORLD_MAX_TILES, state["player_data"]["pos"][1])
-            )
-            _rpx, _rpy, _ = _node_collisions(
+            _rpx, _rpy, _ = _move_with_collisions(
                 state["player_data"]["pos"][0],
                 state["player_data"]["pos"][1],
+                _roll_dx * _ROLL_SPEED * dt,
+                _roll_dy * _ROLL_SPEED * dt,
                 dt,
             )
-            state["player_data"]["pos"][0] = _rpx
-            state["player_data"]["pos"][1] = _rpy
+            state["player_data"]["pos"][0] = max(-WORLD_MAX_TILES, min(WORLD_MAX_TILES, _rpx))
+            state["player_data"]["pos"][1] = max(-WORLD_MAX_TILES, min(WORLD_MAX_TILES, _rpy))
             # Emit ghost-trail particles
             _ghost_timer -= dt
             if _ghost_timer <= 0.0:
@@ -181,6 +196,14 @@ def handle_movement(state, keys, dt):
 
     # Block all movement input while chat / any text field is open.
     if config.chat_open:
+        return
+
+    # Dead players wait for the server respawn flow and should not keep walking client-side.
+    if config.player_dead:
+        config.is_moving = False
+        config.is_running = False
+        config.is_stealthy = False
+        config.is_blocking = False
         return
 
     # While sleeping, block all movement. Any WASD press wakes the player.
@@ -255,18 +278,25 @@ def handle_movement(state, keys, dt):
         dx /= length
         dy /= length
         if not config.is_attacking:
-            state["player_data"]["pos"][0] += dx * speed * dt
-            state["player_data"]["pos"][1] += dy * speed * dt
-        state["player_data"]["pos"][0] = max(-WORLD_MAX_TILES, min(WORLD_MAX_TILES, state["player_data"]["pos"][0]))
-        state["player_data"]["pos"][1] = max(-WORLD_MAX_TILES, min(WORLD_MAX_TILES, state["player_data"]["pos"][1]))
-
-    px, py, in_cactus = _node_collisions(
-        state["player_data"]["pos"][0],
-        state["player_data"]["pos"][1],
-        dt,
-    )
-    state["player_data"]["pos"][0] = px
-    state["player_data"]["pos"][1] = py
+            px, py, in_cactus = _move_with_collisions(
+                state["player_data"]["pos"][0],
+                state["player_data"]["pos"][1],
+                dx * speed * dt,
+                dy * speed * dt,
+                dt,
+            )
+            state["player_data"]["pos"][0] = max(-WORLD_MAX_TILES, min(WORLD_MAX_TILES, px))
+            state["player_data"]["pos"][1] = max(-WORLD_MAX_TILES, min(WORLD_MAX_TILES, py))
+        else:
+            in_cactus = False
+    else:
+        px, py, in_cactus = _node_collisions(
+            state["player_data"]["pos"][0],
+            state["player_data"]["pos"][1],
+            dt,
+        )
+        state["player_data"]["pos"][0] = px
+        state["player_data"]["pos"][1] = py
 
     if in_cactus:
         _cactus_timer -= dt
